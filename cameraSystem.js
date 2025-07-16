@@ -4,7 +4,7 @@ export class CameraSystem {
     constructor(player) {
         this.player = player;
         this.camera = null;
-        this.cameraMode = 'firstPerson'; // 'firstPerson', 'thirdPerson'
+        this.cameraMode = 'firstPerson'; // 'firstPerson', 'thirdPerson', 'isometric'
         
         // Camera properties
         this.fov = 75;
@@ -20,6 +20,15 @@ export class CameraSystem {
         // First person camera settings (adjusted for sphere)
         this.firstPersonHeight = 0.8; // Slightly above sphere center
         this.firstPersonSmoothness = 0.05;
+        
+        // Isometric camera settings
+        this.isometricHeight = 50;
+        this.isometricDistance = 30;
+        this.isometricAngle = Math.PI / 4; // 45 degrees
+        this.isometricSmoothness = 0.1;
+        this.isometricPanSpeed = 0.01;
+        this.isometricPanOffset = new THREE.Vector3(0, 0, 0);
+        this.isometricMaxPanDistance = 25;
         
         // Camera shake
         this.shakeIntensity = 0;
@@ -60,6 +69,24 @@ export class CameraSystem {
                 case 'KeyR':
                     this.resetCamera();
                     break;
+            }
+        });
+        
+        // Add mouse listener for isometric panning
+        document.addEventListener('mousemove', (event) => {
+            if (this.cameraMode === 'isometric' && document.pointerLockElement) {
+                const movementX = event.movementX || 0;
+                const movementY = event.movementY || 0;
+                
+                // Pan the camera around the map
+                this.isometricPanOffset.x += movementX * this.isometricPanSpeed;
+                this.isometricPanOffset.z += movementY * this.isometricPanSpeed;
+                
+                // Clamp panning to prevent going too far from the map
+                this.isometricPanOffset.x = Math.max(-this.isometricMaxPanDistance, 
+                    Math.min(this.isometricMaxPanDistance, this.isometricPanOffset.x));
+                this.isometricPanOffset.z = Math.max(-this.isometricMaxPanDistance, 
+                    Math.min(this.isometricMaxPanDistance, this.isometricPanOffset.z));
             }
         });
     }
@@ -110,6 +137,26 @@ export class CameraSystem {
             this.targetLookAt.y += this.firstPersonHeight;
             this.currentLookAt.lerp(this.targetLookAt, this.thirdPersonSmoothness);
             this.camera.lookAt(this.currentLookAt);
+            
+        } else if (this.cameraMode === 'isometric') {
+            // Isometric camera - positioned high above with angled view
+            const basePosition = playerPosition.clone();
+            basePosition.add(this.isometricPanOffset);
+            
+            // Position camera at an angle above the target
+            this.targetPosition.set(
+                basePosition.x + this.isometricDistance * Math.cos(this.isometricAngle),
+                basePosition.y + this.isometricHeight,
+                basePosition.z + this.isometricDistance * Math.sin(this.isometricAngle)
+            );
+            
+            // Apply smooth movement
+            this.camera.position.lerp(this.targetPosition, this.isometricSmoothness);
+            
+            // Look at the target position (player + pan offset)
+            this.targetLookAt.copy(basePosition);
+            this.currentLookAt.lerp(this.targetLookAt, this.isometricSmoothness);
+            this.camera.lookAt(this.currentLookAt);
         }
     }
     
@@ -144,6 +191,11 @@ export class CameraSystem {
         if (this.cameraMode === 'firstPerson') {
             this.cameraMode = 'thirdPerson';
             this.currentLookAt.copy(this.player.getPosition());
+        } else if (this.cameraMode === 'thirdPerson') {
+            this.cameraMode = 'isometric';
+            this.currentLookAt.copy(this.player.getPosition());
+            // Reset pan offset when switching to isometric
+            this.isometricPanOffset.set(0, 0, 0);
         } else {
             this.cameraMode = 'firstPerson';
         }
@@ -156,6 +208,9 @@ export class CameraSystem {
         this.camera.rotation.set(0, 0, 0);
         this.shakeIntensity = 0;
         this.shakeTimer = 0;
+        
+        // Reset isometric pan offset
+        this.isometricPanOffset.set(0, 0, 0);
     }
     
     // Trigger camera shake effect
@@ -207,8 +262,12 @@ export class CameraSystem {
     
     // Set camera mode
     setCameraMode(mode) {
-        if (mode === 'firstPerson' || mode === 'thirdPerson') {
+        if (mode === 'firstPerson' || mode === 'thirdPerson' || mode === 'isometric') {
             this.cameraMode = mode;
+            if (mode === 'isometric') {
+                // Reset pan offset when switching to isometric
+                this.isometricPanOffset.set(0, 0, 0);
+            }
         }
     }
     
@@ -237,5 +296,22 @@ export class CameraSystem {
     // Set third person camera height
     setThirdPersonHeight(height) {
         this.thirdPersonHeight = height;
+    }
+    
+    // Set isometric camera settings
+    setIsometricSettings(height, distance, panSpeed) {
+        if (height !== undefined) this.isometricHeight = height;
+        if (distance !== undefined) this.isometricDistance = distance;
+        if (panSpeed !== undefined) this.isometricPanSpeed = panSpeed;
+    }
+    
+    // Get isometric pan offset
+    getIsometricPanOffset() {
+        return this.isometricPanOffset.clone();
+    }
+    
+    // Reset isometric pan
+    resetIsometricPan() {
+        this.isometricPanOffset.set(0, 0, 0);
     }
 } 

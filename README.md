@@ -4,7 +4,8 @@ A modular Three.js 3D game built with ES6 modules featuring player movement, col
 
 ## Features
 
-- **First-person and third-person camera modes** (Press C to switch)
+- **Three camera modes** - First-person, third-person, and isometric (Press C to cycle)
+- **Isometric map panning** - Move mouse to explore the entire map from above
 - **WASD movement controls** with mouse look
 - **Jumping and gravity** physics
 - **Collision detection** with obstacles and world boundaries
@@ -65,8 +66,9 @@ A modular Three.js 3D game built with ES6 modules featuring player movement, col
 - **Click** - Lock pointer for mouse control
 
 ### Camera
-- **C** - Toggle between first-person and third-person camera
+- **C** - Cycle through camera modes (First Person → Third Person → Isometric)
 - **R** - Reset camera to default position
+- **Mouse** - In isometric mode, pan around the map to explore
 
 ### UI
 - **ESC** - Pause/unpause game

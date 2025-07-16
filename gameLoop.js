@@ -77,7 +77,8 @@ export class GameLoop {
                 playerPosition: this.systems.player ? this.systems.player.position : null,
                 playerHealth: this.systems.player ? this.systems.player.health : null,
                 score: this.systems.collisionSystem ? this.systems.collisionSystem.getScore() : 0,
-                collectibles: this.systems.gridManager ? this.systems.gridManager.getRemainingCollectibles() : 0
+                collectibles: this.systems.gridManager ? this.systems.gridManager.getRemainingCollectibles() : 0,
+                cameraMode: this.systems.cameraSystem ? this.systems.cameraSystem.getCameraMode() : 'firstPerson'
             });
         }
     }

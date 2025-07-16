@@ -51,6 +51,7 @@ export class UIManager {
         this.createPositionDisplay();
         this.createCollectiblesCounter();
         this.createGameTimer();
+        this.createCameraModeDisplay();
         this.createMinimap();
         this.createPauseMenu();
     }
@@ -130,6 +131,24 @@ export class UIManager {
         timerElement.textContent = 'Time: 00:00';
         document.body.appendChild(timerElement);
         this.elements.timerElement = timerElement;
+    }
+    
+    createCameraModeDisplay() {
+        const cameraModeElement = document.createElement('div');
+        cameraModeElement.id = 'camera-mode';
+        cameraModeElement.style.cssText = `
+            position: absolute;
+            top: 80px;
+            left: 10px;
+            color: #87CEEB;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 101;
+        `;
+        cameraModeElement.textContent = 'Camera: First Person';
+        document.body.appendChild(cameraModeElement);
+        this.elements.cameraModeElement = cameraModeElement;
     }
     
     createMinimap() {
@@ -233,6 +252,7 @@ export class UIManager {
         this.gameState.score = gameData.score || 0;
         this.gameState.health = gameData.playerHealth || 100;
         this.gameState.collectibles = gameData.collectibles || 0;
+        this.gameState.cameraMode = gameData.cameraMode || 'firstPerson';
         
         // Update timer with validation
         if (validDeltaTime > 0 && validDeltaTime < 1) { // Reasonable deltaTime range
@@ -300,6 +320,17 @@ export class UIManager {
         // Update collectibles
         if (this.elements.collectiblesElement && this.settings.showCollectibles) {
             this.elements.collectiblesElement.textContent = `Collectibles: ${this.gameState.collectibles}`;
+        }
+        
+        // Update camera mode
+        if (this.elements.cameraModeElement) {
+            const modeNames = {
+                'firstPerson': 'First Person',
+                'thirdPerson': 'Third Person',
+                'isometric': 'Isometric'
+            };
+            const displayName = modeNames[this.gameState.cameraMode] || 'Unknown';
+            this.elements.cameraModeElement.textContent = `Camera: ${displayName}`;
         }
         
         // Update timer with validation
