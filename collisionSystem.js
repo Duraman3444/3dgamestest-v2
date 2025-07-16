@@ -34,6 +34,12 @@ export class CollisionSystem {
         // Check collision with collectibles
         this.checkCollectibleCollisions();
         
+        // Check collision with key
+        this.checkKeyCollision();
+        
+        // Check collision with exit
+        this.checkExitCollision();
+        
         // Check world boundaries
         this.checkWorldBoundaries();
         
@@ -86,6 +92,80 @@ export class CollisionSystem {
                 }
             }
         }
+    }
+    
+    checkKeyCollision() {
+        const key = this.gridManager.getKey();
+        if (key && !key.collected) {
+            const playerPosition = this.player.getPosition();
+            const keyBounds = this.getKeyBoundingBox(key.position);
+            const playerBounds = this.getPlayerBoundingBox(playerPosition);
+            
+            if (this.checkBoxCollision(playerBounds, keyBounds)) {
+                if (this.gridManager.collectKey()) {
+                    this.score += 50; // Key gives more points
+                    console.log('Key collected!');
+                    this.createCollectionEffect(key.position);
+                }
+            }
+        }
+    }
+    
+    checkExitCollision() {
+        const exit = this.gridManager.getExit();
+        if (exit) {
+            const playerPosition = this.player.getPosition();
+            const exitBounds = this.getExitBoundingBox(exit.position);
+            const playerBounds = this.getPlayerBoundingBox(playerPosition);
+            
+            if (this.checkBoxCollision(playerBounds, exitBounds)) {
+                if (this.gridManager.canActivateExit()) {
+                    this.gridManager.activateExit();
+                    console.log('Level completed!');
+                    // Could trigger level completion event here
+                } else {
+                    console.log('Collect all items and the key first!');
+                }
+            }
+        }
+    }
+    
+    getKeyBoundingBox(position) {
+        const width = 0.5;
+        const height = 0.2;
+        const depth = 1;
+        
+        return new THREE.Box3(
+            new THREE.Vector3(
+                position.x - width/2,
+                position.y - height/2,
+                position.z - depth/2
+            ),
+            new THREE.Vector3(
+                position.x + width/2,
+                position.y + height/2,
+                position.z + depth/2
+            )
+        );
+    }
+    
+    getExitBoundingBox(position) {
+        const width = 3;
+        const height = 4;
+        const depth = 3;
+        
+        return new THREE.Box3(
+            new THREE.Vector3(
+                position.x - width/2,
+                position.y - height/2,
+                position.z - depth/2
+            ),
+            new THREE.Vector3(
+                position.x + width/2,
+                position.y + height/2,
+                position.z + depth/2
+            )
+        );
     }
     
     checkWorldBoundaries() {

@@ -1,13 +1,19 @@
 import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
 
 export class GridManager {
-    constructor(scene) {
+    constructor(scene, levelLoader = null) {
         this.scene = scene;
-        this.gridSize = 20;
+        this.levelLoader = levelLoader;
         this.tileSize = 5;
         this.tiles = new Map();
         this.obstacles = [];
         this.collectibles = [];
+        this.keyObject = null;
+        this.exitObject = null;
+        
+        // Get level data
+        const levelData = this.levelLoader ? this.levelLoader.getCurrentLevel() : null;
+        this.gridSize = levelData ? levelData.size.width : 20;
         
         // Grid properties
         this.gridOffset = { x: 0, z: 0 };
@@ -19,14 +25,58 @@ export class GridManager {
             color: 0xFFD700,
             emissive: 0x444400
         });
+        this.keyMaterial = new THREE.MeshLambertMaterial({
+            color: 0x00ffff,
+            emissive: 0x004444
+        });
+        this.exitMaterial = new THREE.MeshLambertMaterial({
+            color: 0x00ff00,
+            emissive: 0x004400
+        });
         
-        this.generateGrid();
-        this.generateObstacles();
-        this.generateCollectibles();
-        this.validateSpawnPoint();
+        this.generateLevel();
     }
     
-    generateGrid() {
+    generateLevel() {
+        if (this.levelLoader) {
+            this.generateLevelFromData();
+        } else {
+            this.generateDefaultLevel();
+        }
+    }
+    
+    generateLevelFromData() {
+        const levelData = this.levelLoader.getCurrentLevel();
+        
+        // Create ground plane
+        const planeGeometry = new THREE.PlaneGeometry(levelData.size.width * this.tileSize, levelData.size.height * this.tileSize);
+        const planeMesh = new THREE.Mesh(planeGeometry, this.groundMaterial);
+        planeMesh.rotation.x = -Math.PI / 2;
+        planeMesh.position.y = 0;
+        planeMesh.receiveShadow = true;
+        this.scene.add(planeMesh);
+        
+        // Generate tiles from level data
+        this.generateTilesFromData(levelData.tiles);
+        
+        // Generate obstacles from level data
+        this.generateObstaclesFromData(levelData.obstacles);
+        
+        // Generate collectibles from level data
+        this.generateCollectiblesFromData(levelData.coins);
+        
+        // Generate key if present
+        if (levelData.key) {
+            this.generateKey(levelData.key);
+        }
+        
+        // Generate exit if present
+        if (levelData.exit) {
+            this.generateExit(levelData.exit);
+        }
+    }
+    
+    generateDefaultLevel() {
         // Create ground plane
         const planeGeometry = new THREE.PlaneGeometry(this.gridSize * this.tileSize, this.gridSize * this.tileSize);
         const planeMesh = new THREE.Mesh(planeGeometry, this.groundMaterial);
@@ -43,6 +93,18 @@ export class GridManager {
                 this.tiles.set(tileKey, tile);
             }
         }
+        
+        this.generateObstacles();
+        this.generateCollectibles();
+        this.validateSpawnPoint();
+    }
+    
+    generateTilesFromData(tilesData) {
+        tilesData.forEach(tileData => {
+            const tileKey = `${tileData.x},${tileData.z}`;
+            const tile = this.createTile(tileData.x, tileData.z, tileData.height);
+            this.tiles.set(tileKey, tile);
+        });
     }
     
     createTile(x, z) {
@@ -58,6 +120,31 @@ export class GridManager {
             type: 'ground',
             height: 0
         };
+    }
+    
+    generateObstaclesFromData(obstaclesData) {
+        obstaclesData.forEach(obstacleData => {
+            const worldPos = this.levelLoader.gridToWorld(obstacleData.x, obstacleData.z, this.tileSize);
+            const obstacleGeometry = new THREE.BoxGeometry(
+                obstacleData.width || 2,
+                obstacleData.height || 3,
+                obstacleData.depth || 2
+            );
+            
+            const obstacle = new THREE.Mesh(obstacleGeometry, this.obstacleMaterial);
+            obstacle.position.set(worldPos.x, (obstacleData.height || 3) / 2, worldPos.z);
+            obstacle.castShadow = true;
+            obstacle.receiveShadow = true;
+            
+            this.scene.add(obstacle);
+            this.obstacles.push({
+                mesh: obstacle,
+                position: obstacle.position.clone(),
+                gridX: obstacleData.x,
+                gridZ: obstacleData.z,
+                boundingBox: new THREE.Box3().setFromObject(obstacle)
+            });
+        });
     }
     
     generateObstacles() {
@@ -88,6 +175,71 @@ export class GridManager {
                 tile.type = 'obstacle';
             }
         }
+    }
+    
+    generateCollectiblesFromData(coinsData) {
+        const collectibleGeometry = new THREE.SphereGeometry(0.3, 8, 8);
+        
+        coinsData.forEach(coinData => {
+            const worldPos = this.levelLoader.gridToWorld(coinData.x, coinData.z, this.tileSize);
+            const collectible = new THREE.Mesh(collectibleGeometry, this.collectibleMaterial);
+            collectible.position.set(worldPos.x, coinData.y || 1, worldPos.z);
+            collectible.castShadow = true;
+            
+            this.scene.add(collectible);
+            this.collectibles.push({
+                mesh: collectible,
+                position: collectible.position.clone(),
+                gridX: coinData.x,
+                gridZ: coinData.z,
+                collected: false,
+                rotationSpeed: Math.random() * 0.02 + 0.01,
+                bounceSpeed: Math.random() * 0.02 + 0.01,
+                bounceHeight: 0.5
+            });
+        });
+    }
+    
+    generateKey(keyData) {
+        const keyGeometry = new THREE.BoxGeometry(0.5, 0.2, 1);
+        const worldPos = this.levelLoader.gridToWorld(keyData.x, keyData.z, this.tileSize);
+        
+        const key = new THREE.Mesh(keyGeometry, this.keyMaterial);
+        key.position.set(worldPos.x, keyData.y || 1, worldPos.z);
+        key.castShadow = true;
+        
+        this.scene.add(key);
+        this.keyObject = {
+            mesh: key,
+            position: key.position.clone(),
+            gridX: keyData.x,
+            gridZ: keyData.z,
+            collected: false,
+            rotationSpeed: 0.02
+        };
+    }
+    
+    generateExit(exitData) {
+        const exitGeometry = new THREE.BoxGeometry(
+            exitData.width || 3,
+            exitData.height || 4,
+            exitData.depth || 3
+        );
+        const worldPos = this.levelLoader.gridToWorld(exitData.x, exitData.z, this.tileSize);
+        
+        const exit = new THREE.Mesh(exitGeometry, this.exitMaterial);
+        exit.position.set(worldPos.x, (exitData.height || 4) / 2, worldPos.z);
+        exit.castShadow = true;
+        exit.receiveShadow = true;
+        
+        this.scene.add(exit);
+        this.exitObject = {
+            mesh: exit,
+            position: exit.position.clone(),
+            gridX: exitData.x,
+            gridZ: exitData.z,
+            activated: false
+        };
     }
     
     generateCollectibles() {
@@ -135,6 +287,18 @@ export class GridManager {
                     Math.sin(time * collectible.bounceSpeed * 10) * collectible.bounceHeight;
             }
         });
+        
+        // Animate key
+        if (this.keyObject && !this.keyObject.collected) {
+            this.keyObject.mesh.rotation.y += this.keyObject.rotationSpeed;
+        }
+        
+        // Animate exit (subtle pulsing)
+        if (this.exitObject) {
+            const time = performance.now() * 0.001;
+            const scale = 1 + Math.sin(time * 2) * 0.05;
+            this.exitObject.mesh.scale.set(scale, scale, scale);
+        }
     }
     
     getTileAt(worldX, worldZ) {
@@ -156,12 +320,53 @@ export class GridManager {
         return this.collectibles.filter(c => !c.collected);
     }
     
+    getKey() {
+        return this.keyObject;
+    }
+    
+    getExit() {
+        return this.exitObject;
+    }
+    
     collectItem(collectible) {
         if (!collectible.collected) {
             collectible.collected = true;
             collectible.mesh.visible = false;
-            collectible.tile.occupied = false;
-            collectible.tile.type = 'ground';
+            if (collectible.tile) {
+                collectible.tile.occupied = false;
+                collectible.tile.type = 'ground';
+            }
+            return true;
+        }
+        return false;
+    }
+    
+    collectKey() {
+        if (this.keyObject && !this.keyObject.collected) {
+            this.keyObject.collected = true;
+            this.keyObject.mesh.visible = false;
+            return true;
+        }
+        return false;
+    }
+    
+    canActivateExit() {
+        // Check if key is collected (if key exists)
+        if (this.keyObject && !this.keyObject.collected) {
+            return false;
+        }
+        
+        // Check if all collectibles are collected
+        const remainingCollectibles = this.collectibles.filter(c => !c.collected);
+        return remainingCollectibles.length === 0;
+    }
+    
+    activateExit() {
+        if (this.exitObject && this.canActivateExit()) {
+            this.exitObject.activated = true;
+            // Change exit color to indicate it's active
+            this.exitObject.mesh.material.color.setHex(0x00ff00);
+            this.exitObject.mesh.material.emissive.setHex(0x004400);
             return true;
         }
         return false;

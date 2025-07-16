@@ -5,6 +5,7 @@ import { GridManager } from './gridManager.js';
 import { CameraSystem } from './cameraSystem.js';
 import { CollisionSystem } from './collisionSystem.js';
 import { UIManager } from './UIManager.js';
+import { LevelLoader } from './levelLoader.js';
 
 class Game {
     constructor() {
@@ -21,11 +22,11 @@ class Game {
         this.init();
     }
     
-    init() {
+    async init() {
         this.setupRenderer();
         this.setupScene();
         this.setupLighting();
-        this.setupSystems();
+        await this.setupSystems();
         this.setupEventListeners();
         this.startGame();
     }
@@ -69,13 +70,24 @@ class Game {
         this.scene.add(directionalLight);
     }
     
-    setupSystems() {
-        // Initialize all game systems
-        this.gridManager = new GridManager(this.scene);
+    async setupSystems() {
+        // Initialize level loader and load a level
+        this.levelLoader = new LevelLoader();
+        
+        // Try to load level1.json, fallback to default if failed
+        try {
+            await this.levelLoader.loadLevel('./levels/level1.json');
+        } catch (error) {
+            console.warn('Could not load level1.json, using default level');
+            this.levelLoader.loadLevelFromData(this.levelLoader.createTestLevel());
+        }
+        
+        // Initialize all game systems with level data
+        this.gridManager = new GridManager(this.scene, this.levelLoader);
         this.player = new Player(this.scene);
         
-        // Validate and set spawn point
-        const spawnPoint = this.gridManager.validateSpawnPoint();
+        // Get spawn point from level
+        const spawnPoint = this.levelLoader.getSpawnPoint();
         this.player.setSpawnPoint(spawnPoint);
         
         this.cameraSystem = new CameraSystem(this.player);
@@ -92,7 +104,8 @@ class Game {
             gridManager: this.gridManager,
             cameraSystem: this.cameraSystem,
             collisionSystem: this.collisionSystem,
-            uiManager: this.uiManager
+            uiManager: this.uiManager,
+            levelLoader: this.levelLoader
         });
     }
     
