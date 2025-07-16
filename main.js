@@ -6,6 +6,7 @@ import { CameraSystem } from './cameraSystem.js';
 import { CollisionSystem } from './collisionSystem.js';
 import { UIManager } from './UIManager.js';
 import { LevelLoader } from './levelLoader.js';
+import { MainMenu } from './mainMenu.js';
 
 class Game {
     constructor() {
@@ -18,8 +19,50 @@ class Game {
         this.cameraSystem = null;
         this.collisionSystem = null;
         this.uiManager = null;
+        this.mainMenu = null;
+        this.isGameInitialized = false;
         
-        this.init();
+        this.initializeMenu();
+    }
+    
+    initializeMenu() {
+        // Create main menu
+        this.mainMenu = new MainMenu(() => this.startGame());
+        
+        // Hide the game canvas initially
+        this.canvas.style.display = 'none';
+        
+        // Hide game UI elements initially
+        const gameUI = document.getElementById('ui');
+        const crosshair = document.getElementById('crosshair');
+        const instructions = document.getElementById('instructions');
+        
+        if (gameUI) gameUI.style.display = 'none';
+        if (crosshair) crosshair.style.display = 'none';
+        if (instructions) instructions.style.display = 'none';
+    }
+    
+    async startGame() {
+        // Show the game canvas
+        this.canvas.style.display = 'block';
+        
+        // Show game UI elements
+        const gameUI = document.getElementById('ui');
+        const crosshair = document.getElementById('crosshair');
+        const instructions = document.getElementById('instructions');
+        
+        if (gameUI) gameUI.style.display = 'block';
+        if (crosshair) crosshair.style.display = 'block';
+        if (instructions) instructions.style.display = 'block';
+        
+        // Initialize the game if not already done
+        if (!this.isGameInitialized) {
+            await this.init();
+            this.isGameInitialized = true;
+        }
+        
+        // Start the game loop
+        this.gameLoop.start();
     }
     
     async init() {
@@ -28,7 +71,6 @@ class Game {
         this.setupLighting();
         await this.setupSystems();
         this.setupEventListeners();
-        this.startGame();
     }
     
     setupRenderer() {
@@ -130,10 +172,51 @@ class Game {
                 this.player.disableControls();
             }
         });
+        
+        // Handle ESC key to show main menu
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && this.isGameInitialized) {
+                this.toggleMainMenu();
+            }
+        });
     }
     
-    startGame() {
-        this.gameLoop.start();
+    toggleMainMenu() {
+        if (this.mainMenu.isVisible) {
+            // Hide menu and resume game
+            this.mainMenu.hide();
+            this.canvas.style.display = 'block';
+            
+            // Show game UI
+            const gameUI = document.getElementById('ui');
+            const crosshair = document.getElementById('crosshair');
+            const instructions = document.getElementById('instructions');
+            
+            if (gameUI) gameUI.style.display = 'block';
+            if (crosshair) crosshair.style.display = 'block';
+            if (instructions) instructions.style.display = 'block';
+            
+            if (this.gameLoop) {
+                this.gameLoop.start();
+            }
+        } else {
+            // Show menu and pause game
+            this.mainMenu.show();
+            this.canvas.style.display = 'none';
+            
+            // Hide game UI
+            const gameUI = document.getElementById('ui');
+            const crosshair = document.getElementById('crosshair');
+            const instructions = document.getElementById('instructions');
+            
+            if (gameUI) gameUI.style.display = 'none';
+            if (crosshair) crosshair.style.display = 'none';
+            if (instructions) instructions.style.display = 'none';
+            
+            if (this.gameLoop) {
+                this.gameLoop.stop();
+            }
+        }
     }
 }
 
