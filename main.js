@@ -155,6 +155,7 @@ class Game {
         // Setup collision system with grid and player
         this.collisionSystem.setPlayer(this.player);
         this.collisionSystem.setGrid(this.gridManager);
+        this.collisionSystem.setGameOverCallback(() => this.handleGameOver());
         
         // Setup game loop
         this.gameLoop = new GameLoop(this.renderer, this.scene, this.cameraSystem.camera, {
@@ -233,6 +234,31 @@ class Game {
                 this.gameLoop.stop();
             }
         }
+    }
+    
+    handleGameOver() {
+        console.log('Handling game over - returning to main menu');
+        
+        // Stop the game loop
+        if (this.gameLoop) {
+            this.gameLoop.stop();
+        }
+        
+        // Hide game elements
+        this.canvas.style.display = 'none';
+        const gameUI = document.getElementById('ui');
+        const crosshair = document.getElementById('crosshair');
+        const instructions = document.getElementById('instructions');
+        
+        if (gameUI) gameUI.style.display = 'none';
+        if (crosshair) crosshair.style.display = 'none';
+        if (instructions) instructions.style.display = 'none';
+        
+        // Show main menu
+        this.mainMenu.show();
+        
+        // Reset game state for next play
+        this.isGameInitialized = false;
     }
 }
 

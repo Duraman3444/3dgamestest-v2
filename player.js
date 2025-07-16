@@ -12,6 +12,8 @@ export class Player {
         // Player properties
         this.health = 100;
         this.maxHealth = 100;
+        this.lives = 3; // Lives system for Pacman mode
+        this.maxLives = 3;
         this.speed = 10;
         this.jumpHeight = 8;
         this.isOnGround = false;
@@ -308,5 +310,23 @@ export class Player {
         const right = new THREE.Vector3(1, 0, 0);
         right.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
         return right;
+    }
+    
+    // Lives management methods
+    loseLife() {
+        this.lives = Math.max(0, this.lives - 1);
+        return this.lives;
+    }
+    
+    getLives() {
+        return this.lives;
+    }
+    
+    isOutOfLives() {
+        return this.lives <= 0;
+    }
+    
+    resetLives() {
+        this.lives = this.maxLives;
     }
 } 

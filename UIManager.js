@@ -9,6 +9,7 @@ export class UIManager {
             score: 0,
             health: 100,
             maxHealth: 100,
+            lives: 3,
             collectibles: 0,
             keyInfo: { totalKeys: 0, collectedKeys: 0 },
             fps: 0,
@@ -52,6 +53,7 @@ export class UIManager {
         this.createPositionDisplay();
         this.createCollectiblesCounter();
         this.createKeysCounter();
+        this.createLivesCounter();
         this.createGameTimer();
         this.createCameraModeDisplay();
         this.createMinimap();
@@ -132,6 +134,24 @@ export class UIManager {
         keysElement.textContent = 'Keys: 0/0';
         document.body.appendChild(keysElement);
         this.elements.keysElement = keysElement;
+    }
+    
+    createLivesCounter() {
+        const livesElement = document.createElement('div');
+        livesElement.id = 'lives-counter';
+        livesElement.style.cssText = `
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #FF0000;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 101;
+        `;
+        livesElement.textContent = 'Lives: 3';
+        document.body.appendChild(livesElement);
+        this.elements.livesElement = livesElement;
     }
     
     createGameTimer() {
@@ -271,6 +291,7 @@ export class UIManager {
         this.gameState.fps = gameData.fps || 0;
         this.gameState.score = gameData.score || 0;
         this.gameState.health = gameData.playerHealth || 100;
+        this.gameState.lives = gameData.playerLives || 3;
         this.gameState.collectibles = gameData.collectibles || 0;
         this.gameState.keyInfo = gameData.keyInfo || { totalKeys: 0, collectedKeys: 0 };
         this.gameState.cameraMode = gameData.cameraMode || 'firstPerson';
@@ -351,6 +372,11 @@ export class UIManager {
         if (this.elements.keysElement) {
             const keyInfo = this.gameState.keyInfo;
             this.elements.keysElement.textContent = `Keys: ${keyInfo.collectedKeys}/${keyInfo.totalKeys}`;
+        }
+
+        // Update lives
+        if (this.elements.livesElement) {
+            this.elements.livesElement.textContent = `Lives: ${this.gameState.lives}`;
         }
         
         // Update camera mode

@@ -213,7 +213,7 @@ export class GridManager {
                 gridZ: ghostData.z,
                 color: ghostData.color,
                 direction: { x: 1, z: 0 }, // Initial direction
-                speed: 12.0, // Faster than player (player speed is 10)
+                speed: 11.0, // Slightly faster than player (player speed is 10)
                 lastDirectionChange: 0,
                 chaseMode: false, // Whether ghost is actively chasing player
                 chaseRange: 15.0, // Distance at which ghost starts chasing

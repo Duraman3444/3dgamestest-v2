@@ -15,6 +15,9 @@ export class CollisionSystem {
         // Score tracking
         this.score = 0;
         this.collectiblesCollected = 0;
+        
+        // Game over callback
+        this.gameOverCallback = null;
     }
     
     setPlayer(player) {
@@ -23,6 +26,10 @@ export class CollisionSystem {
     
     setGrid(gridManager) {
         this.gridManager = gridManager;
+    }
+    
+    setGameOverCallback(callback) {
+        this.gameOverCallback = callback;
     }
     
     update(deltaTime) {
@@ -153,6 +160,9 @@ export class CollisionSystem {
     handleGhostCollision(ghost) {
         console.log(`Ghost collision with ${ghost.color} ghost!`);
         
+        // Lose a life
+        const remainingLives = this.player.loseLife();
+        
         // Reset player to spawn position
         const levelData = this.gridManager.levelLoader.getCurrentLevel();
         const spawnPoint = levelData.spawn;
@@ -161,10 +171,23 @@ export class CollisionSystem {
         // Reset player velocity
         this.player.velocity.set(0, 0, 0);
         
-        // Optional: reduce score or add game over condition
-        this.score = Math.max(0, this.score - 25);
+        // Check if player is out of lives
+        if (this.player.isOutOfLives()) {
+            console.log('Game Over! Out of lives!');
+            
+            // Reset lives for next game
+            this.player.resetLives();
+            
+            // Call game over callback if set
+            if (this.gameOverCallback) {
+                this.gameOverCallback();
+            }
+        } else {
+            console.log(`Player respawned! Lives remaining: ${remainingLives}`);
+        }
         
-        console.log('Player returned to spawn point!');
+        // Optional: reduce score slightly
+        this.score = Math.max(0, this.score - 10);
     }
     
     getGhostBoundingBox(position) {
