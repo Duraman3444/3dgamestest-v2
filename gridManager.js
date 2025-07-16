@@ -213,8 +213,11 @@ export class GridManager {
                 gridZ: ghostData.z,
                 color: ghostData.color,
                 direction: { x: 1, z: 0 }, // Initial direction
-                speed: 2.0,
-                lastDirectionChange: 0
+                speed: 12.0, // Faster than player (player speed is 10)
+                lastDirectionChange: 0,
+                chaseMode: false, // Whether ghost is actively chasing player
+                chaseRange: 15.0, // Distance at which ghost starts chasing
+                lastPlayerPosition: null
             });
         });
     }
@@ -379,14 +382,55 @@ export class GridManager {
     }
     
     updateGhosts(deltaTime) {
+        // Get player position for chase AI
+        const playerPosition = this.getPlayerPosition();
+        
         this.ghosts.forEach((ghost, index) => {
-            // Simple AI: move in current direction, change direction when hitting wall
             const moveDistance = ghost.speed * deltaTime;
             const currentTime = performance.now() * 0.001;
             
+            // Check if player is within chase range
+            const distanceToPlayer = playerPosition ? 
+                Math.sqrt(
+                    Math.pow(ghost.mesh.position.x - playerPosition.x, 2) + 
+                    Math.pow(ghost.mesh.position.z - playerPosition.z, 2)
+                ) : Infinity;
+            
+            let targetDirection = null;
+            
+            // Determine if ghost should chase player
+            if (playerPosition && distanceToPlayer <= ghost.chaseRange) {
+                // Check if there's a clear line of sight to player
+                if (this.hasLineOfSight(ghost.mesh.position, playerPosition)) {
+                    ghost.chaseMode = true;
+                    ghost.lastPlayerPosition = playerPosition.clone();
+                    
+                    // Calculate direction toward player
+                    const directionToPlayer = new THREE.Vector3(
+                        playerPosition.x - ghost.mesh.position.x,
+                        0,
+                        playerPosition.z - ghost.mesh.position.z
+                    ).normalize();
+                    
+                    targetDirection = {
+                        x: directionToPlayer.x,
+                        z: directionToPlayer.z
+                    };
+                } else {
+                    ghost.chaseMode = false;
+                }
+            } else {
+                ghost.chaseMode = false;
+            }
+            
+            // If not chasing or no clear path, use normal AI
+            if (!targetDirection) {
+                targetDirection = ghost.direction;
+            }
+            
             // Calculate new position
-            const newX = ghost.mesh.position.x + (ghost.direction.x * moveDistance);
-            const newZ = ghost.mesh.position.z + (ghost.direction.z * moveDistance);
+            const newX = ghost.mesh.position.x + (targetDirection.x * moveDistance);
+            const newZ = ghost.mesh.position.z + (targetDirection.z * moveDistance);
             
             // Check for wall collisions
             const canMove = this.canGhostMoveTo(newX, newZ);
@@ -394,6 +438,12 @@ export class GridManager {
             if (canMove) {
                 ghost.mesh.position.x = newX;
                 ghost.mesh.position.z = newZ;
+                
+                // Update direction if chasing
+                if (ghost.chaseMode && targetDirection !== ghost.direction) {
+                    ghost.direction = targetDirection;
+                    ghost.lastDirectionChange = currentTime;
+                }
             } else {
                 // Change direction when hitting wall
                 if (currentTime - ghost.lastDirectionChange > 0.5) {
@@ -403,6 +453,21 @@ export class GridManager {
                         { x: 0, z: 1 },   // Forward
                         { x: 0, z: -1 }   // Backward
                     ];
+                    
+                    // If chasing, prefer directions that get closer to player
+                    if (ghost.chaseMode && playerPosition) {
+                        directions.sort((a, b) => {
+                            const aDistance = Math.sqrt(
+                                Math.pow((ghost.mesh.position.x + a.x * moveDistance * 2) - playerPosition.x, 2) + 
+                                Math.pow((ghost.mesh.position.z + a.z * moveDistance * 2) - playerPosition.z, 2)
+                            );
+                            const bDistance = Math.sqrt(
+                                Math.pow((ghost.mesh.position.x + b.x * moveDistance * 2) - playerPosition.x, 2) + 
+                                Math.pow((ghost.mesh.position.z + b.z * moveDistance * 2) - playerPosition.z, 2)
+                            );
+                            return aDistance - bDistance;
+                        });
+                    }
                     
                     // Try each direction to find one that doesn't hit a wall
                     for (let dir of directions) {
@@ -418,8 +483,8 @@ export class GridManager {
                 }
             }
             
-            // Randomly change direction occasionally
-            if (currentTime - ghost.lastDirectionChange > 3 && Math.random() < 0.1) {
+            // Less frequent random direction changes when not chasing
+            if (!ghost.chaseMode && currentTime - ghost.lastDirectionChange > 3 && Math.random() < 0.1) {
                 const directions = [
                     { x: 1, z: 0 },   // Right
                     { x: -1, z: 0 },  // Left
@@ -451,6 +516,60 @@ export class GridManager {
         }
         
         return true;
+    }
+    
+    getPlayerPosition() {
+        // First try to use direct player reference
+        if (this.player) {
+            return this.player.getPosition();
+        }
+        
+        // Fallback: try to get player position from the scene
+        const player = this.scene.getObjectByName('player');
+        if (player) {
+            return player.position.clone();
+        }
+        
+        // No player found
+        return null;
+    }
+    
+    hasLineOfSight(ghostPosition, playerPosition) {
+        // Simple line-of-sight check: cast a ray from ghost to player
+        // and see if it hits any walls
+        
+        const direction = new THREE.Vector3(
+            playerPosition.x - ghostPosition.x,
+            0,
+            playerPosition.z - ghostPosition.z
+        ).normalize();
+        
+        const distance = Math.sqrt(
+            Math.pow(playerPosition.x - ghostPosition.x, 2) + 
+            Math.pow(playerPosition.z - ghostPosition.z, 2)
+        );
+        
+        // Check for wall intersections along the path
+        const checkPoints = Math.ceil(distance / (this.tileSize * 0.5));
+        
+        for (let i = 1; i < checkPoints; i++) {
+            const checkX = ghostPosition.x + (direction.x * (distance * i / checkPoints));
+            const checkZ = ghostPosition.z + (direction.z * (distance * i / checkPoints));
+            
+            // Check if this point intersects with any wall
+            for (let wall of this.walls) {
+                const wallDistance = Math.sqrt(
+                    Math.pow(wall.position.x - checkX, 2) + 
+                    Math.pow(wall.position.z - checkZ, 2)
+                );
+                
+                if (wallDistance < this.tileSize * 0.4) {
+                    return false; // Line of sight blocked by wall
+                }
+            }
+        }
+        
+        return true; // Clear line of sight
     }
     
     getTileAt(worldX, worldZ) {
@@ -488,6 +607,23 @@ export class GridManager {
     // Get ghosts (for Pacman mode)
     getGhosts() {
         return this.ghosts;
+    }
+    
+    // Get ghost positions for minimap
+    getGhostPositions() {
+        return this.ghosts.map(ghost => ({
+            x: ghost.gridX,
+            z: ghost.gridZ,
+            worldX: ghost.mesh.position.x,
+            worldZ: ghost.mesh.position.z,
+            color: ghost.color,
+            chaseMode: ghost.chaseMode
+        }));
+    }
+    
+    // Set player reference for better position access
+    setPlayer(player) {
+        this.player = player;
     }
     
     // Get key information

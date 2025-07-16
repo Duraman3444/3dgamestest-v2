@@ -76,6 +76,7 @@ export class Player {
         this.mesh.position.copy(this.position);
         this.mesh.castShadow = true;
         this.mesh.receiveShadow = true;
+        this.mesh.name = 'player'; // Add name for ghost AI to find player
         
         // Add to scene
         this.scene.add(this.mesh);

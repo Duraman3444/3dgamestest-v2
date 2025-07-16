@@ -82,7 +82,8 @@ export class GameLoop {
                 keyInfo: this.systems.gridManager ? this.systems.gridManager.getKeyInfo() : { totalKeys: 0, collectedKeys: 0 },
                 collectiblePositions: this.systems.gridManager ? this.systems.gridManager.getCollectiblePositions() : [],
                 keyPosition: this.systems.gridManager ? this.systems.gridManager.getKeyPosition() : null,
-                exitPosition: this.systems.gridManager ? this.systems.gridManager.getExitPosition() : null
+                exitPosition: this.systems.gridManager ? this.systems.gridManager.getExitPosition() : null,
+                ghostPositions: this.systems.gridManager ? this.systems.gridManager.getGhostPositions() : []
             });
         }
     }

@@ -277,6 +277,7 @@ export class UIManager {
         this.gameState.collectiblePositions = gameData.collectiblePositions || [];
         this.gameState.keyPosition = gameData.keyPosition || null;
         this.gameState.exitPosition = gameData.exitPosition || null;
+        this.gameState.ghostPositions = gameData.ghostPositions || [];
         
         // Update timer with validation
         if (validDeltaTime > 0 && validDeltaTime < 1) { // Reasonable deltaTime range
@@ -447,6 +448,47 @@ export class UIManager {
                 ctx.lineWidth = 1;
                 ctx.strokeRect(mapX - 4, mapY - 4, 8, 8);
             }
+        }
+        
+        // Draw ghosts (colored dots with chase mode indication)
+        if (this.gameState.ghostPositions && this.gameState.ghostPositions.length > 0) {
+            this.gameState.ghostPositions.forEach(ghost => {
+                const mapX = centerX + (ghost.worldX * scale) - playerOffsetX;
+                const mapY = centerY + (ghost.worldZ * scale) - playerOffsetZ;
+                
+                // Only draw if within minimap bounds
+                if (mapX >= -5 && mapX <= canvas.width + 5 && mapY >= -5 && mapY <= canvas.height + 5) {
+                    // Set color based on ghost color
+                    const ghostColors = {
+                        red: '#FF0000',
+                        blue: '#0000FF',
+                        green: '#00FF00',
+                        pink: '#FF69B4'
+                    };
+                    
+                    ctx.fillStyle = ghostColors[ghost.color] || '#FF0000';
+                    
+                    // Draw ghost as circle
+                    ctx.beginPath();
+                    ctx.arc(mapX, mapY, ghost.chaseMode ? 4 : 3, 0, 2 * Math.PI);
+                    ctx.fill();
+                    
+                    // Add white outline for better visibility
+                    ctx.strokeStyle = '#FFFFFF';
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.arc(mapX, mapY, ghost.chaseMode ? 4 : 3, 0, 2 * Math.PI);
+                    ctx.stroke();
+                    
+                    // Draw chase mode indicator (pulsing effect)
+                    if (ghost.chaseMode) {
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                        ctx.beginPath();
+                        ctx.arc(mapX, mapY, 6, 0, 2 * Math.PI);
+                        ctx.fill();
+                    }
+                }
+            });
         }
         
         // Draw player position (always centered)
