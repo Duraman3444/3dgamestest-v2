@@ -40,6 +40,9 @@ export class CollisionSystem {
         // Check collision with exit
         this.checkExitCollision();
         
+        // Check collision with ghosts (Pacman mode)
+        this.checkGhostCollisions();
+        
         // Check world boundaries
         this.checkWorldBoundaries();
         
@@ -128,6 +131,57 @@ export class CollisionSystem {
                 }
             }
         }
+    }
+    
+    checkGhostCollisions() {
+        const ghosts = this.gridManager.getGhosts();
+        if (ghosts && ghosts.length > 0) {
+            const playerPosition = this.player.getPosition();
+            const playerBounds = this.getPlayerBoundingBox(playerPosition);
+            
+            for (let ghost of ghosts) {
+                const ghostBounds = this.getGhostBoundingBox(ghost.mesh.position);
+                
+                if (this.checkBoxCollision(playerBounds, ghostBounds)) {
+                    // Ghost touched player - reset player position or reduce health
+                    this.handleGhostCollision(ghost);
+                }
+            }
+        }
+    }
+    
+    handleGhostCollision(ghost) {
+        console.log(`Ghost collision with ${ghost.color} ghost!`);
+        
+        // Reset player to spawn position
+        const levelData = this.gridManager.levelLoader.getCurrentLevel();
+        const spawnPoint = levelData.spawn;
+        this.player.setPosition(spawnPoint.x, spawnPoint.y, spawnPoint.z);
+        
+        // Reset player velocity
+        this.player.velocity.set(0, 0, 0);
+        
+        // Optional: reduce score or add game over condition
+        this.score = Math.max(0, this.score - 25);
+        
+        console.log('Player returned to spawn point!');
+    }
+    
+    getGhostBoundingBox(position) {
+        const radius = 0.4; // Match ghost sphere radius
+        
+        return new THREE.Box3(
+            new THREE.Vector3(
+                position.x - radius,
+                position.y - radius,
+                position.z - radius
+            ),
+            new THREE.Vector3(
+                position.x + radius,
+                position.y + radius,
+                position.z + radius
+            )
+        );
     }
     
     getKeyBoundingBox(position) {

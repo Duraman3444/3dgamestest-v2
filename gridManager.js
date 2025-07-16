@@ -10,10 +10,13 @@ export class GridManager {
         this.collectibles = [];
         this.keyObject = null;
         this.exitObject = null;
+        this.walls = []; // For Pacman mode
+        this.ghosts = []; // For Pacman mode
         
         // Get level data
         const levelData = this.levelLoader ? this.levelLoader.getCurrentLevel() : null;
         this.gridSize = levelData ? levelData.size.width : 20;
+        this.levelType = levelData ? levelData.type : 'normal';
         
         // Grid properties
         this.gridOffset = { x: 0, z: 0 };
@@ -33,6 +36,14 @@ export class GridManager {
             color: 0x00ff00,
             emissive: 0x004400
         });
+        // Pacman-specific materials
+        this.wallMaterial = new THREE.MeshLambertMaterial({ color: 0x0000ff });
+        this.ghostMaterials = {
+            red: new THREE.MeshLambertMaterial({ color: 0xff0000 }),
+            blue: new THREE.MeshLambertMaterial({ color: 0x0000ff }),
+            green: new THREE.MeshLambertMaterial({ color: 0x00ff00 }),
+            pink: new THREE.MeshLambertMaterial({ color: 0xff69b4 })
+        };
         
         this.generateLevel();
     }
@@ -59,13 +70,25 @@ export class GridManager {
         // Generate tiles from level data
         this.generateTilesFromData(levelData.tiles);
         
-        // Generate obstacles from level data
-        this.generateObstaclesFromData(levelData.obstacles);
+        // Generate obstacles from level data (normal mode)
+        if (levelData.obstacles) {
+            this.generateObstaclesFromData(levelData.obstacles);
+        }
+        
+        // Generate walls from level data (Pacman mode)
+        if (levelData.walls) {
+            this.generateWallsFromData(levelData.walls);
+        }
         
         // Generate collectibles from level data
         this.generateCollectiblesFromData(levelData.coins);
         
-        // Generate key if present
+        // Generate ghosts from level data (Pacman mode)
+        if (levelData.ghosts) {
+            this.generateGhostsFromData(levelData.ghosts);
+        }
+        
+        // Generate key if present (normal mode)
         if (levelData.key) {
             this.generateKey(levelData.key);
         }
@@ -143,6 +166,55 @@ export class GridManager {
                 gridX: obstacleData.x,
                 gridZ: obstacleData.z,
                 boundingBox: new THREE.Box3().setFromObject(obstacle)
+            });
+        });
+    }
+    
+    generateWallsFromData(wallsData) {
+        wallsData.forEach(wallData => {
+            const worldPos = this.levelLoader.gridToWorld(wallData.x, wallData.z, this.tileSize);
+            const wallGeometry = new THREE.BoxGeometry(
+                this.tileSize * 0.8,
+                wallData.height || 3,
+                this.tileSize * 0.8
+            );
+            
+            const wall = new THREE.Mesh(wallGeometry, this.wallMaterial);
+            wall.position.set(worldPos.x, (wallData.height || 3) / 2, worldPos.z);
+            wall.castShadow = true;
+            wall.receiveShadow = true;
+            
+            this.scene.add(wall);
+            this.walls.push({
+                mesh: wall,
+                position: wall.position.clone(),
+                gridX: wallData.x,
+                gridZ: wallData.z,
+                boundingBox: new THREE.Box3().setFromObject(wall)
+            });
+        });
+    }
+    
+    generateGhostsFromData(ghostsData) {
+        const ghostGeometry = new THREE.SphereGeometry(0.4, 8, 8);
+        
+        ghostsData.forEach(ghostData => {
+            const worldPos = this.levelLoader.gridToWorld(ghostData.x, ghostData.z, this.tileSize);
+            const ghostMaterial = this.ghostMaterials[ghostData.color] || this.ghostMaterials.red;
+            const ghost = new THREE.Mesh(ghostGeometry, ghostMaterial);
+            ghost.position.set(worldPos.x, ghostData.y || 1, worldPos.z);
+            ghost.castShadow = true;
+            
+            this.scene.add(ghost);
+            this.ghosts.push({
+                mesh: ghost,
+                position: ghost.position.clone(),
+                gridX: ghostData.x,
+                gridZ: ghostData.z,
+                color: ghostData.color,
+                direction: { x: 1, z: 0 }, // Initial direction
+                speed: 2.0,
+                lastDirectionChange: 0
             });
         });
     }
@@ -299,6 +371,86 @@ export class GridManager {
             const scale = 1 + Math.sin(time * 2) * 0.05;
             this.exitObject.mesh.scale.set(scale, scale, scale);
         }
+        
+        // Update ghosts (Pacman mode)
+        if (this.levelType === 'pacman' && this.ghosts.length > 0) {
+            this.updateGhosts(deltaTime);
+        }
+    }
+    
+    updateGhosts(deltaTime) {
+        this.ghosts.forEach((ghost, index) => {
+            // Simple AI: move in current direction, change direction when hitting wall
+            const moveDistance = ghost.speed * deltaTime;
+            const currentTime = performance.now() * 0.001;
+            
+            // Calculate new position
+            const newX = ghost.mesh.position.x + (ghost.direction.x * moveDistance);
+            const newZ = ghost.mesh.position.z + (ghost.direction.z * moveDistance);
+            
+            // Check for wall collisions
+            const canMove = this.canGhostMoveTo(newX, newZ);
+            
+            if (canMove) {
+                ghost.mesh.position.x = newX;
+                ghost.mesh.position.z = newZ;
+            } else {
+                // Change direction when hitting wall
+                if (currentTime - ghost.lastDirectionChange > 0.5) {
+                    const directions = [
+                        { x: 1, z: 0 },   // Right
+                        { x: -1, z: 0 },  // Left
+                        { x: 0, z: 1 },   // Forward
+                        { x: 0, z: -1 }   // Backward
+                    ];
+                    
+                    // Try each direction to find one that doesn't hit a wall
+                    for (let dir of directions) {
+                        const testX = ghost.mesh.position.x + (dir.x * moveDistance * 2);
+                        const testZ = ghost.mesh.position.z + (dir.z * moveDistance * 2);
+                        
+                        if (this.canGhostMoveTo(testX, testZ)) {
+                            ghost.direction = dir;
+                            ghost.lastDirectionChange = currentTime;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // Randomly change direction occasionally
+            if (currentTime - ghost.lastDirectionChange > 3 && Math.random() < 0.1) {
+                const directions = [
+                    { x: 1, z: 0 },   // Right
+                    { x: -1, z: 0 },  // Left
+                    { x: 0, z: 1 },   // Forward
+                    { x: 0, z: -1 }   // Backward
+                ];
+                ghost.direction = directions[Math.floor(Math.random() * directions.length)];
+                ghost.lastDirectionChange = currentTime;
+            }
+        });
+    }
+    
+    canGhostMoveTo(worldX, worldZ) {
+        // Check if position is within bounds
+        if (!this.isInBounds(worldX, worldZ)) {
+            return false;
+        }
+        
+        // Check for wall collisions
+        for (let wall of this.walls) {
+            const distance = Math.sqrt(
+                Math.pow(wall.position.x - worldX, 2) + 
+                Math.pow(wall.position.z - worldZ, 2)
+            );
+            
+            if (distance < this.tileSize * 0.6) {
+                return false;
+            }
+        }
+        
+        return true;
     }
     
     getTileAt(worldX, worldZ) {
@@ -326,6 +478,16 @@ export class GridManager {
     
     getExit() {
         return this.exitObject;
+    }
+    
+    // Get walls (for Pacman mode)
+    getWalls() {
+        return this.walls;
+    }
+    
+    // Get ghosts (for Pacman mode)
+    getGhosts() {
+        return this.ghosts;
     }
     
     // Get key information
@@ -362,14 +524,21 @@ export class GridManager {
     }
     
     canActivateExit() {
-        // Check if key is collected (if key exists)
-        if (this.keyObject && !this.keyObject.collected) {
-            return false;
+        // Different win conditions for different game modes
+        if (this.levelType === 'pacman') {
+            // In Pacman mode, just need to collect all collectibles (no key required)
+            const remainingCollectibles = this.collectibles.filter(c => !c.collected);
+            return remainingCollectibles.length === 0;
+        } else {
+            // In normal mode, check if key is collected (if key exists)
+            if (this.keyObject && !this.keyObject.collected) {
+                return false;
+            }
+            
+            // Check if all collectibles are collected
+            const remainingCollectibles = this.collectibles.filter(c => !c.collected);
+            return remainingCollectibles.length === 0;
         }
-        
-        // Check if all collectibles are collected
-        const remainingCollectibles = this.collectibles.filter(c => !c.collected);
-        return remainingCollectibles.length === 0;
     }
     
     activateExit() {
@@ -401,7 +570,11 @@ export class GridManager {
             boundingBox: obstacle.boundingBox,
             position: obstacle.position,
             type: 'obstacle'
-        }));
+        })).concat(this.walls.map(wall => ({
+            boundingBox: wall.boundingBox,
+            position: wall.position,
+            type: 'wall'
+        })));
     }
     
     // Utility method to add new obstacles dynamically

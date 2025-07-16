@@ -50,6 +50,7 @@ export class MainMenu {
         // Create menu buttons
         const buttons = [
             { text: 'Single Player', action: () => this.startSinglePlayer() },
+            { text: 'Pacman Mode', action: () => this.startPacmanMode() },
             { text: 'Multiplayer', action: () => this.showMultiplayerNotice() },
             { text: 'Settings', action: () => this.showSettings() },
             { text: 'Exit Game', action: () => this.exitGame() }
@@ -119,6 +120,13 @@ export class MainMenu {
         this.hide();
         if (this.onStartGame) {
             this.onStartGame();
+        }
+    }
+    
+    startPacmanMode() {
+        this.hide();
+        if (this.onStartGame) {
+            this.onStartGame('pacman'); // Pass 'pacman' as mode identifier
         }
     }
     

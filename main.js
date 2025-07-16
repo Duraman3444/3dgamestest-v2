@@ -27,7 +27,7 @@ class Game {
     
     initializeMenu() {
         // Create main menu
-        this.mainMenu = new MainMenu(() => this.startGame());
+        this.mainMenu = new MainMenu((mode) => this.startGame(mode));
         
         // Hide the game canvas initially
         this.canvas.style.display = 'none';
@@ -42,7 +42,9 @@ class Game {
         if (instructions) instructions.style.display = 'none';
     }
     
-    async startGame() {
+    async startGame(mode = 'normal') {
+        this.gameMode = mode; // Store game mode
+        
         // Show the game canvas
         this.canvas.style.display = 'block';
         
@@ -116,12 +118,23 @@ class Game {
         // Initialize level loader and load a level
         this.levelLoader = new LevelLoader();
         
-        // Try to load level1.json, fallback to default if failed
-        try {
-            await this.levelLoader.loadLevel('./levels/level1.json');
-        } catch (error) {
-            console.warn('Could not load level1.json, using default level');
-            this.levelLoader.loadLevelFromData(this.levelLoader.createTestLevel());
+        // Load appropriate level based on game mode
+        if (this.gameMode === 'pacman') {
+            // Try to load pacman level, fallback to creating one
+            try {
+                await this.levelLoader.loadLevel('./levels/pacman.json');
+            } catch (error) {
+                console.warn('Could not load pacman.json, creating default pacman level');
+                this.levelLoader.loadLevelFromData(this.levelLoader.createPacmanLevel());
+            }
+        } else {
+            // Try to load level1.json, fallback to default if failed
+            try {
+                await this.levelLoader.loadLevel('./levels/level1.json');
+            } catch (error) {
+                console.warn('Could not load level1.json, using default level');
+                this.levelLoader.loadLevelFromData(this.levelLoader.createTestLevel());
+            }
         }
         
         // Initialize all game systems with level data

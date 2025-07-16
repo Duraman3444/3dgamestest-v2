@@ -92,6 +92,7 @@ export class LevelLoader {
     validateLevel(levelData) {
         const validated = {
             name: levelData.name || "Unnamed Level",
+            type: levelData.type || "normal",
             size: {
                 width: levelData.size?.width || 20,
                 height: levelData.size?.height || 20
@@ -107,6 +108,12 @@ export class LevelLoader {
             key: this.validateKey(levelData.key),
             exit: this.validateExit(levelData.exit)
         };
+        
+        // Add Pacman-specific fields if it's a Pacman level
+        if (levelData.type === 'pacman') {
+            validated.walls = this.validateWalls(levelData.walls || []);
+            validated.ghosts = this.validateGhosts(levelData.ghosts || []);
+        }
         
         // Ensure we have at least some ground tiles
         if (validated.tiles.length === 0) {
@@ -185,6 +192,32 @@ export class LevelLoader {
         };
     }
     
+    // Validate walls array (for Pacman mode)
+    validateWalls(walls) {
+        return walls.filter(wall => 
+            typeof wall.x === 'number' && 
+            typeof wall.z === 'number'
+        ).map(wall => ({
+            x: Math.floor(wall.x),
+            z: Math.floor(wall.z),
+            type: wall.type || 'wall',
+            height: wall.height || 3
+        }));
+    }
+    
+    // Validate ghosts array (for Pacman mode)
+    validateGhosts(ghosts) {
+        return ghosts.filter(ghost => 
+            typeof ghost.x === 'number' && 
+            typeof ghost.z === 'number'
+        ).map(ghost => ({
+            x: Math.floor(ghost.x),
+            z: Math.floor(ghost.z),
+            color: ghost.color || 'red',
+            y: ghost.y || 1
+        }));
+    }
+    
     // Get current level data
     getCurrentLevel() {
         return this.levelData || this.defaultLevel;
@@ -229,6 +262,18 @@ export class LevelLoader {
     // Get level size
     getLevelSize() {
         return this.getCurrentLevel().size;
+    }
+    
+    // Get walls (for Pacman mode)
+    getWalls() {
+        const level = this.getCurrentLevel();
+        return level.walls || [];
+    }
+    
+    // Get ghosts (for Pacman mode)
+    getGhosts() {
+        const level = this.getCurrentLevel();
+        return level.ghosts || [];
     }
     
     // Convert world coordinates to grid coordinates
@@ -295,6 +340,59 @@ export class LevelLoader {
             ],
             key: { x: 12, z: 12 },
             exit: { x: 1, z: 1 }
+        };
+    }
+    
+    // Create Pacman level
+    createPacmanLevel() {
+        const width = 13;
+        const height = 15;
+        
+        // Generate full ground tiles
+        const tiles = [];
+        for (let x = 0; x < width; x++) {
+            for (let z = 0; z < height; z++) {
+                tiles.push({
+                    x: x,
+                    z: z,
+                    type: "ground"
+                });
+            }
+        }
+        
+        // Create maze walls pattern
+        const walls = [];
+        for (let z = 0; z < height; z += 2) {
+            for (let x = 0; x < width; x += 2) {
+                walls.push({ x: x, z: z, type: "wall" });
+            }
+        }
+        
+        // Create coins (yellow orbs) in open spaces
+        const coins = [];
+        for (let x = 1; x < width; x += 2) {
+            for (let z = 1; z < height; z += 2) {
+                if (!(x === 6 && z === 7)) { // Don't put coin at center (ghost spawn)
+                    coins.push({ x: x, z: z });
+                }
+            }
+        }
+        
+        return {
+            name: "Pacman Mode - Default Maze",
+            type: "pacman",
+            size: { width: width, height: height },
+            spawn: { x: 6, y: 1, z: 13 },
+            tiles: tiles,
+            walls: walls,
+            coins: coins,
+            ghosts: [
+                { x: 5, z: 7, color: "red" },
+                { x: 6, z: 7, color: "blue" },
+                { x: 7, z: 7, color: "green" },
+                { x: 8, z: 7, color: "pink" }
+            ],
+            exit: { x: 6, z: 1 }
         };
     }
 } 
