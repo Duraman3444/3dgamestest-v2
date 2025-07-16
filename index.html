@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js 3D Game</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        
+        #gameCanvas {
+            display: block;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 14px;
+            z-index: 100;
+        }
+        
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            border: 2px solid white;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        
+        #instructions {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-size: 12px;
+            z-index: 100;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <div id="score">Score: 0</div>
+        <div id="health">Health: 100</div>
+    </div>
+    
+    <div id="crosshair"></div>
+    
+    <div id="instructions">
+        WASD: Move<br>
+        Mouse: Look around<br>
+        Space: Jump<br>
+        Click: Lock pointer<br>
+        C: Toggle camera<br>
+        ESC: Pause
+    </div>
+    
+    <canvas id="gameCanvas"></canvas>
+    
+    <script type="module" src="main.js"></script>
+</body>
+</html> 
