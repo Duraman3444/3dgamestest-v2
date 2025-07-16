@@ -274,6 +274,8 @@ export class UIManager {
         this.gameState.collectibles = gameData.collectibles || 0;
         this.gameState.keyInfo = gameData.keyInfo || { totalKeys: 0, collectedKeys: 0 };
         this.gameState.cameraMode = gameData.cameraMode || 'firstPerson';
+        this.gameState.collectiblePositions = gameData.collectiblePositions || [];
+        this.gameState.keyPosition = gameData.keyPosition || null;
         
         // Update timer with validation
         if (validDeltaTime > 0 && validDeltaTime < 1) { // Reasonable deltaTime range
@@ -387,10 +389,37 @@ export class UIManager {
         ctx.fillStyle = 'rgba(0, 100, 0, 0.3)';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Draw player position
+        // Calculate scale and offset for minimap
+        const mapSize = 16 * 5; // 16 tiles * 5 tile size from gridManager
+        const scale = Math.min(canvas.width, canvas.height) / mapSize;
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
         
+        // Draw collectibles (yellow dots)
+        if (this.gameState.collectiblePositions && this.gameState.collectiblePositions.length > 0) {
+            ctx.fillStyle = '#FFD700'; // Gold/yellow color
+            this.gameState.collectiblePositions.forEach(collectible => {
+                const mapX = centerX + (collectible.worldX * scale);
+                const mapY = centerY + (collectible.worldZ * scale);
+                
+                ctx.beginPath();
+                ctx.arc(mapX, mapY, 2, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+        }
+        
+        // Draw key (blue dot)
+        if (this.gameState.keyPosition) {
+            ctx.fillStyle = '#00FFFF'; // Cyan/blue color
+            const mapX = centerX + (this.gameState.keyPosition.worldX * scale);
+            const mapY = centerY + (this.gameState.keyPosition.worldZ * scale);
+            
+            ctx.beginPath();
+            ctx.arc(mapX, mapY, 3, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+        
+        // Draw player position (on top of everything)
         ctx.fillStyle = '#00ff00';
         ctx.beginPath();
         ctx.arc(centerX, centerY, 3, 0, 2 * Math.PI);

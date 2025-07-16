@@ -434,6 +434,31 @@ export class GridManager {
         return this.collectibles.filter(c => !c.collected).length;
     }
     
+    // Get collectible positions for minimap
+    getCollectiblePositions() {
+        return this.collectibles
+            .filter(c => !c.collected)
+            .map(c => ({
+                x: c.gridX,
+                z: c.gridZ,
+                worldX: c.position.x,
+                worldZ: c.position.z
+            }));
+    }
+    
+    // Get key position for minimap
+    getKeyPosition() {
+        if (this.keyObject && !this.keyObject.collected) {
+            return {
+                x: this.keyObject.gridX,
+                z: this.keyObject.gridZ,
+                worldX: this.keyObject.position.x,
+                worldZ: this.keyObject.position.z
+            };
+        }
+        return null;
+    }
+    
     // Validate spawn point and ensure ground exists
     validateSpawnPoint() {
         const spawnPoint = { x: 0, y: 1, z: 0 }; // Adjusted for sphere radius (1 unit above ground)
