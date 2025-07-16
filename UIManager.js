@@ -10,6 +10,7 @@ export class UIManager {
             health: 100,
             maxHealth: 100,
             collectibles: 0,
+            keyInfo: { totalKeys: 0, collectedKeys: 0 },
             fps: 0,
             position: { x: 0, y: 0, z: 0 },
             gameTime: 0,
@@ -50,6 +51,7 @@ export class UIManager {
         this.createFPSCounter();
         this.createPositionDisplay();
         this.createCollectiblesCounter();
+        this.createKeysCounter();
         this.createGameTimer();
         this.createCameraModeDisplay();
         this.createMinimap();
@@ -114,6 +116,24 @@ export class UIManager {
         this.elements.collectiblesElement = collectiblesElement;
     }
     
+    createKeysCounter() {
+        const keysElement = document.createElement('div');
+        keysElement.id = 'keys-counter';
+        keysElement.style.cssText = `
+            position: absolute;
+            top: 80px;
+            left: 10px;
+            color: #00FFFF;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 101;
+        `;
+        keysElement.textContent = 'Keys: 0/0';
+        document.body.appendChild(keysElement);
+        this.elements.keysElement = keysElement;
+    }
+    
     createGameTimer() {
         const timerElement = document.createElement('div');
         timerElement.id = 'game-timer';
@@ -138,7 +158,7 @@ export class UIManager {
         cameraModeElement.id = 'camera-mode';
         cameraModeElement.style.cssText = `
             position: absolute;
-            top: 80px;
+            top: 100px;
             left: 10px;
             color: #87CEEB;
             font-family: Arial, sans-serif;
@@ -252,6 +272,7 @@ export class UIManager {
         this.gameState.score = gameData.score || 0;
         this.gameState.health = gameData.playerHealth || 100;
         this.gameState.collectibles = gameData.collectibles || 0;
+        this.gameState.keyInfo = gameData.keyInfo || { totalKeys: 0, collectedKeys: 0 };
         this.gameState.cameraMode = gameData.cameraMode || 'firstPerson';
         
         // Update timer with validation
@@ -320,6 +341,12 @@ export class UIManager {
         // Update collectibles
         if (this.elements.collectiblesElement && this.settings.showCollectibles) {
             this.elements.collectiblesElement.textContent = `Collectibles: ${this.gameState.collectibles}`;
+        }
+        
+        // Update keys
+        if (this.elements.keysElement) {
+            const keyInfo = this.gameState.keyInfo;
+            this.elements.keysElement.textContent = `Keys: ${keyInfo.collectedKeys}/${keyInfo.totalKeys}`;
         }
         
         // Update camera mode

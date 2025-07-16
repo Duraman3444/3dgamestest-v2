@@ -328,6 +328,17 @@ export class GridManager {
         return this.exitObject;
     }
     
+    // Get key information
+    getKeyInfo() {
+        const hasKey = this.keyObject !== null;
+        const isCollected = this.keyObject && this.keyObject.collected;
+        
+        return {
+            totalKeys: hasKey ? 1 : 0,
+            collectedKeys: isCollected ? 1 : 0
+        };
+    }
+
     collectItem(collectible) {
         if (!collectible.collected) {
             collectible.collected = true;

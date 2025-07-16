@@ -78,7 +78,8 @@ export class GameLoop {
                 playerHealth: this.systems.player ? this.systems.player.health : null,
                 score: this.systems.collisionSystem ? this.systems.collisionSystem.getScore() : 0,
                 collectibles: this.systems.gridManager ? this.systems.gridManager.getRemainingCollectibles() : 0,
-                cameraMode: this.systems.cameraSystem ? this.systems.cameraSystem.getCameraMode() : 'firstPerson'
+                cameraMode: this.systems.cameraSystem ? this.systems.cameraSystem.getCameraMode() : 'firstPerson',
+                keyInfo: this.systems.gridManager ? this.systems.gridManager.getKeyInfo() : { totalKeys: 0, collectedKeys: 0 }
             });
         }
     }
