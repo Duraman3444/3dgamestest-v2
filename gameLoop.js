@@ -81,7 +81,8 @@ export class GameLoop {
                 cameraMode: this.systems.cameraSystem ? this.systems.cameraSystem.getCameraMode() : 'firstPerson',
                 keyInfo: this.systems.gridManager ? this.systems.gridManager.getKeyInfo() : { totalKeys: 0, collectedKeys: 0 },
                 collectiblePositions: this.systems.gridManager ? this.systems.gridManager.getCollectiblePositions() : [],
-                keyPosition: this.systems.gridManager ? this.systems.gridManager.getKeyPosition() : null
+                keyPosition: this.systems.gridManager ? this.systems.gridManager.getKeyPosition() : null,
+                exitPosition: this.systems.gridManager ? this.systems.gridManager.getExitPosition() : null
             });
         }
     }

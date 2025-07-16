@@ -276,6 +276,7 @@ export class UIManager {
         this.gameState.cameraMode = gameData.cameraMode || 'firstPerson';
         this.gameState.collectiblePositions = gameData.collectiblePositions || [];
         this.gameState.keyPosition = gameData.keyPosition || null;
+        this.gameState.exitPosition = gameData.exitPosition || null;
         
         // Update timer with validation
         if (validDeltaTime > 0 && validDeltaTime < 1) { // Reasonable deltaTime range
@@ -395,31 +396,60 @@ export class UIManager {
         const centerX = canvas.width / 2;
         const centerY = canvas.height / 2;
         
+        // Get player position for tracking
+        const playerPos = this.gameState.position;
+        const playerOffsetX = playerPos.x * scale;
+        const playerOffsetZ = playerPos.z * scale;
+        
         // Draw collectibles (yellow dots)
         if (this.gameState.collectiblePositions && this.gameState.collectiblePositions.length > 0) {
             ctx.fillStyle = '#FFD700'; // Gold/yellow color
             this.gameState.collectiblePositions.forEach(collectible => {
-                const mapX = centerX + (collectible.worldX * scale);
-                const mapY = centerY + (collectible.worldZ * scale);
+                const mapX = centerX + (collectible.worldX * scale) - playerOffsetX;
+                const mapY = centerY + (collectible.worldZ * scale) - playerOffsetZ;
                 
-                ctx.beginPath();
-                ctx.arc(mapX, mapY, 2, 0, 2 * Math.PI);
-                ctx.fill();
+                // Only draw if within minimap bounds
+                if (mapX >= 0 && mapX <= canvas.width && mapY >= 0 && mapY <= canvas.height) {
+                    ctx.beginPath();
+                    ctx.arc(mapX, mapY, 2, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
             });
         }
         
         // Draw key (blue dot)
         if (this.gameState.keyPosition) {
             ctx.fillStyle = '#00FFFF'; // Cyan/blue color
-            const mapX = centerX + (this.gameState.keyPosition.worldX * scale);
-            const mapY = centerY + (this.gameState.keyPosition.worldZ * scale);
+            const mapX = centerX + (this.gameState.keyPosition.worldX * scale) - playerOffsetX;
+            const mapY = centerY + (this.gameState.keyPosition.worldZ * scale) - playerOffsetZ;
             
-            ctx.beginPath();
-            ctx.arc(mapX, mapY, 3, 0, 2 * Math.PI);
-            ctx.fill();
+            // Only draw if within minimap bounds
+            if (mapX >= 0 && mapX <= canvas.width && mapY >= 0 && mapY <= canvas.height) {
+                ctx.beginPath();
+                ctx.arc(mapX, mapY, 3, 0, 2 * Math.PI);
+                ctx.fill();
+            }
         }
         
-        // Draw player position (on top of everything)
+        // Draw exit door (green/red rectangle based on activation status)
+        if (this.gameState.exitPosition) {
+            const exit = this.gameState.exitPosition;
+            ctx.fillStyle = exit.activated ? '#00FF00' : '#FF4444'; // Green if activated, red if not
+            const mapX = centerX + (exit.worldX * scale) - playerOffsetX;
+            const mapY = centerY + (exit.worldZ * scale) - playerOffsetZ;
+            
+            // Only draw if within minimap bounds
+            if (mapX >= -5 && mapX <= canvas.width + 5 && mapY >= -5 && mapY <= canvas.height + 5) {
+                ctx.fillRect(mapX - 4, mapY - 4, 8, 8);
+                
+                // Add a border to make it stand out
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(mapX - 4, mapY - 4, 8, 8);
+            }
+        }
+        
+        // Draw player position (always centered)
         ctx.fillStyle = '#00ff00';
         ctx.beginPath();
         ctx.arc(centerX, centerY, 3, 0, 2 * Math.PI);

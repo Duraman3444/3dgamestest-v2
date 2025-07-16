@@ -459,6 +459,20 @@ export class GridManager {
         return null;
     }
     
+    // Get exit position for minimap
+    getExitPosition() {
+        if (this.exitObject) {
+            return {
+                x: this.exitObject.gridX,
+                z: this.exitObject.gridZ,
+                worldX: this.exitObject.position.x,
+                worldZ: this.exitObject.position.z,
+                activated: this.exitObject.activated
+            };
+        }
+        return null;
+    }
+    
     // Validate spawn point and ensure ground exists
     validateSpawnPoint() {
         const spawnPoint = { x: 0, y: 1, z: 0 }; // Adjusted for sphere radius (1 unit above ground)
