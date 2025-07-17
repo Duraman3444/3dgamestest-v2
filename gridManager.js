@@ -589,6 +589,16 @@ export class GridManager {
         if (levelData.portals && levelData.portals.length > 0) {
             this.generatePortalsFromData(levelData.portals);
         }
+        
+        // Add spiral staircase for Level 6 - Tower Climb
+        if (levelData.name === "Level 6 - Tower Climb") {
+            const centerX = (levelData.size.width * this.tileSize) / 2;
+            const centerZ = (levelData.size.height * this.tileSize) / 2;
+            const center = { x: 0, z: 0 }; // Center of the world (0,0 in world coordinates)
+            
+            console.log(`🏗️ Adding spiral staircase for Level 6 at center (${center.x}, ${center.z})`);
+            this.addSpiralStaircase(center, 25, 60, 1.5); // 60 steps, 1.5 units height each, 25 radius (90 units total height)
+        }
     }
     
     generateDefaultLevel() {
@@ -1653,6 +1663,166 @@ export class GridManager {
         }
     }
     
+    addSpiralStaircase(center, radius, steps, heightPerStep) {
+        // Create the central brown cylinder pillar - NOW SOLID
+        const pillarHeight = steps * heightPerStep + 10; // Make it taller than the staircase
+        const pillarRadius = 3; // Make pillar solid instead of thin (was radius * 0.2)
+        const pillarGeometry = new THREE.CylinderGeometry(pillarRadius, pillarRadius, pillarHeight);
+        const pillarMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0x8B4513, // Brown color
+            emissive: 0x2A1A09,
+            emissiveIntensity: 0.1
+        });
+        const pillarMesh = new THREE.Mesh(pillarGeometry, pillarMaterial);
+        pillarMesh.position.set(center.x, pillarHeight / 2, center.z);
+        pillarMesh.castShadow = true;
+        pillarMesh.receiveShadow = true;
+        
+        this.scene.add(pillarMesh);
+        
+        // Add pillar to obstacles for collision
+        this.obstacles.push({
+            mesh: pillarMesh,
+            position: pillarMesh.position.clone(),
+            gridX: Math.round(center.x / this.tileSize),
+            gridZ: Math.round(center.z / this.tileSize),
+            boundingBox: new THREE.Box3().setFromObject(pillarMesh)
+        });
+        
+        // Create spiral staircase steps
+        const angleStep = (Math.PI * 2) / steps; // Full rotation divided by number of steps
+        const stepWidth = this.tileSize * 1.8; // Make steps even wider for easier rolling
+        const stepDepth = this.tileSize * 1.5; // Make steps even deeper for easier rolling
+        const stepHeight = heightPerStep * 0.3; // Make steps very thin for easy rolling
+        
+        // Red material for steps
+        const stepMaterial = new THREE.MeshLambertMaterial({
+            color: 0xFF0000, // Bright red
+            emissive: 0x330000,
+            emissiveIntensity: 0.3
+        });
+        
+        // Collectible geometry for coins
+        const collectibleGeometry = new THREE.SphereGeometry(0.4, 8, 8);
+        
+        for (let i = 0; i < steps; i++) {
+            const angle = i * angleStep;
+            const stepRadius = radius + (i * 0.03); // Even smaller radius increase per step
+            const stepHeight_y = i * heightPerStep;
+            
+            // Calculate position using polar coordinates
+            const stepX = center.x + Math.cos(angle) * stepRadius;
+            const stepZ = center.z + Math.sin(angle) * stepRadius;
+            
+            // Create step geometry
+            const stepGeometry = new THREE.BoxGeometry(stepWidth, stepHeight, stepDepth);
+            const stepMesh = new THREE.Mesh(stepGeometry, stepMaterial);
+            
+            // Position the step at the exact height (not elevated by half step height)
+            stepMesh.position.set(stepX, stepHeight_y + stepHeight / 2, stepZ);
+            
+            // Rotate the step to face the center and add slight rotation for spiral effect
+            stepMesh.rotation.y = angle + Math.PI / 2; // Face tangent to the circle
+            
+            // Add shadows
+            stepMesh.castShadow = true;
+            stepMesh.receiveShadow = true;
+            
+            // Add to scene
+            this.scene.add(stepMesh);
+            
+            // Add to obstacles for collision
+            this.obstacles.push({
+                mesh: stepMesh,
+                position: stepMesh.position.clone(),
+                gridX: Math.round(stepX / this.tileSize),
+                gridZ: Math.round(stepZ / this.tileSize),
+                boundingBox: new THREE.Box3().setFromObject(stepMesh)
+            });
+            
+            // Create bounce pad on each step
+            const padGeometry = new THREE.CylinderGeometry(1.2, 1.2, 0.3, 8);
+            const bouncepad = new THREE.Mesh(padGeometry, this.bouncePadMaterial);
+            const padHeight = stepHeight_y + stepHeight + 0.15; // Position bounce pad on top of the step
+            bouncepad.position.set(stepX, padHeight, stepZ);
+            bouncepad.castShadow = true;
+            bouncepad.receiveShadow = true;
+            
+            this.scene.add(bouncepad);
+            
+            // Give the last bounce pad a super bounce to reach the top of the tower
+            const isLastStep = (i === steps - 1);
+            const bounceForce = isLastStep ? 50 : 5; // MEGA SUPER BOUNCE on last step, gentle boost on others
+            
+            this.bouncePads.push({
+                mesh: bouncepad,
+                x: Math.round(stepX / this.tileSize),
+                z: Math.round(stepZ / this.tileSize),
+                type: 'vertical',
+                force: bounceForce,
+                direction: 'up'
+            });
+
+            // Create collectible (coin) on each step (only every 3rd step to avoid too many coins)
+            if (i % 3 === 0) {
+                const collectible = new THREE.Mesh(collectibleGeometry, this.collectibleMaterial);
+                const coinHeight = stepHeight_y + stepHeight + 1.2; // Position coin above the bounce pad
+                collectible.position.set(stepX, coinHeight, stepZ);
+                collectible.castShadow = true;
+                
+                this.scene.add(collectible);
+                this.collectibles.push({
+                    mesh: collectible,
+                    position: collectible.position.clone(),
+                    gridX: Math.round(stepX / this.tileSize),
+                    gridZ: Math.round(stepZ / this.tileSize),
+                    collected: false,
+                    rotationSpeed: Math.random() * 0.02 + 0.01,
+                    bounceSpeed: Math.random() * 0.02 + 0.01,
+                    bounceHeight: 0.3
+                });
+            }
+            
+            // Also add to tiles map for gameplay mechanics
+            const gridX = Math.round(stepX / this.tileSize);
+            const gridZ = Math.round(stepZ / this.tileSize);
+            const tileKey = `${gridX},${gridZ}`;
+            
+            this.tiles.set(tileKey, {
+                x: gridX,
+                z: gridZ,
+                worldX: stepX,
+                worldZ: stepZ,
+                occupied: false,
+                type: 'stair',
+                height: stepHeight_y + stepHeight,
+                mesh: stepMesh
+            });
+        }
+        
+        // Create a top platform at the end of the staircase - NOW ON TOP OF SOLID TOWER
+        const topPlatformHeight = steps * heightPerStep + 2; // 2 units above the last step
+        const topPlatformGeometry = new THREE.CylinderGeometry(pillarRadius + 1, pillarRadius + 1, 2, 16); // Circular platform slightly wider than solid tower
+        const topPlatformMaterial = new THREE.MeshLambertMaterial({
+            color: 0x228B22, // Green color for the top platform
+            emissive: 0x004400,
+            emissiveIntensity: 0.2
+        });
+        const topPlatformMesh = new THREE.Mesh(topPlatformGeometry, topPlatformMaterial);
+        topPlatformMesh.position.set(center.x, topPlatformHeight, center.z);
+        topPlatformMesh.castShadow = true;
+        topPlatformMesh.receiveShadow = true;
+        
+        this.scene.add(topPlatformMesh);
+
+        console.log(`✅ Created spiral staircase with ${steps} steps around center (${center.x}, ${center.z})`);
+        console.log(`🏗️ Central SOLID pillar: radius ${pillarRadius}, height ${pillarHeight}`);
+        console.log(`🪜 Steps: width ${stepWidth}, depth ${stepDepth}, height per step ${heightPerStep}`);
+        console.log(`🚀 Added ${steps} bounce pads on every step`);
+        console.log(`🪙 Added ${Math.ceil(steps / 3)} collectibles on the staircase steps (every 3rd step)`);
+        console.log(`🟢 Added top platform at height ${topPlatformHeight} on solid tower`);
+    }
+
     lerpColor(color1, color2, t) {
         const r1 = (color1 >> 16) & 0xff;
         const g1 = (color1 >> 8) & 0xff;

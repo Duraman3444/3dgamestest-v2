@@ -28,7 +28,7 @@ export class PacmanMenu {
     // Check if all regular levels are completed
     areAllLevelsCompleted() {
         const progress = this.getProgress();
-        const requiredLevels = [1, 2, 3, 4]; // Regular levels that must be completed
+        const requiredLevels = [1, 2, 3, 4, 5, 6]; // Regular levels that must be completed
         
         return requiredLevels.every(level => progress.completedLevels.includes(level));
     }
@@ -64,7 +64,7 @@ export class PacmanMenu {
     unlockPacmanMode() {
         try {
             const progress = {
-                completedLevels: [1, 2, 3, 4], // Mark all regular levels as completed
+                completedLevels: [1, 2, 3, 4, 5, 6], // Mark all regular levels as completed
                 pacmanLevelsUnlocked: true,
                 completedPacmanLevels: []
             };

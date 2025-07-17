@@ -19,7 +19,8 @@ export class SinglePlayerMenu {
             { id: 2, name: "Level 2 - Bounce Pad Challenges", file: "level2.json" },
             { id: 3, name: "Level 3 - Deadly Spike Maze", file: "level3.json" },
             { id: 4, name: "Level 4 - Portal Maze: Teleportation Challenge", file: "level4.json" },
-            { id: 5, name: "Level 5 - Spike Parkour Challenge", file: "level5.json" }
+            { id: 5, name: "Level 5 - Spike Parkour Challenge", file: "level5.json" },
+            { id: 6, name: "Level 6 - Tower Climb", file: "level6.json" }
         ];
         
         this.createMenu();

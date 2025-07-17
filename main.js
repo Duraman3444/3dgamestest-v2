@@ -909,7 +909,7 @@ class Game {
                     console.log(`Level ${levelId} completed and saved!`);
                     
                     // Check if all regular levels are completed
-                    const requiredLevels = [1, 2, 3, 4];
+                    const requiredLevels = [1, 2, 3, 4, 5, 6];
                     if (requiredLevels.every(level => progress.completedLevels.includes(level))) {
                         progress.pacmanLevelsUnlocked = true;
                         console.log('All regular levels completed! Pacman mode unlocked!');
@@ -937,8 +937,8 @@ class Game {
                 return true;
             }
         } else {
-            // Normal mode: advance through available level files (level1.json to level4.json)
-            const maxNormalLevel = 4;
+            // Normal mode: advance through available level files (level1.json to level6.json)
+            const maxNormalLevel = 6;
             if (this.currentLevel < maxNormalLevel) {
                 this.currentLevel++;
                 console.log(`Advanced to level ${this.currentLevel}`);
