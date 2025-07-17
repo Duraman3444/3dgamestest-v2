@@ -1549,6 +1549,13 @@ export class GridManager {
             const remainingCollectibles = this.collectibles.filter(c => !c.collected);
             return remainingCollectibles.length === 0;
         } else {
+            const levelData = this.levelLoader.getCurrentLevel();
+            
+            // Special case for Level 6 - Tower Climb: no key or coins required
+            if (levelData.name === "Level 6 - Tower Climb") {
+                return true;
+            }
+            
             if (this.keyObject && !this.keyObject.collected) {
                 return false;
             }

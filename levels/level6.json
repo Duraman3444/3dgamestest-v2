@@ -37,10 +37,11 @@
   "exit": {
     "x": 12,
     "z": 12,
-    "y": 95,
+    "y": 102,
     "width": 3,
     "height": 6,
     "depth": 3
   },
-  "requireAllCoins": false
+  "requireAllCoins": false,
+  "requireKey": false
 } 
