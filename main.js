@@ -1608,6 +1608,9 @@ class Game {
                 this.gridManager.cleanupLevel();
             }
             
+            // Clean up UI elements to prevent duplication
+            this.cleanupUIElements();
+            
             // Clean up existing player objects
             if (this.player) {
                 if (this.player.mesh) {
