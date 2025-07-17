@@ -7,6 +7,7 @@ import { CollisionSystem } from './collisionSystem.js';
 import { UIManager } from './UIManager.js';
 import { LevelLoader } from './levelLoader.js';
 import { MainMenu } from './mainMenu.js';
+import { GameOverScreen } from './gameOverScreen.js';
 
 class Game {
     constructor() {
@@ -20,7 +21,15 @@ class Game {
         this.collisionSystem = null;
         this.uiManager = null;
         this.mainMenu = null;
+        this.gameOverScreen = null;
         this.isGameInitialized = false;
+        this.isPaused = false;
+        this.pauseOverlay = null;
+        
+        // Level progression system for pacman mode
+        this.currentLevel = 1;
+        this.maxLevel = 10; // Maximum number of levels
+        this.gameMode = 'normal'; // 'normal' or 'pacman'
         
         this.initializeMenu();
     }
@@ -28,6 +37,13 @@ class Game {
     initializeMenu() {
         // Create main menu
         this.mainMenu = new MainMenu((mode) => this.startGame(mode));
+        
+        // Create game over screen
+        this.gameOverScreen = new GameOverScreen(
+            () => this.returnToMainMenu(),
+            () => this.retryLevel(),
+            () => this.quitGame()
+        );
         
         // Hide the game canvas initially
         this.canvas.style.display = 'none';
@@ -42,8 +58,213 @@ class Game {
         if (instructions) instructions.style.display = 'none';
     }
     
+    createPauseOverlay() {
+        const pauseOverlay = document.createElement('div');
+        pauseOverlay.id = 'pauseOverlay';
+        pauseOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            font-family: 'Courier New', monospace;
+        `;
+        
+        const pauseTitle = document.createElement('h1');
+        pauseTitle.textContent = 'GAME PAUSED';
+        pauseTitle.style.cssText = `
+            color: #00ffff;
+            font-size: 48px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            text-shadow: 3px 3px 0px #ff00ff, 6px 6px 0px #000000;
+            text-align: center;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        `;
+        
+        const pauseInstructions = document.createElement('p');
+        pauseInstructions.textContent = 'Press O to resume or use the options below:';
+        pauseInstructions.style.cssText = `
+            color: #ffff00;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 2px 2px 0px #000000;
+            text-align: center;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 30px;
+        `;
+        
+        // Create buttons container
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        `;
+        
+        // Resume button
+        const resumeButton = document.createElement('button');
+        resumeButton.textContent = 'RESUME GAME';
+        resumeButton.style.cssText = `
+            background: linear-gradient(135deg, #1a0033 0%, #330066 100%);
+            border: 2px solid #00ffff;
+            color: #00ffff;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            border-radius: 8px;
+            cursor: pointer;
+            text-shadow: 2px 2px 0px #000000;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            min-width: 250px;
+        `;
+        
+        // Main menu button
+        const mainMenuButton = document.createElement('button');
+        mainMenuButton.textContent = 'MAIN MENU';
+        mainMenuButton.style.cssText = `
+            background: linear-gradient(135deg, #1a0033 0%, #330066 100%);
+            border: 2px solid #ffff00;
+            color: #ffff00;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            border-radius: 8px;
+            cursor: pointer;
+            text-shadow: 2px 2px 0px #000000;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            min-width: 250px;
+        `;
+        
+        // Quit button
+        const quitButton = document.createElement('button');
+        quitButton.textContent = 'QUIT GAME';
+        quitButton.style.cssText = `
+            background: linear-gradient(135deg, #1a0033 0%, #330066 100%);
+            border: 2px solid #ff00ff;
+            color: #ff00ff;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            border-radius: 8px;
+            cursor: pointer;
+            text-shadow: 2px 2px 0px #000000;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            min-width: 250px;
+        `;
+        
+        // Add hover effects
+        const addHoverEffect = (button, hoverColor) => {
+            button.addEventListener('mouseenter', () => {
+                button.style.background = `linear-gradient(135deg, #ff6600 0%, #ff9900 100%)`;
+                button.style.color = '#000000';
+                button.style.borderColor = hoverColor;
+                button.style.transform = 'scale(1.05)';
+            });
+            
+            button.addEventListener('mouseleave', () => {
+                button.style.background = `linear-gradient(135deg, #1a0033 0%, #330066 100%)`;
+                button.style.color = hoverColor;
+                button.style.borderColor = hoverColor;
+                button.style.transform = 'scale(1)';
+            });
+        };
+        
+        addHoverEffect(resumeButton, '#00ffff');
+        addHoverEffect(mainMenuButton, '#ffff00');
+        addHoverEffect(quitButton, '#ff00ff');
+        
+        // Add event listeners
+        resumeButton.addEventListener('click', () => {
+            this.togglePause();
+        });
+        
+        mainMenuButton.addEventListener('click', () => {
+            this.pauseToMainMenu();
+        });
+        
+        quitButton.addEventListener('click', () => {
+            this.quitGame();
+        });
+        
+        // Add elements to containers
+        buttonsContainer.appendChild(resumeButton);
+        buttonsContainer.appendChild(mainMenuButton);
+        buttonsContainer.appendChild(quitButton);
+        
+        pauseOverlay.appendChild(pauseTitle);
+        pauseOverlay.appendChild(pauseInstructions);
+        pauseOverlay.appendChild(buttonsContainer);
+        
+        return pauseOverlay;
+    }
+    
+    togglePause() {
+        if (this.isPaused) {
+            // Resume game
+            this.isPaused = false;
+            if (this.pauseOverlay) {
+                document.body.removeChild(this.pauseOverlay);
+                this.pauseOverlay = null;
+            }
+            
+            // Enable player controls
+            if (this.player) {
+                this.player.enableControls();
+            }
+            
+            // Resume game loop
+            if (this.gameLoop) {
+                this.gameLoop.start();
+            }
+            
+            // Re-enable pointer lock
+            this.canvas.requestPointerLock();
+        } else {
+            // Pause game
+            this.isPaused = true;
+            
+            // Disable player controls
+            if (this.player) {
+                this.player.disableControls();
+            }
+            
+            // Pause game loop
+            if (this.gameLoop) {
+                this.gameLoop.stop();
+            }
+            
+            // Exit pointer lock
+            if (document.pointerLockElement) {
+                document.exitPointerLock();
+            }
+            
+            // Show pause overlay
+            this.pauseOverlay = this.createPauseOverlay();
+            document.body.appendChild(this.pauseOverlay);
+        }
+    }
+    
     async startGame(mode = 'normal') {
         this.gameMode = mode; // Store game mode
+        
+        // Reset to level 1 when starting a new game
+        this.currentLevel = 1;
         
         // Show the game canvas
         this.canvas.style.display = 'block';
@@ -128,11 +349,12 @@ class Game {
                 this.levelLoader.loadLevelFromData(this.levelLoader.createPacmanLevel());
             }
         } else {
-            // Try to load level1.json, fallback to default if failed
+            // Load level based on current level number
+            const levelFile = `./levels/level${this.currentLevel}.json`;
             try {
-                await this.levelLoader.loadLevel('./levels/level1.json');
+                await this.levelLoader.loadLevel(levelFile);
             } catch (error) {
-                console.warn('Could not load level1.json, using default level');
+                console.warn(`Could not load ${levelFile}, using default level`);
                 this.levelLoader.loadLevelFromData(this.levelLoader.createTestLevel());
             }
         }
@@ -178,22 +400,57 @@ class Game {
         
         // Handle pointer lock
         this.canvas.addEventListener('click', () => {
-            this.canvas.requestPointerLock();
+            if (!this.isPaused) {
+                this.canvas.requestPointerLock();
+            }
         });
         
         // Handle pointer lock change
         document.addEventListener('pointerlockchange', () => {
-            if (document.pointerLockElement === this.canvas) {
+            if (document.pointerLockElement === this.canvas && !this.isPaused) {
                 this.player.enableControls();
             } else {
                 this.player.disableControls();
             }
         });
         
-        // Handle ESC key to show main menu
+        // Handle O key for pause functionality
         document.addEventListener('keydown', (event) => {
+            if ((event.key === 'o' || event.key === 'O') && this.isGameInitialized) {
+                event.preventDefault();
+                
+                // Only handle pause if main menu is not visible
+                if (!this.mainMenu.isVisible) {
+                    this.togglePause();
+                }
+            }
+            
+            // Handle ESC key for main menu
             if (event.key === 'Escape' && this.isGameInitialized) {
-                this.toggleMainMenu();
+                event.preventDefault();
+                
+                // Check if main menu is visible
+                if (this.mainMenu.isVisible) {
+                    // Hide menu and resume game
+                    this.mainMenu.hide();
+                    this.canvas.style.display = 'block';
+                    
+                    // Show game UI
+                    const gameUI = document.getElementById('ui');
+                    const crosshair = document.getElementById('crosshair');
+                    const instructions = document.getElementById('instructions');
+                    
+                    if (gameUI) gameUI.style.display = 'block';
+                    if (crosshair) crosshair.style.display = 'block';
+                    if (instructions) instructions.style.display = 'block';
+                    
+                    if (this.gameLoop) {
+                        this.gameLoop.start();
+                    }
+                } else {
+                    // Show main menu
+                    this.toggleMainMenu();
+                }
             }
         });
     }
@@ -237,7 +494,7 @@ class Game {
     }
     
     handleGameOver() {
-        console.log('Handling game over - returning to main menu');
+        console.log('Handling game over - showing game over screen');
         
         // Stop the game loop
         if (this.gameLoop) {
@@ -254,15 +511,261 @@ class Game {
         if (crosshair) crosshair.style.display = 'none';
         if (instructions) instructions.style.display = 'none';
         
-        // Show main menu
-        this.mainMenu.show();
+        // Show game over screen
+        this.gameOverScreen.show();
+    }
+    
+    // Level progression methods for pacman mode
+    getCurrentLevel() {
+        return this.currentLevel;
+    }
+    
+    nextLevel() {
+        if (this.gameMode === 'pacman' && this.currentLevel < this.maxLevel) {
+            this.currentLevel++;
+            console.log(`Advanced to level ${this.currentLevel}`);
+            // TODO: Reload level with new difficulty
+            return true;
+        }
+        return false;
+    }
+    
+    // Calculate ghost speed based on current level
+    getGhostSpeed() {
+        if (this.gameMode === 'pacman') {
+            // For pacman mode, use level-based progression
+            if (this.currentLevel <= 3) {
+                // First 3 levels: much slower ghost speed
+                return 4.0 + (this.currentLevel - 1) * 1.0; // 4, 5, 6
+            } else {
+                // Level 4+: original speed progression
+                return 11.0 + (this.currentLevel - 4) * 1.5; // 11, 12.5, 14, etc.
+            }
+        } else {
+            // For normal mode, check if level has specific ghost speeds
+            const levelData = this.levelLoader.getCurrentLevel();
+            if (levelData && levelData.ghosts && levelData.ghosts.length > 0) {
+                // Return the speed from the first ghost as default
+                return levelData.ghosts[0].speed || 11.0;
+            }
+            return 11.0; // Default speed for non-pacman modes
+        }
+    }
+    
+    // Pause screen handler for returning to main menu
+    pauseToMainMenu() {
+        console.log('Returning to main menu from pause');
+        
+        // Stop the game loop
+        if (this.gameLoop) {
+            this.gameLoop.stop();
+        }
+        
+        // Hide game elements
+        this.canvas.style.display = 'none';
+        const gameUI = document.getElementById('ui');
+        const crosshair = document.getElementById('crosshair');
+        const instructions = document.getElementById('instructions');
+        
+        if (gameUI) gameUI.style.display = 'none';
+        if (crosshair) crosshair.style.display = 'none';
+        if (instructions) instructions.style.display = 'none';
         
         // Reset game state for next play
         this.isGameInitialized = false;
+        this.currentLevel = 1;
+        this.isPaused = false;
+        
+        // Clean up pause overlay
+        if (this.pauseOverlay) {
+            document.body.removeChild(this.pauseOverlay);
+            this.pauseOverlay = null;
+        }
+        
+        // Exit pointer lock
+        if (document.pointerLockElement) {
+            document.exitPointerLock();
+        }
+        
+        // Show main menu
+        this.mainMenu.show();
+    }
+
+    // Game over screen handlers
+    returnToMainMenu() {
+        console.log('Returning to main menu');
+        
+        // Hide game over screen
+        this.gameOverScreen.hide();
+        
+        // Reset game state for next play
+        this.isGameInitialized = false;
+        this.currentLevel = 1;
+        this.isPaused = false;
+        
+        // Clean up pause overlay if exists
+        if (this.pauseOverlay) {
+            document.body.removeChild(this.pauseOverlay);
+            this.pauseOverlay = null;
+        }
+        
+        // Show main menu
+        this.mainMenu.show();
+    }
+    
+    retryLevel() {
+        console.log('Retrying level');
+        
+        // Reset player lives
+        if (this.player) {
+            this.player.resetLives();
+        }
+        
+        // Reset pause state
+        this.isPaused = false;
+        if (this.pauseOverlay) {
+            document.body.removeChild(this.pauseOverlay);
+            this.pauseOverlay = null;
+        }
+        
+        // Restart the current level
+        this.restartCurrentLevel();
+    }
+    
+    quitGame() {
+        console.log('Quitting game');
+        
+        // Create a styled confirmation dialog
+        const confirmOverlay = document.createElement('div');
+        confirmOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 3000;
+            font-family: 'Arial', sans-serif;
+        `;
+        
+        const confirmPanel = document.createElement('div');
+        confirmPanel.style.cssText = `
+            background: #8b0000;
+            padding: 40px;
+            border-radius: 12px;
+            border: 2px solid rgba(255,255,255,0.3);
+            text-align: center;
+            max-width: 400px;
+        `;
+        
+        const confirmTitle = document.createElement('h2');
+        confirmTitle.textContent = 'Quit Game';
+        confirmTitle.style.cssText = `
+            color: #ffffff;
+            margin-bottom: 20px;
+            font-size: 24px;
+        `;
+        
+        const confirmMessage = document.createElement('p');
+        confirmMessage.textContent = 'Are you sure you want to quit the game?';
+        confirmMessage.style.cssText = `
+            color: #ffffff;
+            margin-bottom: 30px;
+            font-size: 16px;
+        `;
+        
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.style.cssText = `
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+        `;
+        
+        const yesButton = document.createElement('button');
+        yesButton.textContent = 'Yes, Quit';
+        yesButton.style.cssText = `
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: #ffffff;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        `;
+        
+        const noButton = document.createElement('button');
+        noButton.textContent = 'Cancel';
+        noButton.style.cssText = `
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: #ffffff;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        `;
+        
+        yesButton.addEventListener('click', () => {
+            window.close();
+        });
+        
+        noButton.addEventListener('click', () => {
+            document.body.removeChild(confirmOverlay);
+        });
+        
+        buttonsContainer.appendChild(yesButton);
+        buttonsContainer.appendChild(noButton);
+        
+        confirmPanel.appendChild(confirmTitle);
+        confirmPanel.appendChild(confirmMessage);
+        confirmPanel.appendChild(buttonsContainer);
+        
+        confirmOverlay.appendChild(confirmPanel);
+        document.body.appendChild(confirmOverlay);
+    }
+    
+    async restartCurrentLevel() {
+        try {
+            // Hide game over screen
+            this.gameOverScreen.hide();
+            
+            // Reset pause state
+            this.isPaused = false;
+            if (this.pauseOverlay) {
+                document.body.removeChild(this.pauseOverlay);
+                this.pauseOverlay = null;
+            }
+            
+            // Show game elements
+            this.canvas.style.display = 'block';
+            const gameUI = document.getElementById('ui');
+            const crosshair = document.getElementById('crosshair');
+            const instructions = document.getElementById('instructions');
+            
+            if (gameUI) gameUI.style.display = 'block';
+            if (crosshair) crosshair.style.display = 'block';
+            if (instructions) instructions.style.display = 'block';
+            
+            // Reinitialize the game systems with current level
+            await this.setupSystems();
+            
+            // Restart the game loop
+            this.gameLoop.start();
+            
+        } catch (error) {
+            console.error('Error restarting level:', error);
+            // Fall back to main menu
+            this.returnToMainMenu();
+        }
     }
 }
 
 // Initialize the game when the page loads
 window.addEventListener('load', () => {
-    new Game();
+    window.game = new Game();
 }); 

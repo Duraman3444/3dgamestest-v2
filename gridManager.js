@@ -199,7 +199,17 @@ export class GridManager {
         const ghostGeometry = new THREE.SphereGeometry(0.4, 8, 8);
         
         ghostsData.forEach(ghostData => {
-            const worldPos = this.levelLoader.gridToWorld(ghostData.x, ghostData.z, this.tileSize);
+            // For pacman mode, spawn ghosts at top of map instead of their defined position
+            let spawnX, spawnZ;
+            if (this.levelType === 'pacman') {
+                spawnX = ghostData.x;
+                spawnZ = 1; // Top of map
+            } else {
+                spawnX = ghostData.x;
+                spawnZ = ghostData.z;
+            }
+            
+            const worldPos = this.levelLoader.gridToWorld(spawnX, spawnZ, this.tileSize);
             const ghostMaterial = this.ghostMaterials[ghostData.color] || this.ghostMaterials.red;
             const ghost = new THREE.Mesh(ghostGeometry, ghostMaterial);
             ghost.position.set(worldPos.x, ghostData.y || 1, worldPos.z);
@@ -209,15 +219,21 @@ export class GridManager {
             this.ghosts.push({
                 mesh: ghost,
                 position: ghost.position.clone(),
-                gridX: ghostData.x,
-                gridZ: ghostData.z,
+                gridX: spawnX,
+                gridZ: spawnZ,
                 color: ghostData.color,
                 direction: { x: 1, z: 0 }, // Initial direction
-                speed: 11.0, // Slightly faster than player (player speed is 10)
+                speed: ghostData.speed || 11.0, // Use individual ghost speed from level data
                 lastDirectionChange: 0,
-                chaseMode: false, // Whether ghost is actively chasing player
-                chaseRange: 15.0, // Distance at which ghost starts chasing
-                lastPlayerPosition: null
+                chaseMode: this.levelType === 'pacman', // For pacman mode, always chase (enhanced tracking)
+                chaseRange: this.levelType === 'pacman' ? 999.0 : 15.0, // Unlimited chase range for pacman mode
+                lastPlayerPosition: null,
+                stuckCounter: 0, // Track if ghost is stuck
+                
+                // Pacman-specific properties
+                isActive: this.levelType !== 'pacman', // Start inactive for pacman mode (8 second delay)
+                activationTime: this.levelType === 'pacman' ? 8.0 : 0, // 8 second head start
+                spawnTime: performance.now() * 0.001
             });
         });
     }
@@ -384,10 +400,28 @@ export class GridManager {
     updateGhosts(deltaTime) {
         // Get player position for chase AI
         const playerPosition = this.getPlayerPosition();
+        const currentTime = performance.now() * 0.001;
         
         this.ghosts.forEach((ghost, index) => {
+            // Check if ghost should be active yet (8-second delay for pacman mode)
+            if (!ghost.isActive) {
+                if (currentTime - ghost.spawnTime >= ghost.activationTime) {
+                    ghost.isActive = true;
+                    console.log(`${ghost.color} ghost activated!`);
+                } else {
+                    return; // Skip this ghost if not active yet
+                }
+            }
+            
+            // Update ghost speed based on current level (for pacman mode)
+            if (this.levelType === 'pacman' && window.game) {
+                ghost.speed = window.game.getGhostSpeed();
+            } else if (this.levelType !== 'pacman') {
+                // For non-pacman modes, keep the individual ghost speed from level data
+                // Don't override the speed - it was set during ghost creation
+            }
+            
             const moveDistance = ghost.speed * deltaTime;
-            const currentTime = performance.now() * 0.001;
             
             // Check if player is within chase range
             const distanceToPlayer = playerPosition ? 
@@ -400,8 +434,9 @@ export class GridManager {
             
             // Determine if ghost should chase player
             if (playerPosition && distanceToPlayer <= ghost.chaseRange) {
-                // Check if there's a clear line of sight to player
-                if (this.hasLineOfSight(ghost.mesh.position, playerPosition)) {
+                // For pacman mode, always chase (no line of sight requirement)
+                // For normal mode, check line of sight
+                if (this.levelType === 'pacman' || this.hasLineOfSight(ghost.mesh.position, playerPosition)) {
                     ghost.chaseMode = true;
                     ghost.lastPlayerPosition = playerPosition.clone();
                     
@@ -428,63 +463,54 @@ export class GridManager {
                 targetDirection = ghost.direction;
             }
             
-            // Calculate new position
-            const newX = ghost.mesh.position.x + (targetDirection.x * moveDistance);
-            const newZ = ghost.mesh.position.z + (targetDirection.z * moveDistance);
+            // Smart pathfinding: try to move directly toward player first
+            let newX = ghost.mesh.position.x + (targetDirection.x * moveDistance);
+            let newZ = ghost.mesh.position.z + (targetDirection.z * moveDistance);
             
-            // Check for wall collisions
-            const canMove = this.canGhostMoveTo(newX, newZ);
-            
-            if (canMove) {
+            // Check if direct path to player is clear
+            if (this.canGhostMoveTo(newX, newZ)) {
                 ghost.mesh.position.x = newX;
                 ghost.mesh.position.z = newZ;
-                
-                // Update direction if chasing
-                if (ghost.chaseMode && targetDirection !== ghost.direction) {
-                    ghost.direction = targetDirection;
-                    ghost.lastDirectionChange = currentTime;
-                }
+                ghost.direction = targetDirection;
+                ghost.lastDirectionChange = currentTime;
+                ghost.stuckCounter = 0; // Reset stuck counter
             } else {
-                // Change direction when hitting wall
-                if (currentTime - ghost.lastDirectionChange > 0.5) {
-                    const directions = [
-                        { x: 1, z: 0 },   // Right
-                        { x: -1, z: 0 },  // Left
-                        { x: 0, z: 1 },   // Forward
-                        { x: 0, z: -1 }   // Backward
-                    ];
+                // Direct path blocked, find alternative path
+                const alternativeDirection = this.findBestAlternativeDirection(ghost, playerPosition, moveDistance);
+                
+                if (alternativeDirection) {
+                    newX = ghost.mesh.position.x + (alternativeDirection.x * moveDistance);
+                    newZ = ghost.mesh.position.z + (alternativeDirection.z * moveDistance);
                     
-                    // If chasing, prefer directions that get closer to player
-                    if (ghost.chaseMode && playerPosition) {
-                        directions.sort((a, b) => {
-                            const aDistance = Math.sqrt(
-                                Math.pow((ghost.mesh.position.x + a.x * moveDistance * 2) - playerPosition.x, 2) + 
-                                Math.pow((ghost.mesh.position.z + a.z * moveDistance * 2) - playerPosition.z, 2)
-                            );
-                            const bDistance = Math.sqrt(
-                                Math.pow((ghost.mesh.position.x + b.x * moveDistance * 2) - playerPosition.x, 2) + 
-                                Math.pow((ghost.mesh.position.z + b.z * moveDistance * 2) - playerPosition.z, 2)
-                            );
-                            return aDistance - bDistance;
-                        });
-                    }
-                    
-                    // Try each direction to find one that doesn't hit a wall
-                    for (let dir of directions) {
-                        const testX = ghost.mesh.position.x + (dir.x * moveDistance * 2);
-                        const testZ = ghost.mesh.position.z + (dir.z * moveDistance * 2);
+                    if (this.canGhostMoveTo(newX, newZ)) {
+                        ghost.mesh.position.x = newX;
+                        ghost.mesh.position.z = newZ;
+                        ghost.direction = alternativeDirection;
+                        ghost.lastDirectionChange = currentTime;
+                        ghost.stuckCounter = 0; // Reset stuck counter
+                    } else {
+                        // Still stuck, increment stuck counter
+                        ghost.stuckCounter = (ghost.stuckCounter || 0) + 1;
                         
-                        if (this.canGhostMoveTo(testX, testZ)) {
-                            ghost.direction = dir;
-                            ghost.lastDirectionChange = currentTime;
-                            break;
+                        // If stuck for too long, try teleporting closer to player
+                        if (ghost.stuckCounter > 120) { // 2 seconds at 60fps
+                            this.unstuckGhost(ghost, playerPosition);
                         }
+                    }
+                } else {
+                    // No alternative found, increment stuck counter
+                    ghost.stuckCounter = (ghost.stuckCounter || 0) + 1;
+                    
+                    // If stuck for too long, try teleporting closer to player
+                    if (ghost.stuckCounter > 120) { // 2 seconds at 60fps
+                        this.unstuckGhost(ghost, playerPosition);
                     }
                 }
             }
             
-            // Less frequent random direction changes when not chasing
-            if (!ghost.chaseMode && currentTime - ghost.lastDirectionChange > 3 && Math.random() < 0.1) {
+            // For pacman mode, ghosts should always be chasing (no random movement)
+            // For normal mode, add some random movement when not chasing
+            if (this.levelType !== 'pacman' && !ghost.chaseMode && currentTime - ghost.lastDirectionChange > 3 && Math.random() < 0.1) {
                 const directions = [
                     { x: 1, z: 0 },   // Right
                     { x: -1, z: 0 },  // Left
@@ -503,19 +529,122 @@ export class GridManager {
             return false;
         }
         
-        // Check for wall collisions
+        // Check for wall collisions (more lenient for better movement)
         for (let wall of this.walls) {
             const distance = Math.sqrt(
                 Math.pow(wall.position.x - worldX, 2) + 
                 Math.pow(wall.position.z - worldZ, 2)
             );
             
-            if (distance < this.tileSize * 0.6) {
+            // Use ghost radius (0.4) plus small buffer instead of tileSize * 0.6
+            if (distance < 0.8) { // 0.4 (ghost radius) + 0.4 (buffer)
                 return false;
             }
         }
         
         return true;
+    }
+    
+    // Find the best alternative direction when direct path to player is blocked
+    findBestAlternativeDirection(ghost, playerPosition, moveDistance) {
+        if (!playerPosition) return null;
+        
+        // Try more directions including diagonals for better pathfinding
+        const directions = [
+            { x: 1, z: 0 },   // Right
+            { x: -1, z: 0 },  // Left
+            { x: 0, z: 1 },   // Forward
+            { x: 0, z: -1 },  // Backward
+            { x: 1, z: 1 },   // Diagonal NE
+            { x: -1, z: 1 },  // Diagonal NW
+            { x: 1, z: -1 },  // Diagonal SE
+            { x: -1, z: -1 }  // Diagonal SW
+        ];
+        
+        // Score each direction based on how close it gets to the player
+        const scoredDirections = directions.map(dir => {
+            const testX = ghost.mesh.position.x + (dir.x * moveDistance * 3);
+            const testZ = ghost.mesh.position.z + (dir.z * moveDistance * 3);
+            
+            // Check if this direction is passable
+            if (!this.canGhostMoveTo(testX, testZ)) {
+                return { direction: dir, score: -1 }; // Invalid direction
+            }
+            
+            // Calculate distance to player from this new position
+            const distanceToPlayer = Math.sqrt(
+                Math.pow(testX - playerPosition.x, 2) + 
+                Math.pow(testZ - playerPosition.z, 2)
+            );
+            
+            // Lower distance = higher score
+            return { direction: dir, score: -distanceToPlayer };
+        });
+        
+        // Sort by score (highest first) and filter out invalid directions
+        scoredDirections.sort((a, b) => b.score - a.score);
+        const validDirections = scoredDirections.filter(d => d.score > -1);
+        
+        // Try the best directions first
+        for (let dirData of validDirections) {
+            const testX = ghost.mesh.position.x + (dirData.direction.x * moveDistance);
+            const testZ = ghost.mesh.position.z + (dirData.direction.z * moveDistance);
+            
+            if (this.canGhostMoveTo(testX, testZ)) {
+                return dirData.direction;
+            }
+        }
+        
+        return null; // No valid direction found
+    }
+    
+    // Unstuck a ghost by finding the nearest open space closer to the player
+    unstuckGhost(ghost, playerPosition) {
+        if (!playerPosition) return;
+        
+        console.log(`Unstucking ${ghost.color} ghost...`);
+        
+        // Try to find a clear path closer to the player
+        const directionToPlayer = new THREE.Vector3(
+            playerPosition.x - ghost.mesh.position.x,
+            0,
+            playerPosition.z - ghost.mesh.position.z
+        ).normalize();
+        
+        // Try positions at increasing distances from current position toward player
+        for (let distance = this.tileSize; distance <= this.tileSize * 3; distance += this.tileSize) {
+            const testX = ghost.mesh.position.x + (directionToPlayer.x * distance);
+            const testZ = ghost.mesh.position.z + (directionToPlayer.z * distance);
+            
+            if (this.canGhostMoveTo(testX, testZ)) {
+                ghost.mesh.position.x = testX;
+                ghost.mesh.position.z = testZ;
+                ghost.stuckCounter = 0;
+                console.log(`${ghost.color} ghost unstuck!`);
+                return;
+            }
+        }
+        
+        // If we can't find a spot toward the player, try a circular search around current position
+        const searchRadius = this.tileSize * 2;
+        const angleStep = Math.PI / 8; // 22.5 degrees
+        
+        for (let angle = 0; angle < Math.PI * 2; angle += angleStep) {
+            const testX = ghost.mesh.position.x + Math.cos(angle) * searchRadius;
+            const testZ = ghost.mesh.position.z + Math.sin(angle) * searchRadius;
+            
+            if (this.canGhostMoveTo(testX, testZ)) {
+                ghost.mesh.position.x = testX;
+                ghost.mesh.position.z = testZ;
+                ghost.stuckCounter = 0;
+                console.log(`${ghost.color} ghost unstuck to nearby position!`);
+                return;
+            }
+        }
+        
+        // Last resort: reset stuck counter to prevent infinite attempts
+        ghost.stuckCounter = 0;
+        console.log(`Could not unstuck ${ghost.color} ghost, resetting counter`);
     }
     
     getPlayerPosition() {
@@ -607,6 +736,11 @@ export class GridManager {
     // Get ghosts (for Pacman mode)
     getGhosts() {
         return this.ghosts;
+    }
+    
+    // Get walls (for Pacman mode)
+    getWalls() {
+        return this.walls;
     }
     
     // Get ghost positions for minimap

@@ -84,7 +84,8 @@ export class GameLoop {
                 collectiblePositions: this.systems.gridManager ? this.systems.gridManager.getCollectiblePositions() : [],
                 keyPosition: this.systems.gridManager ? this.systems.gridManager.getKeyPosition() : null,
                 exitPosition: this.systems.gridManager ? this.systems.gridManager.getExitPosition() : null,
-                ghostPositions: this.systems.gridManager ? this.systems.gridManager.getGhostPositions() : []
+                ghostPositions: this.systems.gridManager ? this.systems.gridManager.getGhostPositions() : [],
+                gameMode: window.game ? window.game.gameMode : 'normal'
             });
         }
     }

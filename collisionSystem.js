@@ -38,6 +38,9 @@ export class CollisionSystem {
         // Check collision with obstacles
         this.checkObstacleCollisions();
         
+        // Check collision with walls (Pacman mode)
+        this.checkWallCollisions();
+        
         // Check collision with collectibles
         this.checkCollectibleCollisions();
         
@@ -76,6 +79,33 @@ export class CollisionSystem {
                     
                     // Stop player movement in collision direction
                     this.player.velocity.multiplyScalar(0.8);
+                }
+            }
+        }
+    }
+    
+    checkWallCollisions() {
+        // Only check wall collisions for pacman mode
+        if (this.gridManager.levelType !== 'pacman') return;
+        
+        const playerPosition = this.player.getPosition();
+        const playerBounds = this.getPlayerBoundingBox(playerPosition);
+        const walls = this.gridManager.getWalls();
+        
+        for (let wall of walls) {
+            const wallBounds = this.getWallBoundingBox(wall.position);
+            
+            if (this.checkBoxCollision(playerBounds, wallBounds)) {
+                // Calculate collision response
+                const response = this.calculateCollisionResponse(playerPosition, wall.position);
+                
+                // Apply collision response
+                if (response.length() > 0) {
+                    const newPosition = playerPosition.clone().add(response);
+                    this.player.setPosition(newPosition.x, newPosition.y, newPosition.z);
+                    
+                    // Stop player movement in collision direction
+                    this.player.velocity.multiplyScalar(0.5);
                 }
             }
         }
@@ -203,6 +233,24 @@ export class CollisionSystem {
                 position.x + radius,
                 position.y + radius,
                 position.z + radius
+            )
+        );
+    }
+    
+    getWallBoundingBox(position) {
+        const halfSize = 2.5; // Wall size from tileSize (5/2)
+        const height = 3; // Wall height
+        
+        return new THREE.Box3(
+            new THREE.Vector3(
+                position.x - halfSize,
+                position.y - 0.5,
+                position.z - halfSize
+            ),
+            new THREE.Vector3(
+                position.x + halfSize,
+                position.y + height,
+                position.z + halfSize
             )
         );
     }
@@ -375,6 +423,17 @@ export class CollisionSystem {
         for (let obstacle of obstacles) {
             if (this.checkBoxCollision(testBounds, obstacle.boundingBox)) {
                 return false;
+            }
+        }
+        
+        // Check against walls (Pacman mode only)
+        if (this.gridManager.levelType === 'pacman') {
+            const walls = this.gridManager.getWalls();
+            for (let wall of walls) {
+                const wallBounds = this.getWallBoundingBox(wall.position);
+                if (this.checkBoxCollision(testBounds, wallBounds)) {
+                    return false;
+                }
             }
         }
         

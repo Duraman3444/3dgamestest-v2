@@ -299,6 +299,7 @@ export class UIManager {
         this.gameState.keyPosition = gameData.keyPosition || null;
         this.gameState.exitPosition = gameData.exitPosition || null;
         this.gameState.ghostPositions = gameData.ghostPositions || [];
+        this.gameState.gameMode = gameData.gameMode || 'normal';
         
         // Update timer with validation
         if (validDeltaTime > 0 && validDeltaTime < 1) { // Reasonable deltaTime range
@@ -332,75 +333,107 @@ export class UIManager {
     }
     
     updateUIElements() {
+        const isPacmanMode = this.gameState.gameMode === 'pacman';
+        
         // Update score
         if (this.elements.scoreElement && this.settings.showScore) {
             this.elements.scoreElement.textContent = `Score: ${this.gameState.score}`;
         }
         
-        // Update health
+        // Update health - hide for pacman mode
         if (this.elements.healthElement && this.settings.showHealth) {
-            this.elements.healthElement.textContent = `Health: ${this.gameState.health}`;
-            
-            // Color health based on value
-            const healthPercent = this.gameState.health / this.gameState.maxHealth;
-            if (healthPercent > 0.6) {
-                this.elements.healthElement.style.color = '#00ff00';
-            } else if (healthPercent > 0.3) {
-                this.elements.healthElement.style.color = '#ffff00';
+            if (isPacmanMode) {
+                this.elements.healthElement.style.display = 'none';
             } else {
-                this.elements.healthElement.style.color = '#ff0000';
+                this.elements.healthElement.style.display = 'block';
+                this.elements.healthElement.textContent = `Health: ${this.gameState.health}`;
+                
+                // Color health based on value
+                const healthPercent = this.gameState.health / this.gameState.maxHealth;
+                if (healthPercent > 0.6) {
+                    this.elements.healthElement.style.color = '#00ff00';
+                } else if (healthPercent > 0.3) {
+                    this.elements.healthElement.style.color = '#ffff00';
+                } else {
+                    this.elements.healthElement.style.color = '#ff0000';
+                }
             }
         }
         
-        // Update FPS
+        // Update FPS - hide for pacman mode
         if (this.elements.fpsElement && this.settings.showFPS) {
-            this.elements.fpsElement.textContent = `FPS: ${this.gameState.fps}`;
+            if (isPacmanMode) {
+                this.elements.fpsElement.style.display = 'none';
+            } else {
+                this.elements.fpsElement.style.display = 'block';
+                this.elements.fpsElement.textContent = `FPS: ${this.gameState.fps}`;
+            }
         }
         
-        // Update position
+        // Update position - hide for pacman mode
         if (this.elements.positionElement && this.settings.showPosition) {
-            const pos = this.gameState.position;
-            this.elements.positionElement.textContent = `Position: (${pos.x}, ${pos.y}, ${pos.z})`;
+            if (isPacmanMode) {
+                this.elements.positionElement.style.display = 'none';
+            } else {
+                this.elements.positionElement.style.display = 'block';
+                const pos = this.gameState.position;
+                this.elements.positionElement.textContent = `Position: (${pos.x}, ${pos.y}, ${pos.z})`;
+            }
         }
         
-        // Update collectibles
+        // Update collectibles - always show
         if (this.elements.collectiblesElement && this.settings.showCollectibles) {
             this.elements.collectiblesElement.textContent = `Collectibles: ${this.gameState.collectibles}`;
         }
         
-        // Update keys
+        // Update keys - hide for pacman mode
         if (this.elements.keysElement) {
-            const keyInfo = this.gameState.keyInfo;
-            this.elements.keysElement.textContent = `Keys: ${keyInfo.collectedKeys}/${keyInfo.totalKeys}`;
+            if (isPacmanMode) {
+                this.elements.keysElement.style.display = 'none';
+            } else {
+                this.elements.keysElement.style.display = 'block';
+                const keyInfo = this.gameState.keyInfo;
+                this.elements.keysElement.textContent = `Keys: ${keyInfo.collectedKeys}/${keyInfo.totalKeys}`;
+            }
         }
 
-        // Update lives
+        // Update lives - always show
         if (this.elements.livesElement) {
             this.elements.livesElement.textContent = `Lives: ${this.gameState.lives}`;
         }
         
-        // Update camera mode
+        // Update camera mode - hide for pacman mode
         if (this.elements.cameraModeElement) {
-            const modeNames = {
-                'firstPerson': 'First Person',
-                'thirdPerson': 'Third Person',
-                'isometric': 'Isometric'
-            };
-            const displayName = modeNames[this.gameState.cameraMode] || 'Unknown';
-            this.elements.cameraModeElement.textContent = `Camera: ${displayName}`;
+            if (isPacmanMode) {
+                this.elements.cameraModeElement.style.display = 'none';
+            } else {
+                this.elements.cameraModeElement.style.display = 'block';
+                const modeNames = {
+                    'firstPerson': 'First Person',
+                    'thirdPerson': 'Third Person',
+                    'isometric': 'Isometric'
+                };
+                const displayName = modeNames[this.gameState.cameraMode] || 'Unknown';
+                this.elements.cameraModeElement.textContent = `Camera: ${displayName}`;
+            }
         }
         
-        // Update timer with validation
+        // Update timer - hide for pacman mode
         if (this.elements.timerElement) {
-            const gameTime = isNaN(this.gameState.gameTime) ? 0 : this.gameState.gameTime;
-            const minutes = Math.floor(gameTime / 60);
-            const seconds = Math.floor(gameTime % 60);
-            
-            // Ensure values are valid numbers
-            const displayMinutes = isNaN(minutes) ? 0 : Math.max(0, minutes);
-            const displaySeconds = isNaN(seconds) ? 0 : Math.max(0, seconds);
-            
-            this.elements.timerElement.textContent = `Time: ${displayMinutes.toString().padStart(2, '0')}:${displaySeconds.toString().padStart(2, '0')}`;
+            if (isPacmanMode) {
+                this.elements.timerElement.style.display = 'none';
+            } else {
+                this.elements.timerElement.style.display = 'block';
+                const gameTime = isNaN(this.gameState.gameTime) ? 0 : this.gameState.gameTime;
+                const minutes = Math.floor(gameTime / 60);
+                const seconds = Math.floor(gameTime % 60);
+                
+                // Ensure values are valid numbers
+                const displayMinutes = isNaN(minutes) ? 0 : Math.max(0, minutes);
+                const displaySeconds = isNaN(seconds) ? 0 : Math.max(0, seconds);
+                
+                this.elements.timerElement.textContent = `Time: ${displayMinutes.toString().padStart(2, '0')}:${displaySeconds.toString().padStart(2, '0')}`;
+            }
         }
     }
     
