@@ -25,6 +25,88 @@ export class GridManager {
         // Check if we're in Pacman mode to apply neon theme
         const isPacmanMode = this.levelType === 'pacman';
         
+        // Get current level number for PS2 theme variation
+        const currentLevel = window.game ? window.game.currentLevel : 1;
+        
+        // PS2 Color Themes for Single Player Mode
+        const ps2Themes = {
+            1: { // Classic PS2 Blue
+                ground: 0x003366,
+                groundEmissive: 0x000033,
+                obstacle: 0x0066CC,
+                obstacleEmissive: 0x001155,
+                accent: 0x00FFFF
+            },
+            2: { // PS2 Purple/Magenta
+                ground: 0x330066,
+                groundEmissive: 0x220033,
+                obstacle: 0x6600CC,
+                obstacleEmissive: 0x330055,
+                accent: 0xFF00FF
+            },
+            3: { // PS2 Green
+                ground: 0x003300,
+                groundEmissive: 0x001100,
+                obstacle: 0x006600,
+                obstacleEmissive: 0x003300,
+                accent: 0x00FF00
+            },
+            4: { // PS2 Orange/Red
+                ground: 0x663300,
+                groundEmissive: 0x331100,
+                obstacle: 0xCC6600,
+                obstacleEmissive: 0x663300,
+                accent: 0xFF6600
+            },
+            5: { // PS2 Cyan
+                ground: 0x003333,
+                groundEmissive: 0x001111,
+                obstacle: 0x006666,
+                obstacleEmissive: 0x003333,
+                accent: 0x00CCCC
+            },
+            6: { // PS2 Yellow/Gold
+                ground: 0x333300,
+                groundEmissive: 0x221100,
+                obstacle: 0x666600,
+                obstacleEmissive: 0x443300,
+                accent: 0xFFFF00
+            },
+            7: { // PS2 Pink
+                ground: 0x660033,
+                groundEmissive: 0x330011,
+                obstacle: 0xCC0066,
+                obstacleEmissive: 0x660033,
+                accent: 0xFF0099
+            },
+            8: { // PS2 Deep Blue
+                ground: 0x000066,
+                groundEmissive: 0x000033,
+                obstacle: 0x0000CC,
+                obstacleEmissive: 0x000066,
+                accent: 0x3333FF
+            },
+            9: { // PS2 Deep Purple
+                ground: 0x330033,
+                groundEmissive: 0x220022,
+                obstacle: 0x660066,
+                obstacleEmissive: 0x440044,
+                accent: 0xCC00CC
+            },
+            10: { // PS2 Rainbow/Final Level
+                ground: 0x333366,
+                groundEmissive: 0x222244,
+                obstacle: 0x6666CC,
+                obstacleEmissive: 0x444488,
+                accent: 0x9999FF
+            }
+        };
+        
+        // Get current theme (cycle through themes if level > 10)
+        const themeIndex = ((currentLevel - 1) % 10) + 1;
+        const currentTheme = ps2Themes[themeIndex];
+        const isPS2Mode = this.levelType === 'normal' && currentTheme; // PS2 theme for normal mode
+        
         // Materials - Apply neon theme for Pacman mode
         if (isPacmanMode) {
             // Neon 80s/Tron theme for Pacman
@@ -76,8 +158,48 @@ export class GridManager {
                     transparent: false
                 })
             };
+        } else if (isPS2Mode) {
+            // PS2 theme for single player mode with per-level colors
+            this.groundMaterial = new THREE.MeshLambertMaterial({
+                color: currentTheme.ground,
+                emissive: currentTheme.groundEmissive,
+                emissiveIntensity: 0.2
+            });
+            
+            this.obstacleMaterial = new THREE.MeshLambertMaterial({
+                color: currentTheme.obstacle,
+                emissive: currentTheme.obstacleEmissive,
+                emissiveIntensity: 0.3
+            });
+            
+            this.collectibleMaterial = new THREE.MeshLambertMaterial({
+                color: 0xFFD700, // Gold coins
+                emissive: 0x666600,
+                emissiveIntensity: 0.4
+            });
+            
+            this.keyMaterial = new THREE.MeshLambertMaterial({
+                color: currentTheme.accent,
+                emissive: currentTheme.accent,
+                emissiveIntensity: 0.3
+            });
+            
+            this.exitMaterial = new THREE.MeshLambertMaterial({
+                color: 0x00FF00, // Bright green exit
+                emissive: 0x008800,
+                emissiveIntensity: 0.4
+            });
+            
+            // PS2 Pacman-specific materials (if needed)
+            this.wallMaterial = new THREE.MeshLambertMaterial({ color: 0x0000ff });
+            this.ghostMaterials = {
+                red: new THREE.MeshLambertMaterial({ color: 0xff0000 }),
+                blue: new THREE.MeshLambertMaterial({ color: 0x0000ff }),
+                green: new THREE.MeshLambertMaterial({ color: 0x00ff00 }),
+                pink: new THREE.MeshLambertMaterial({ color: 0xff69b4 })
+            };
         } else {
-            // Normal theme for regular levels
+            // Standard theme for normal mode (fallback)
             this.groundMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
             this.obstacleMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
             this.collectibleMaterial = new THREE.MeshLambertMaterial({ 

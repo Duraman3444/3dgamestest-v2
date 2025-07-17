@@ -238,7 +238,7 @@ export class MainMenu {
     startSinglePlayer() {
         this.hide();
         if (this.onStartGame) {
-            this.onStartGame();
+            this.onStartGame('normal'); // Pass 'normal' mode to trigger single player menu
         }
     }
     

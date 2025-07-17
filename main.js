@@ -7,6 +7,7 @@ import { CollisionSystem } from './collisionSystem.js';
 import { UIManager } from './UIManager.js';
 import { LevelLoader } from './levelLoader.js';
 import { MainMenu } from './mainMenu.js';
+import { SinglePlayerMenu } from './singlePlayerMenu.js';
 import { GameOverScreen } from './gameOverScreen.js';
 
 class Game {
@@ -21,6 +22,7 @@ class Game {
         this.collisionSystem = null;
         this.uiManager = null;
         this.mainMenu = null;
+        this.singlePlayerMenu = null;
         this.gameOverScreen = null;
         this.isGameInitialized = false;
         this.isPaused = false;
@@ -34,9 +36,35 @@ class Game {
         this.initializeMenu();
     }
     
+    handleMainMenuSelection(mode) {
+        if (mode === 'normal') {
+            // Show single player options menu
+            this.showSinglePlayerMenu();
+        } else {
+            // For other modes (like pacman), start directly
+            this.startGame(mode);
+        }
+    }
+    
+    showMainMenu() {
+        this.mainMenu.show();
+        this.singlePlayerMenu.hide();
+    }
+    
+    showSinglePlayerMenu() {
+        this.mainMenu.hide();
+        this.singlePlayerMenu.show();
+    }
+    
     initializeMenu() {
         // Create main menu
-        this.mainMenu = new MainMenu((mode) => this.startGame(mode));
+        this.mainMenu = new MainMenu((mode) => this.handleMainMenuSelection(mode));
+        
+        // Create single player menu
+        this.singlePlayerMenu = new SinglePlayerMenu(
+            (mode, level, difficulty) => this.startGame(mode, level, difficulty),
+            () => this.showMainMenu()
+        );
         
         // Create game over screen
         this.gameOverScreen = new GameOverScreen(
@@ -260,11 +288,16 @@ class Game {
         }
     }
     
-    async startGame(mode = 'normal') {
+    async startGame(mode = 'normal', level = 1, difficulty = 'normal') {
         this.gameMode = mode; // Store game mode
+        this.difficulty = difficulty; // Store difficulty
         
-        // Reset to level 1 when starting a new game
-        this.currentLevel = 1;
+        // Set starting level (for single player mode with level selection)
+        if (mode === 'normal' && level) {
+            this.currentLevel = level;
+        } else {
+            this.currentLevel = 1; // Default to level 1 for other modes
+        }
         
         // Show the game canvas
         this.canvas.style.display = 'block';
@@ -357,6 +390,50 @@ class Game {
             const pointLight2 = new THREE.PointLight(0x00FF00, 1.5, 25); // Green point light
             pointLight2.position.set(0, 8, 0);
             this.scene.add(pointLight2);
+            
+        } else if (this.gameMode === 'normal') {
+            // PS2 theme lighting for single player mode
+            
+            // PS2-style lighting colors based on current level
+            const ps2LightThemes = {
+                1: { primary: 0x0099FF, secondary: 0x00CCFF }, // Blue
+                2: { primary: 0xFF0099, secondary: 0xFF33CC }, // Magenta
+                3: { primary: 0x00FF33, secondary: 0x66FF99 }, // Green
+                4: { primary: 0xFF6600, secondary: 0xFF9933 }, // Orange
+                5: { primary: 0x00CCCC, secondary: 0x33FFFF }, // Cyan
+                6: { primary: 0xFFCC00, secondary: 0xFFFF33 }, // Yellow
+                7: { primary: 0xFF0066, secondary: 0xFF3399 }, // Pink
+                8: { primary: 0x3366FF, secondary: 0x6699FF }, // Blue
+                9: { primary: 0xCC00CC, secondary: 0xFF33FF }, // Purple
+                10: { primary: 0x9999FF, secondary: 0xCCCCFF } // Light Purple
+            };
+            
+            const lightThemeIndex = ((this.currentLevel - 1) % 10) + 1;
+            const lightTheme = ps2LightThemes[lightThemeIndex];
+            
+            // Adjust ambient light for PS2 theme
+            ambientLight.intensity = 0.3;
+            ambientLight.color = new THREE.Color(0x222244); // Dark blue-purple ambient
+            
+            // PS2-style directional lights
+            const ps2Light1 = new THREE.DirectionalLight(lightTheme.primary, 0.7);
+            ps2Light1.position.set(10, 10, 10);
+            ps2Light1.castShadow = true;
+            ps2Light1.shadow.mapSize.width = 2048;
+            ps2Light1.shadow.mapSize.height = 2048;
+            this.scene.add(ps2Light1);
+            
+            const ps2Light2 = new THREE.DirectionalLight(lightTheme.secondary, 0.5);
+            ps2Light2.position.set(-10, 10, -10);
+            ps2Light2.castShadow = true;
+            ps2Light2.shadow.mapSize.width = 2048;
+            ps2Light2.shadow.mapSize.height = 2048;
+            this.scene.add(ps2Light2);
+            
+            // PS2-style point lights for glow effect
+            const ps2PointLight = new THREE.PointLight(lightTheme.primary, 1.5, 25);
+            ps2PointLight.position.set(0, 6, 0);
+            this.scene.add(ps2PointLight);
             
         } else {
             // Standard lighting for normal mode
@@ -634,7 +711,8 @@ class Game {
             document.exitPointerLock();
         }
         
-        // Show main menu
+        // Hide all menus and show main menu
+        this.singlePlayerMenu.hide();
         this.mainMenu.show();
     }
 
@@ -656,7 +734,8 @@ class Game {
             this.pauseOverlay = null;
         }
         
-        // Show main menu
+        // Hide all menus and show main menu
+        this.singlePlayerMenu.hide();
         this.mainMenu.show();
     }
     

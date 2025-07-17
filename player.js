@@ -47,8 +47,10 @@ export class Player {
         // Create a properly scaled sphere geometry for the player
         const geometry = new THREE.SphereGeometry(1, 32, 32);
         
-        // Check if we're in Pacman mode (via global game reference)
+        // Check game mode and level for theming
         const isPacmanMode = window.game && window.game.gameMode === 'pacman';
+        const isNormalMode = window.game && window.game.gameMode === 'normal';
+        const currentLevel = window.game ? window.game.currentLevel : 1;
         
         let material;
         
@@ -58,8 +60,32 @@ export class Player {
                 color: 0xFFFF00, // Bright yellow like classic Pacman
                 emissive: 0x888800 // Strong yellow glow
             });
+        } else if (isNormalMode) {
+            // PS2 theme for single player mode - player color changes per level
+            const ps2PlayerColors = {
+                1: 0x00FFFF, // Cyan
+                2: 0xFF00FF, // Magenta
+                3: 0x00FF00, // Green
+                4: 0xFF6600, // Orange
+                5: 0x00CCCC, // Cyan
+                6: 0xFFFF00, // Yellow
+                7: 0xFF0099, // Pink
+                8: 0x3333FF, // Blue
+                9: 0xCC00CC, // Purple
+                10: 0x9999FF // Light Purple
+            };
+            
+            // Get player color for current level (cycle through colors)
+            const colorIndex = ((currentLevel - 1) % 10) + 1;
+            const playerColor = ps2PlayerColors[colorIndex];
+            
+            material = new THREE.MeshLambertMaterial({ 
+                color: playerColor,
+                emissive: playerColor,
+                emissiveIntensity: 0.2
+            });
         } else {
-            // Create a colorful striped material for normal mode
+            // Create a colorful striped material for fallback mode
             const canvas = document.createElement('canvas');
             canvas.width = 256;
             canvas.height = 256;
