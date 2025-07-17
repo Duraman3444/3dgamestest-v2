@@ -9,7 +9,7 @@ export class UIManager {
             score: 0,
             health: 100,
             maxHealth: 100,
-            lives: 3,
+            lives: 3, // Always start with exactly 3 lives
             collectibles: 0,
             keyInfo: { totalKeys: 0, collectedKeys: 0 },
             fps: 0,
@@ -131,7 +131,7 @@ export class UIManager {
         keysElement.id = 'keys-counter';
         keysElement.style.cssText = `
             position: absolute;
-            top: 70px;
+            top: 110px;
             left: 10px;
             color: #00FFFF;
             font-family: Arial, sans-serif;
@@ -149,7 +149,7 @@ export class UIManager {
         livesElement.id = 'lives-counter';
         livesElement.style.cssText = `
             position: absolute;
-            top: 10px;
+            top: 90px;
             left: 10px;
             color: #FF0000;
             font-family: Arial, sans-serif;
@@ -186,7 +186,7 @@ export class UIManager {
         cameraModeElement.id = 'camera-mode';
         cameraModeElement.style.cssText = `
             position: absolute;
-            top: 100px;
+            top: 130px;
             left: 10px;
             color: #87CEEB;
             font-family: Arial, sans-serif;
@@ -341,7 +341,7 @@ export class UIManager {
         this.gameState.fps = gameData.fps || 0;
         this.gameState.score = gameData.score || 0;
         this.gameState.health = gameData.playerHealth || 100;
-        this.gameState.lives = gameData.playerLives || 3;
+        this.gameState.lives = Math.max(0, Math.min(gameData.playerLives || 3, 3)); // Cap at 3 lives
         this.gameState.collectibles = gameData.collectibles || 0;
         this.gameState.keyInfo = gameData.keyInfo || { totalKeys: 0, collectedKeys: 0 };
         this.gameState.cameraMode = gameData.cameraMode || 'firstPerson';
@@ -350,6 +350,15 @@ export class UIManager {
         this.gameState.exitPosition = gameData.exitPosition || null;
         this.gameState.ghostPositions = gameData.ghostPositions || [];
         this.gameState.gameMode = gameData.gameMode || 'normal';
+        
+        // Update pacman timer data
+        this.gameState.pacmanTimeRemaining = gameData.pacmanTimeRemaining || null;
+        this.gameState.pacmanFormattedTime = gameData.pacmanFormattedTime || null;
+        
+        // Update classic mode data
+        this.gameState.isClassicMode = gameData.isClassicMode || false;
+        this.gameState.classicLives = gameData.classicLives !== undefined ? Math.max(0, Math.min(gameData.classicLives, 3)) : undefined; // Cap at 3 lives
+        this.gameState.classicWave = gameData.classicWave;
         
         // Update timer with validation
         if (validDeltaTime > 0 && validDeltaTime < 1) { // Reasonable deltaTime range
@@ -384,7 +393,12 @@ export class UIManager {
     }
     
     updateUIElements() {
-        const isPacmanMode = this.gameState.gameMode === 'pacman';
+        const isPacmanMode = this.gameState.gameMode === 'pacman' || this.gameState.gameMode === 'pacman_classic';
+        
+        // Create or update classic mode wave display
+        if (this.gameState.isClassicMode && this.gameState.classicWave) {
+            this.updateClassicModeDisplay();
+        }
         
         // Update score
         if (this.elements.scoreElement && this.settings.showScore) {
@@ -430,9 +444,25 @@ export class UIManager {
             }
         }
 
-        // Update lives - always show
+        // Update lives - show classic mode lives or normal lives
         if (this.elements.livesElement) {
-            this.elements.livesElement.textContent = `Lives: ${this.gameState.lives}`;
+            // Always use the player's actual lives count for immediate updates
+            const safeLives = Math.max(0, Math.min(this.gameState.lives, 3));
+            this.elements.livesElement.textContent = `Lives: ${safeLives}`;
+            
+            // Check for classic mode styling and visibility
+            if (this.gameState.isClassicMode) {
+                this.elements.livesElement.style.color = '#FF00FF'; // Pink for classic mode
+                this.elements.livesElement.style.display = 'block'; // Always show in classic mode
+            } else {
+                this.elements.livesElement.style.color = '#FF0000'; // Red for normal mode
+                // Hide lives in pacman mode unless it's classic mode
+                if (isPacmanMode) {
+                    this.elements.livesElement.style.display = 'none';
+                } else {
+                    this.elements.livesElement.style.display = 'block';
+                }
+            }
         }
         
         // Update camera mode - hide for pacman mode
@@ -451,12 +481,44 @@ export class UIManager {
             }
         }
         
-        // Update timer - hide for pacman mode
+        // Update timer - show countdown for pacman mode, normal timer for others
         if (this.elements.timerElement) {
+            this.elements.timerElement.style.display = 'block';
+            
             if (isPacmanMode) {
-                this.elements.timerElement.style.display = 'none';
+                // Classic mode doesn't use timer, hide it
+                if (this.gameState.isClassicMode) {
+                    this.elements.timerElement.style.display = 'none';
+                } else {
+                    // Show countdown timer for normal pacman mode
+                    this.elements.timerElement.style.display = 'block';
+                    if (this.gameState.pacmanFormattedTime) {
+                        const timeRemaining = this.gameState.pacmanTimeRemaining || 0;
+                        const formattedTime = this.gameState.pacmanFormattedTime;
+                        
+                        // Change color based on remaining time
+                        if (timeRemaining <= 30) {
+                            this.elements.timerElement.style.color = '#ff0000'; // Red for critical time
+                            this.elements.timerElement.style.fontWeight = 'bold';
+                        } else if (timeRemaining <= 60) {
+                            this.elements.timerElement.style.color = '#ffff00'; // Yellow for low time
+                            this.elements.timerElement.style.fontWeight = 'bold';
+                        } else {
+                            this.elements.timerElement.style.color = '#00ff00'; // Green for good time
+                            this.elements.timerElement.style.fontWeight = 'normal';
+                        }
+                        
+                        this.elements.timerElement.textContent = `Time: ${formattedTime}`;
+                    } else {
+                        this.elements.timerElement.textContent = 'Time: --:--';
+                        this.elements.timerElement.style.color = 'white';
+                    }
+                }
             } else {
-                this.elements.timerElement.style.display = 'block';
+                // Show normal elapsed time for other modes
+                this.elements.timerElement.style.color = 'white';
+                this.elements.timerElement.style.fontWeight = 'normal';
+                
                 const gameTime = isNaN(this.gameState.gameTime) ? 0 : this.gameState.gameTime;
                 const minutes = Math.floor(gameTime / 60);
                 const seconds = Math.floor(gameTime % 60);
@@ -467,6 +529,33 @@ export class UIManager {
                 
                 this.elements.timerElement.textContent = `Time: ${displayMinutes.toString().padStart(2, '0')}:${displaySeconds.toString().padStart(2, '0')}`;
             }
+        }
+    }
+    
+    // Create or update classic mode wave display
+    updateClassicModeDisplay() {
+        if (!this.elements.classicWaveElement) {
+            // Create classic wave display element
+            const classicWaveElement = document.createElement('div');
+            classicWaveElement.id = 'classic-wave-display';
+            classicWaveElement.style.cssText = `
+                position: absolute;
+                top: 60px;
+                left: 10px;
+                color: #FF00FF;
+                font-family: Arial, sans-serif;
+                font-size: 16px;
+                font-weight: bold;
+                z-index: 101;
+                text-shadow: 2px 2px 0px #000000;
+            `;
+            document.body.appendChild(classicWaveElement);
+            this.elements.classicWaveElement = classicWaveElement;
+        }
+        
+        // Update the wave display
+        if (this.elements.classicWaveElement) {
+            this.elements.classicWaveElement.textContent = `Wave: ${this.gameState.classicWave}`;
         }
     }
     

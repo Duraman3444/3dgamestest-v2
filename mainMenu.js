@@ -288,7 +288,21 @@ export class MainMenu {
     }
 
     hasSavedGame() {
-        return window.game && window.game.hasSavedGameState && window.game.hasSavedGameState();
+        if (!window.game || !window.game.hasSavedGameState || !window.game.hasSavedGameState()) {
+            return false;
+        }
+        
+        // Check if the saved game is not a pacman mode (pacman modes don't support continue)
+        try {
+            const savedState = window.game.loadSavedGameState();
+            if (savedState && (savedState.gameMode === 'pacman' || savedState.gameMode === 'pacman_classic')) {
+                return false; // Don't show continue for pacman modes
+            }
+        } catch (error) {
+            console.error('Error checking saved game mode:', error);
+        }
+        
+        return true;
     }
 
     updateContinueButtonVisibility() {

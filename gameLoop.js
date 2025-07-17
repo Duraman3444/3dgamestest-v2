@@ -50,6 +50,11 @@ export class GameLoop {
     }
     
     update(deltaTime) {
+        // Update pacman timer if in pacman mode
+        if (window.game && window.game.gameMode === 'pacman') {
+            window.game.updatePacmanTimer(deltaTime);
+        }
+        
         // Update player
         if (this.systems.player) {
             this.systems.player.update(deltaTime);
@@ -101,7 +106,12 @@ export class GameLoop {
                 keyPosition: this.systems.gridManager ? this.systems.gridManager.getKeyPosition() : null,
                 exitPosition: this.systems.gridManager ? this.systems.gridManager.getExitPosition() : null,
                 ghostPositions: this.systems.gridManager ? this.systems.gridManager.getGhostPositions() : [],
-                gameMode: window.game ? window.game.gameMode : 'normal'
+                gameMode: window.game ? window.game.gameMode : 'normal',
+                pacmanTimeRemaining: window.game && window.game.gameMode === 'pacman' ? window.game.pacmanTimeRemaining : null,
+                pacmanFormattedTime: window.game && window.game.gameMode === 'pacman' ? window.game.getFormattedTimeRemaining() : null,
+                isClassicMode: window.game ? window.game.isClassicMode : false,
+                classicLives: window.game ? window.game.classicLives : null,
+                classicWave: window.game ? window.game.classicWave : null
             });
         }
     }

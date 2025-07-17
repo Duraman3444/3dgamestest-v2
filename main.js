@@ -42,6 +42,20 @@ class Game {
         this.currentLevel = 1;
         this.maxLevel = 10; // Maximum number of levels
         this.gameMode = 'normal'; // 'normal' or 'pacman'
+        
+        // Pacman timer system
+        this.pacmanTimer = null; // Countdown timer for pacman mode
+        this.pacmanLevelTimeLimit = 0; // Time limit for current pacman level in seconds
+        this.pacmanTimeRemaining = 0; // Remaining time in seconds
+        this.pacmanTimerStarted = false;
+        
+        // Classic pacman mode system
+        this.isClassicMode = false; // Flag for classic mode
+        this.classicLives = 3; // Starting lives for classic mode
+        this.classicWave = 1; // Current wave/round in classic mode
+        this.classicPlayerSpeed = 12; // Starting player speed in classic mode
+        this.classicEnemySpeed = 8; // Starting enemy speed in classic mode
+        this.maxClassicSpeed = 20; // Maximum speed for both player and enemies
      
         this.initializeMenu();
     }
@@ -174,7 +188,18 @@ class Game {
         `;
         
         const pauseInstructions = document.createElement('p');
-        pauseInstructions.textContent = 'Press O to resume or use the options below:';
+        
+        // Create mode-specific pause instructions
+        let instructionText = 'Press O to resume or use the options below:';
+        if (this.gameMode === 'battle') {
+            instructionText = 'BATTLE PAUSED - Press O to resume combat:';
+        } else if (this.gameMode === 'pacman' || this.gameMode === 'pacman_classic') {
+            instructionText = this.isClassicMode ? 
+                'CLASSIC MODE PAUSED - Press O to resume:' : 
+                'PACMAN MODE PAUSED - Press O to resume:';
+        }
+        
+        pauseInstructions.textContent = instructionText;
         pauseInstructions.style.cssText = `
             color: #ffff00;
             font-size: 18px;
@@ -349,6 +374,12 @@ class Game {
     }
     
     togglePause() {
+        // Prevent pausing during certain states
+        if (this.gameOverScreen && this.gameOverScreen.isVisible) {
+            console.log('Cannot pause during game over screen');
+            return;
+        }
+        
         if (this.isPaused) {
             // Resume game
             this.isPaused = false;
@@ -367,8 +398,15 @@ class Game {
                 this.gameLoop.start();
             }
             
+            // Resume battle system if in battle mode
+            if (this.battleSystem && this.gameMode === 'battle') {
+                this.battleSystem.isActive = true;
+            }
+            
             // Re-enable pointer lock
             this.canvas.requestPointerLock();
+            
+            console.log('Game resumed');
         } else {
             // Pause game
             this.isPaused = true;
@@ -383,6 +421,11 @@ class Game {
                 this.gameLoop.stop();
             }
             
+            // Pause battle system if in battle mode
+            if (this.battleSystem && this.gameMode === 'battle') {
+                this.battleSystem.isActive = false;
+            }
+            
             // Exit pointer lock
             if (document.pointerLockElement) {
                 document.exitPointerLock();
@@ -391,6 +434,8 @@ class Game {
             // Show pause overlay
             this.pauseOverlay = this.createPauseOverlay();
             document.body.appendChild(this.pauseOverlay);
+            
+            console.log('Game paused');
         }
     }
     
@@ -409,6 +454,11 @@ class Game {
         // Clear any active notifications
         if (this.uiManager) {
             this.uiManager.clearNotification();
+        }
+        
+        // Stop and reset pacman timer if in pacman mode
+        if (this.gameMode === 'pacman') {
+            this.stopPacmanTimer();
         }
         
         // Clear per-level progress for current level
@@ -561,6 +611,13 @@ class Game {
         }
     }
     
+    // Classic mode lives management
+    setClassicLives(newLives) {
+        // Ensure classic lives never exceed 3 and never go below 0
+        this.classicLives = Math.max(0, Math.min(newLives, 3));
+        return this.classicLives;
+    }
+    
     applyAntiAliasing(enabled) {
         // Anti-aliasing requires renderer recreation, so just log for now
         console.log(`Anti-aliasing ${enabled ? 'enabled' : 'disabled'} - requires restart`);
@@ -570,11 +627,25 @@ class Game {
         this.gameMode = mode; // Store game mode
         this.difficulty = difficulty; // Store difficulty
         
-        // Set starting level (for single player mode and pacman mode with level selection)
-        if ((mode === 'normal' || mode === 'pacman') && level) {
-            this.currentLevel = level;
+        // Reset pacman timer state
+        this.stopPacmanTimer();
+        
+        // Handle classic pacman mode
+        if (mode === 'pacman_classic') {
+            this.isClassicMode = true;
+            this.currentLevel = 2; // Always use level 2 for classic mode
+            this.setClassicLives(3); // Reset lives using safe method
+            this.classicWave = 1; // Reset wave counter
+            this.classicPlayerSpeed = 12; // Reset speeds
+            this.classicEnemySpeed = 8;
         } else {
-            this.currentLevel = 1; // Default to level 1 for other modes
+            this.isClassicMode = false;
+            // Set starting level (for single player mode and pacman mode with level selection)
+            if ((mode === 'normal' || mode === 'pacman') && level) {
+                this.currentLevel = level;
+            } else {
+                this.currentLevel = 1; // Default to level 1 for other modes
+            }
         }
         
         // Clear any active notifications
@@ -606,8 +677,10 @@ class Game {
         // Start the game loop
         this.gameLoop.start();
         
-        // Start auto-save system
-        this.startAutoSave();
+        // Start auto-save system (but not in pacman modes)
+        if (!this.isClassicMode && this.gameMode !== 'pacman' && this.gameMode !== 'pacman_classic') {
+            this.startAutoSave();
+        }
         
         // Apply initial settings
         if (this.settingsManager) {
@@ -758,9 +831,10 @@ class Game {
         this.levelLoader = new LevelLoader();
         
         // Load appropriate level based on game mode
-        if (this.gameMode === 'pacman') {
-            // Try to load pacman level based on current level, fallback to creating one
-            const pacmanLevelFile = `./levels/pacman${this.currentLevel}.json`;
+        if (this.gameMode === 'pacman' || this.gameMode === 'pacman_classic') {
+            // For classic mode, always use level 2
+            const levelToLoad = this.isClassicMode ? 2 : this.currentLevel;
+            const pacmanLevelFile = `./levels/pacman${levelToLoad}.json`;
             try {
                 await this.levelLoader.loadLevel(pacmanLevelFile);
             } catch (error) {
@@ -786,6 +860,11 @@ class Game {
         // Initialize all game systems with level data
         this.gridManager = new GridManager(this.scene, this.levelLoader);
         this.player = new Player(this.scene);
+        
+        // Sync player lives with classic mode lives if in classic mode
+        if (this.isClassicMode) {
+            this.player.setLives(this.classicLives);
+        }
         
         // Set level-specific player speed
         this.player.speed = this.getPlayerSpeed();
@@ -836,11 +915,16 @@ class Game {
             battleUI: this.battleUI
         });
 
-        // Load existing level progress if available (skip for battle mode)
-        if (this.gameMode !== 'battle') {
+        // Load existing level progress if available (skip for battle mode and classic mode)
+        if (this.gameMode !== 'battle' && !this.isClassicMode) {
             // This ensures that if a player has previously played this level and collected items,
             // those items remain collected when they restart the level
             this.loadAndApplyLevelProgress();
+        }
+        
+        // Start pacman timer if in pacman mode
+        if (this.gameMode === 'pacman') {
+            this.startPacmanTimer();
         }
     }
 
@@ -890,13 +974,21 @@ class Game {
             }
         });
         
-        // Handle O key for pause functionality
+        // Handle O key for pause functionality - use capture phase for higher priority
         document.addEventListener('keydown', (event) => {
             if ((event.key === 'o' || event.key === 'O') && this.isGameInitialized) {
                 event.preventDefault();
+                event.stopPropagation(); // Prevent other listeners from handling this
                 
-                // Only handle pause if main menu is not visible
-                if (!this.mainMenu.isVisible) {
+                // Check if any menus are visible and prevent pause
+                const menuVisible = this.mainMenu.isVisible || 
+                                  this.singlePlayerMenu.isVisible || 
+                                  this.pacmanMenu.isVisible || 
+                                  this.battleMenu.isVisible ||
+                                  this.gameOverScreen.isVisible;
+                
+                // Only handle pause if no menus are visible and game is active
+                if (!menuVisible) {
                     this.togglePause();
                 }
             }
@@ -928,7 +1020,7 @@ class Game {
                     this.toggleMainMenu();
                 }
             }
-        });
+        }, true); // Use capture phase for higher priority
     }
     
     toggleMainMenu() {
@@ -977,6 +1069,30 @@ class Game {
     handleGameOver() {
         console.log('Handling game over - showing game over screen');
         
+        // Handle classic mode lives system
+        if (this.isClassicMode) {
+            // Use the player's actual lives count (already decremented by collision system)
+            this.classicLives = this.player.getLives();
+            console.log(`Classic Mode: Life lost! Lives remaining: ${this.classicLives}`);
+            
+            if (this.classicLives > 0) {
+                // Still have lives, respawn player
+                this.handleClassicModeRespawn();
+                return;
+            } else {
+                // No more lives, game over
+                console.log('Classic Mode: All lives lost! Game Over!');
+                // Reset lives for next game
+                this.player.resetLives();
+                this.setClassicLives(3);
+            }
+        }
+        
+        // Stop pacman timer if in pacman mode
+        if (this.gameMode === 'pacman' || this.gameMode === 'pacman_classic') {
+            this.stopPacmanTimer();
+        }
+        
         // Stop the game loop
         if (this.gameLoop) {
             this.gameLoop.stop();
@@ -996,23 +1112,107 @@ class Game {
         this.gameOverScreen.show();
     }
     
+    // Handle classic mode respawn after losing a life
+    async handleClassicModeRespawn() {
+        console.log(`Classic Mode: Respawning player... Lives: ${this.classicLives}`);
+        
+        // Sync player lives with classic mode lives
+        this.player.setLives(this.classicLives);
+        
+        // Show life lost notification
+        if (this.uiManager) {
+            this.uiManager.showNotification(`Life Lost! Lives Remaining: ${this.classicLives}`, 2000);
+        }
+        
+        // Brief pause
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Reset player position to spawn point
+        if (this.player) {
+            const spawnPoint = this.levelLoader.getSpawnPoint();
+            this.player.setPosition(spawnPoint.x, spawnPoint.y, spawnPoint.z);
+            this.player.health = this.player.maxHealth; // Reset health
+        }
+        
+        // Reset ghosts to their starting positions (optional)
+        if (this.gridManager && this.gridManager.ghosts) {
+            this.gridManager.ghosts.forEach(ghost => {
+                if (ghost.startPosition) {
+                    ghost.position.x = ghost.startPosition.x;
+                    ghost.position.z = ghost.startPosition.z;
+                    ghost.mesh.position.set(
+                        ghost.position.x * this.gridManager.tileSize,
+                        ghost.mesh.position.y,
+                        ghost.position.z * this.gridManager.tileSize
+                    );
+                }
+            });
+        }
+        
+        console.log('Classic Mode: Player respawned successfully');
+    }
+    
     // Handle level completion - advance to next level and reload
     async handleLevelCompletion() {
         console.log('Level completed! Advancing to next level...');
+        
+        // Handle classic mode completion differently
+        if (this.isClassicMode) {
+            console.log(`Classic Mode Wave ${this.classicWave} completed!`);
+            
+            // Increase wave counter
+            this.classicWave++;
+            
+            // Increase speeds (max 20)
+            if (this.classicPlayerSpeed < this.maxClassicSpeed) {
+                this.classicPlayerSpeed = Math.min(this.classicPlayerSpeed + 1, this.maxClassicSpeed);
+            }
+            if (this.classicEnemySpeed < this.maxClassicSpeed) {
+                this.classicEnemySpeed = Math.min(this.classicEnemySpeed + 1, this.maxClassicSpeed);
+            }
+            
+            console.log(`Wave ${this.classicWave}: Player Speed: ${this.classicPlayerSpeed}, Enemy Speed: ${this.classicEnemySpeed}`);
+            
+            // Brief pause to show completion
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            // Restart the same level with new speeds and more fruit
+            await this.restartClassicWave();
+            return;
+        }
+        
+        // Stop pacman timer and calculate time bonus
+        let timeBonus = 0;
+        if (this.gameMode === 'pacman') {
+            timeBonus = this.calculateTimeBonus();
+            this.stopPacmanTimer();
+            
+            // Add time bonus to score
+            if (this.collisionSystem && timeBonus > 0) {
+                this.collisionSystem.addScore(timeBonus);
+                console.log(`Time bonus awarded: ${timeBonus} points!`);
+            }
+        }
         
         // Clear any active notifications
         if (this.uiManager) {
             this.uiManager.clearNotification();
         }
         
-        // Save progress for the completed level
-        this.saveProgress(this.currentLevel);
+        // Save progress for the completed level (but not in pacman modes)
+        if (!this.isClassicMode && this.gameMode !== 'pacman' && this.gameMode !== 'pacman_classic') {
+            this.saveProgress(this.currentLevel);
+        }
         
-        // Clear per-level progress since level is completed
-        this.clearPerLevelProgress();
+        // Clear per-level progress since level is completed (but not in pacman modes)
+        if (!this.isClassicMode && this.gameMode !== 'pacman' && this.gameMode !== 'pacman_classic') {
+            this.clearPerLevelProgress();
+        }
         
-        // Clear saved game state since level is completed
-        this.clearSavedGameState();
+        // Clear saved game state since level is completed (but not in pacman modes)
+        if (!this.isClassicMode && this.gameMode !== 'pacman' && this.gameMode !== 'pacman_classic') {
+            this.clearSavedGameState();
+        }
         
         // Stop the game loop
         if (this.gameLoop) {
@@ -1070,8 +1270,90 @@ class Game {
         }
     }
     
+    // Restart classic mode wave with increased speeds and more fruit
+    async restartClassicWave() {
+        console.log(`Starting Classic Mode Wave ${this.classicWave}...`);
+        
+        // Stop the game loop
+        if (this.gameLoop) {
+            this.gameLoop.stop();
+        }
+        
+        // Clear current systems
+        this.cleanup();
+        
+        // Reinitialize systems with current level (always level 2 for classic)
+        await this.setupSystems();
+        
+        // Add extra fruit for higher waves
+        this.addExtraFruitForWave();
+        
+        // Start the game loop
+        this.gameLoop.start();
+        
+        // Show wave information
+        if (this.uiManager) {
+            this.uiManager.showNotification(`Wave ${this.classicWave} - Speed: ${this.classicPlayerSpeed}`, 3000);
+        }
+    }
+    
+    // Add extra fruit based on current wave
+    addExtraFruitForWave() {
+        if (!this.isClassicMode || !this.gridManager) {
+            return;
+        }
+        
+        // Add 1-3 extra fruit per wave
+        const extraFruitCount = Math.min(Math.floor(this.classicWave / 2) + 1, 3);
+        console.log(`Adding ${extraFruitCount} extra fruit for wave ${this.classicWave}`);
+        
+        for (let i = 0; i < extraFruitCount; i++) {
+            this.addRandomFruit();
+        }
+    }
+    
+    // Add a random fruit to an empty tile
+    addRandomFruit() {
+        if (!this.gridManager) return;
+        
+        const levelData = this.levelLoader.getCurrentLevel();
+        if (!levelData) return;
+        
+        // Find empty ground tiles
+        const emptyTiles = [];
+        for (let x = 0; x < levelData.size.width; x++) {
+            for (let z = 0; z < levelData.size.height; z++) {
+                const tile = this.gridManager.getTile(x, z);
+                if (tile && tile.type === 'ground' && !tile.occupied) {
+                    emptyTiles.push({ x, z });
+                }
+            }
+        }
+        
+        if (emptyTiles.length > 0) {
+            const randomTile = emptyTiles[Math.floor(Math.random() * emptyTiles.length)];
+            const fruitTypes = ['cherry', 'apple', 'banana', 'bonus'];
+            const randomType = fruitTypes[Math.floor(Math.random() * fruitTypes.length)];
+            
+            const fruit = {
+                x: randomTile.x,
+                z: randomTile.z,
+                type: randomType,
+                points: 500 + (this.classicWave * 100) // More points for higher waves
+            };
+            
+            this.gridManager.generateFruitFromData([fruit]);
+        }
+    }
+    
     // Save level completion progress
     saveProgress(levelId) {
+        // Don't save progress in pacman modes
+        if (this.isClassicMode || this.gameMode === 'pacman' || this.gameMode === 'pacman_classic') {
+            console.log('Pacman mode: Progress saving disabled to maintain arcade experience');
+            return;
+        }
+        
         try {
             const saved = localStorage.getItem('gameProgress');
             let progress = saved ? JSON.parse(saved) : {
@@ -1109,6 +1391,12 @@ class Game {
     
     // Enhanced save system that tracks collected items per level
     saveCurrentGameState() {
+        // Don't save game state in pacman modes
+        if (this.isClassicMode || this.gameMode === 'pacman' || this.gameMode === 'pacman_classic') {
+            console.log('Pacman mode: Game state saving disabled to maintain arcade experience');
+            return false;
+        }
+        
         try {
             if (!this.isGameInitialized || !this.player || !this.collisionSystem || !this.uiManager || !this.gridManager) {
                 console.log('Game not fully initialized, cannot save state');
@@ -1192,6 +1480,12 @@ class Game {
 
     // Save per-level progress for persistence
     savePerLevelProgress(collectedItems) {
+        // Don't save per-level progress in pacman modes
+        if (this.isClassicMode || this.gameMode === 'pacman' || this.gameMode === 'pacman_classic') {
+            console.log('Pacman mode: Per-level progress saving disabled to maintain arcade experience');
+            return;
+        }
+        
         try {
             const progressKey = `levelProgress_${this.gameMode}_${this.currentLevel}`;
             const levelProgress = {
@@ -1227,6 +1521,12 @@ class Game {
 
     // Clear per-level progress for current level
     clearPerLevelProgress() {
+        // Don't clear per-level progress in classic mode (there shouldn't be any)
+        if (this.isClassicMode) {
+            console.log('Classic mode: No per-level progress to clear');
+            return;
+        }
+        
         try {
             const progressKey = `levelProgress_${this.gameMode}_${this.currentLevel}`;
             localStorage.removeItem(progressKey);
@@ -1424,6 +1724,12 @@ class Game {
 
     // Clear saved game state
     clearSavedGameState() {
+        // Don't clear saved game state in pacman modes (there shouldn't be any)
+        if (this.isClassicMode || this.gameMode === 'pacman' || this.gameMode === 'pacman_classic') {
+            console.log('Pacman mode: No saved game state to clear');
+            return;
+        }
+        
         try {
             localStorage.removeItem('gameState');
             console.log('Saved game state cleared');
@@ -1477,7 +1783,10 @@ class Game {
     
     // Calculate ghost speed based on current level
     getGhostSpeed() {
-        if (this.gameMode === 'pacman') {
+        if (this.isClassicMode || this.gameMode === 'pacman_classic') {
+            // Use the classic mode enemy speed system
+            return this.getEnemySpeed();
+        } else if (this.gameMode === 'pacman') {
             // Ghost speeds adjusted to match faster player speeds but still catchable
             switch (this.currentLevel) {
                 case 1: return 14;   // Slightly slower than player (18) for training
@@ -1500,7 +1809,10 @@ class Game {
     
     // Calculate player speed based on current level for pacman mode
     getPlayerSpeed() {
-        if (this.gameMode === 'pacman') {
+        if (this.isClassicMode) {
+            // Classic mode: progressive speed increases per wave, max 20
+            return Math.min(this.classicPlayerSpeed, this.maxClassicSpeed);
+        } else if (this.gameMode === 'pacman' || this.gameMode === 'pacman_classic') {
             // All levels use fast base speed (18) with slight increases for larger levels
             switch (this.currentLevel) {
                 case 1: return 18;  // Fast base speed for training level
@@ -1513,6 +1825,93 @@ class Game {
         } else {
             return 10; // Default speed for non-pacman modes
         }
+    }
+    
+    // Calculate enemy speed for classic mode
+    getEnemySpeed() {
+        if (this.isClassicMode) {
+            // Classic mode: progressive speed increases per wave, max 20
+            return Math.min(this.classicEnemySpeed, this.maxClassicSpeed);
+        } else {
+            // Default enemy speeds for normal pacman mode
+            switch (this.currentLevel) {
+                case 1: return 14;
+                case 2: return 16;
+                case 3: return 18;
+                case 4: return 20;
+                case 5: return 22;
+                default: return 14 + (this.currentLevel - 1) * 2;
+            }
+        }
+    }
+    
+    // Get time limit for pacman level based on level number
+    getPacmanTimeLimit() {
+        if (this.gameMode === 'pacman') {
+            switch (this.currentLevel) {
+                case 1: return 300;  // 5 minutes (300 seconds)
+                case 2: return 270;  // 4.5 minutes (270 seconds)
+                case 3: return 240;  // 4 minutes (240 seconds)
+                case 4: return 210;  // 3.5 minutes (210 seconds)
+                case 5: return 180;  // 3 minutes (180 seconds)
+                default: return Math.max(180 - (this.currentLevel - 5) * 30, 120); // Continue decreasing, min 2 minutes
+            }
+        }
+        return 0;
+    }
+    
+    // Start pacman timer for current level
+    startPacmanTimer() {
+        if (this.gameMode !== 'pacman') return;
+        
+        this.pacmanLevelTimeLimit = this.getPacmanTimeLimit();
+        this.pacmanTimeRemaining = this.pacmanLevelTimeLimit;
+        this.pacmanTimerStarted = true;
+        
+        console.log(`Starting pacman timer for level ${this.currentLevel}: ${this.pacmanLevelTimeLimit} seconds`);
+    }
+    
+    // Update pacman timer (called from game loop)
+    updatePacmanTimer(deltaTime) {
+        // Don't update timer if paused or not in pacman mode or timer not started
+        if (!this.pacmanTimerStarted || (this.gameMode !== 'pacman' && this.gameMode !== 'pacman_classic') || this.isPaused) return;
+        
+        // Classic mode doesn't use timer
+        if (this.isClassicMode) return;
+        
+        this.pacmanTimeRemaining -= deltaTime;
+        
+        // Check if time ran out
+        if (this.pacmanTimeRemaining <= 0) {
+            this.pacmanTimeRemaining = 0;
+            this.pacmanTimerStarted = false;
+            console.log('Time is up! Game over.');
+            this.handleGameOver();
+        }
+    }
+    
+    // Stop pacman timer
+    stopPacmanTimer() {
+        this.pacmanTimerStarted = false;
+    }
+    
+    // Get time remaining as formatted string (MM:SS)
+    getFormattedTimeRemaining() {
+        const minutes = Math.floor(this.pacmanTimeRemaining / 60);
+        const seconds = Math.floor(this.pacmanTimeRemaining % 60);
+        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+    
+    // Calculate time bonus points based on remaining time
+    calculateTimeBonus() {
+        if (this.gameMode !== 'pacman' || !this.pacmanTimerStarted) return 0;
+        
+        // Base bonus calculation: more remaining time = more points
+        // Max bonus is 1000 points for completing quickly
+        const timeUsed = this.pacmanLevelTimeLimit - this.pacmanTimeRemaining;
+        const efficiency = Math.max(0, (this.pacmanLevelTimeLimit - timeUsed) / this.pacmanLevelTimeLimit);
+        
+        return Math.floor(efficiency * 1000);
     }
     
     // Pause screen handler for returning to main menu
@@ -1569,7 +1968,7 @@ class Game {
             this.uiManager.clearNotification();
         }
         
-        // Stop auto-save system
+        // Stop auto-save system (if it was running)
         this.stopAutoSave();
         
         // Hide game over screen
@@ -1597,6 +1996,11 @@ class Game {
         // Clear any active notifications
         if (this.uiManager) {
             this.uiManager.clearNotification();
+        }
+        
+        // Stop and reset pacman timer if in pacman mode
+        if (this.gameMode === 'pacman') {
+            this.stopPacmanTimer();
         }
         
         // Reset player lives
@@ -1717,6 +2121,11 @@ class Game {
             // Clear any active notifications
             if (this.uiManager) {
                 this.uiManager.clearNotification();
+            }
+            
+            // Stop and reset pacman timer if in pacman mode
+            if (this.gameMode === 'pacman') {
+                this.stopPacmanTimer();
             }
             
             // Hide game over screen

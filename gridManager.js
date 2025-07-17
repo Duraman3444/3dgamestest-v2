@@ -9,6 +9,7 @@ export class GridManager {
         this.tiles = new Map();
         this.obstacles = [];
         this.collectibles = [];
+        this.fruit = []; // For Pacman mode fruit
         this.keyObject = null;
         this.exitObject = null;
         this.walls = []; // For Pacman mode
@@ -123,6 +124,10 @@ export class GridManager {
             this.collectibleMaterial = new THREE.MeshLambertMaterial({ 
                 color: 0xFFFF00, // Bright yellow
                 emissive: 0x888800 // Strong yellow glow
+            });
+            this.fruitMaterial = new THREE.MeshLambertMaterial({
+                color: 0xFF4500, // Orange-red for fruit
+                emissive: 0xFF2200 // Bright orange-red glow
             });
             this.keyMaterial = new THREE.MeshLambertMaterial({
                 color: 0x00ffff,
@@ -431,6 +436,14 @@ export class GridManager {
         });
         this.collectibles = [];
         
+        // Remove all fruit
+        this.fruit.forEach(fruit => {
+            if (fruit.mesh) {
+                this.scene.remove(fruit.mesh);
+            }
+        });
+        this.fruit = [];
+        
         // Remove key object
         if (this.keyObject && this.keyObject.mesh) {
             this.scene.remove(this.keyObject.mesh);
@@ -554,6 +567,11 @@ export class GridManager {
         
         // Generate collectibles from level data
         this.generateCollectiblesFromData(levelData.coins);
+        
+        // Generate fruit from level data (Pacman mode)
+        if (levelData.fruit) {
+            this.generateFruitFromData(levelData.fruit);
+        }
         
         // Generate ghosts from level data (Pacman mode)
         if (levelData.ghosts) {
@@ -687,7 +705,22 @@ export class GridManager {
     }
     
     generateObstaclesFromData(obstaclesData) {
+        // Get level data to check for ground tiles
+        const levelData = this.levelLoader.getCurrentLevel();
+        const groundTiles = levelData.tiles || [];
+        
         obstaclesData.forEach(obstacleData => {
+            // Check if there's a ground tile at this position
+            const hasGroundTile = groundTiles.some(tile => 
+                tile.x === obstacleData.x && tile.z === obstacleData.z && tile.type === 'ground'
+            );
+            
+            // Only create obstacle if there's a ground tile beneath it
+            if (!hasGroundTile) {
+                console.log(`🚫 Skipping obstacle at (${obstacleData.x}, ${obstacleData.z}) - no ground tile`);
+                return;
+            }
+            
             const worldPos = this.levelLoader.gridToWorld(obstacleData.x, obstacleData.z, this.tileSize);
             const obstacleGeometry = new THREE.BoxGeometry(
                 obstacleData.width || 2,
@@ -716,7 +749,22 @@ export class GridManager {
     }
     
     generateWallsFromData(wallsData) {
+        // Get level data to check for ground tiles
+        const levelData = this.levelLoader.getCurrentLevel();
+        const groundTiles = levelData.tiles || [];
+        
         wallsData.forEach(wallData => {
+            // Check if there's a ground tile at this position
+            const hasGroundTile = groundTiles.some(tile => 
+                tile.x === wallData.x && tile.z === wallData.z && tile.type === 'ground'
+            );
+            
+            // Only create wall if there's a ground tile beneath it
+            if (!hasGroundTile) {
+                console.log(`🚫 Skipping wall at (${wallData.x}, ${wallData.z}) - no ground tile`);
+                return;
+            }
+            
             const worldPos = this.levelLoader.gridToWorld(wallData.x, wallData.z, this.tileSize);
             const wallGeometry = new THREE.BoxGeometry(
                 this.tileSize * 0.8,
@@ -939,9 +987,24 @@ export class GridManager {
     }
     
     generateCollectiblesFromData(coinsData) {
+        // Get level data to check for ground tiles
+        const levelData = this.levelLoader.getCurrentLevel();
+        const groundTiles = levelData.tiles || [];
+        
         const collectibleGeometry = new THREE.SphereGeometry(0.3, 8, 8);
         
         coinsData.forEach(coinData => {
+            // Check if there's a ground tile at this position
+            const hasGroundTile = groundTiles.some(tile => 
+                tile.x === coinData.x && tile.z === coinData.z && tile.type === 'ground'
+            );
+            
+            // Only create collectible if there's a ground tile beneath it
+            if (!hasGroundTile) {
+                console.log(`🚫 Skipping collectible at (${coinData.x}, ${coinData.z}) - no ground tile`);
+                return;
+            }
+            
             const worldPos = this.levelLoader.gridToWorld(coinData.x, coinData.z, this.tileSize);
             
             // Get tile height to position collectible correctly
@@ -963,6 +1026,56 @@ export class GridManager {
                 rotationSpeed: Math.random() * 0.02 + 0.01,
                 bounceSpeed: Math.random() * 0.02 + 0.01,
                 bounceHeight: 0.5
+            });
+        });
+    }
+    
+    generateFruitFromData(fruitData) {
+        // Handle both single fruit object and array of fruit
+        const fruits = Array.isArray(fruitData) ? fruitData : [fruitData];
+        
+        fruits.forEach(fruit => {
+            // Create fruit geometry - different shapes based on type
+            let fruitGeometry;
+            switch (fruit.type) {
+                case 'cherry':
+                    fruitGeometry = new THREE.SphereGeometry(0.4, 8, 8);
+                    break;
+                case 'apple':
+                    fruitGeometry = new THREE.SphereGeometry(0.5, 10, 10);
+                    break;
+                case 'banana':
+                    fruitGeometry = new THREE.CylinderGeometry(0.2, 0.3, 0.8, 6);
+                    break;
+                case 'bonus':
+                default:
+                    fruitGeometry = new THREE.OctahedronGeometry(0.5, 0);
+                    break;
+            }
+            
+            const worldPos = this.levelLoader.gridToWorld(fruit.x, fruit.z, this.tileSize);
+            
+            // Get tile height to position fruit correctly
+            const tileKey = `${fruit.x},${fruit.z}`;
+            const tile = this.tiles.get(tileKey);
+            const tileHeight = tile ? tile.height : 0;
+            
+            const fruitMesh = new THREE.Mesh(fruitGeometry, this.fruitMaterial);
+            fruitMesh.position.set(worldPos.x, tileHeight + (fruit.y || 1.2), worldPos.z);
+            fruitMesh.castShadow = true;
+            
+            this.scene.add(fruitMesh);
+            this.fruit.push({
+                mesh: fruitMesh,
+                position: fruitMesh.position.clone(),
+                gridX: fruit.x,
+                gridZ: fruit.z,
+                collected: false,
+                type: fruit.type || 'bonus',
+                points: fruit.points || 500,
+                rotationSpeed: Math.random() * 0.03 + 0.02,
+                bounceSpeed: Math.random() * 0.015 + 0.01,
+                bounceHeight: 0.8
             });
         });
     }
@@ -1070,6 +1183,20 @@ export class GridManager {
                 const time = performance.now() * 0.001;
                 collectible.mesh.position.y = collectible.position.y + 
                     Math.sin(time * collectible.bounceSpeed * 10) * collectible.bounceHeight;
+            }
+        });
+        
+        // Animate fruit
+        this.fruit.forEach((fruit, index) => {
+            if (!fruit.collected) {
+                // Rotate fruit
+                fruit.mesh.rotation.y += fruit.rotationSpeed;
+                fruit.mesh.rotation.x += fruit.rotationSpeed * 0.5;
+                
+                // Bounce fruit
+                const time = performance.now() * 0.001;
+                fruit.mesh.position.y = fruit.position.y + 
+                    Math.sin(time * fruit.bounceSpeed * 12) * fruit.bounceHeight;
             }
         });
         
@@ -1493,6 +1620,10 @@ export class GridManager {
         return this.collectibles.filter(c => !c.collected);
     }
     
+    getFruit() {
+        return this.fruit.filter(f => !f.collected);
+    }
+    
     getKey() {
         return this.keyObject;
     }
@@ -1503,6 +1634,10 @@ export class GridManager {
     
     getWalls() {
         return this.walls;
+    }
+    
+    getBorderWalls() {
+        return this.borderWalls;
     }
     
     getTiles() {
@@ -1546,6 +1681,15 @@ export class GridManager {
                 collectible.tile.occupied = false;
                 collectible.tile.type = 'ground';
             }
+            return true;
+        }
+        return false;
+    }
+    
+    collectFruit(fruit) {
+        if (!fruit.collected) {
+            fruit.collected = true;
+            fruit.mesh.visible = false;
             return true;
         }
         return false;
@@ -1667,21 +1811,73 @@ export class GridManager {
         
         this.borderWalls = [];
         
-        for (let x = -1; x <= width; x++) {
-            for (let z = -1; z <= height; z++) {
-                if (x === -1 || x === width || z === -1 || z === height) {
-                    const worldPos = this.levelLoader.gridToWorld(x, z, this.tileSize);
-                    const borderWall = new THREE.Mesh(borderGeometry, borderMaterial.clone());
-                    borderWall.position.set(worldPos.x, borderHeight / 2, worldPos.z);
-                    borderWall.castShadow = true;
-                    borderWall.receiveShadow = true;
-                    
-                    this.scene.add(borderWall);
-                    this.borderWalls.push({
-                        mesh: borderWall,
-                        position: borderWall.position.clone()
-                    });
-                }
+        // Get level data to check for ground tiles at the edges
+        const levelData = this.levelLoader ? this.levelLoader.getCurrentLevel() : null;
+        
+        // Create border walls outside the playable area
+        // Left and right borders (x = -1 and x = width)
+        for (let z = -1; z <= height; z++) {
+            // Left border
+            const leftWorldPos = this.levelLoader.gridToWorld(-1, z, this.tileSize);
+            const leftBorderWall = new THREE.Mesh(borderGeometry, borderMaterial.clone());
+            leftBorderWall.position.set(leftWorldPos.x, borderHeight / 2, leftWorldPos.z);
+            leftBorderWall.castShadow = true;
+            leftBorderWall.receiveShadow = true;
+            this.scene.add(leftBorderWall);
+            this.borderWalls.push({
+                mesh: leftBorderWall,
+                position: leftBorderWall.position.clone()
+            });
+            
+            // Right border
+            const rightWorldPos = this.levelLoader.gridToWorld(width, z, this.tileSize);
+            const rightBorderWall = new THREE.Mesh(borderGeometry, borderMaterial.clone());
+            rightBorderWall.position.set(rightWorldPos.x, borderHeight / 2, rightWorldPos.z);
+            rightBorderWall.castShadow = true;
+            rightBorderWall.receiveShadow = true;
+            this.scene.add(rightBorderWall);
+            this.borderWalls.push({
+                mesh: rightBorderWall,
+                position: rightBorderWall.position.clone()
+            });
+        }
+        
+        // Top and bottom borders - but only where there are no ground tiles
+        for (let x = 0; x < width; x++) {
+            // Check if there are ground tiles at z = 0 (bottom edge)
+            const hasBottomGroundTile = levelData && levelData.tiles && 
+                levelData.tiles.some(tile => tile.x === x && tile.z === 0 && tile.type === 'ground');
+            
+            // Only create bottom border if there's no ground tile at this position
+            if (!hasBottomGroundTile) {
+                const bottomWorldPos = this.levelLoader.gridToWorld(x, -1, this.tileSize);
+                const bottomBorderWall = new THREE.Mesh(borderGeometry, borderMaterial.clone());
+                bottomBorderWall.position.set(bottomWorldPos.x, borderHeight / 2, bottomWorldPos.z);
+                bottomBorderWall.castShadow = true;
+                bottomBorderWall.receiveShadow = true;
+                this.scene.add(bottomBorderWall);
+                this.borderWalls.push({
+                    mesh: bottomBorderWall,
+                    position: bottomBorderWall.position.clone()
+                });
+            }
+            
+            // Check if there are ground tiles at z = height-1 (top edge)
+            const hasTopGroundTile = levelData && levelData.tiles && 
+                levelData.tiles.some(tile => tile.x === x && tile.z === height - 1 && tile.type === 'ground');
+            
+            // Only create top border if there's no ground tile at this position
+            if (!hasTopGroundTile) {
+                const topWorldPos = this.levelLoader.gridToWorld(x, height, this.tileSize);
+                const topBorderWall = new THREE.Mesh(borderGeometry, borderMaterial.clone());
+                topBorderWall.position.set(topWorldPos.x, borderHeight / 2, topWorldPos.z);
+                topBorderWall.castShadow = true;
+                topBorderWall.receiveShadow = true;
+                this.scene.add(topBorderWall);
+                this.borderWalls.push({
+                    mesh: topBorderWall,
+                    position: topBorderWall.position.clone()
+                });
             }
         }
     }

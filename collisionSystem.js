@@ -34,6 +34,11 @@ export class CollisionSystem {
         this.spikeImmunityDuration = 4000; // 4 seconds in milliseconds
         this.spikeImmunityStartTime = 0;
         
+        // Ghost immunity system
+        this.ghostImmunity = false;
+        this.ghostImmunityDuration = 200; // 200ms to prevent rapid-fire collisions
+        this.ghostImmunityStartTime = 0;
+        
         // Level completion notification
         this.readyToLeaveNotificationShown = false;
     }
@@ -67,6 +72,8 @@ export class CollisionSystem {
         this.readyToLeaveNotificationShown = false;
         this.spikeImmunity = false;
         this.spikeImmunityStartTime = 0;
+        this.ghostImmunity = false;
+        this.ghostImmunityStartTime = 0;
         console.log('Collision system reset for new level');
     }
     
@@ -84,6 +91,9 @@ export class CollisionSystem {
         
         // Check collision with collectibles
         this.checkCollectibleCollisions();
+        
+        // Check collision with fruit
+        this.checkFruitCollisions();
         
         // Check collision with key
         this.checkKeyCollision();
@@ -258,13 +268,34 @@ export class CollisionSystem {
         const playerPosition = this.player.getPosition();
         const playerBounds = this.getPlayerBoundingBox(playerPosition);
         const walls = this.gridManager.getWalls();
+        const borderWalls = this.gridManager.getBorderWalls();
         
+        // Check regular walls
         for (let wall of walls) {
             const wallBounds = this.getWallBoundingBox(wall.position);
             
             if (this.checkBoxCollision(playerBounds, wallBounds)) {
                 // Calculate collision response
                 const response = this.calculateCollisionResponse(playerPosition, wall.position);
+                
+                // Apply collision response
+                if (response.length() > 0) {
+                    const newPosition = playerPosition.clone().add(response);
+                    this.player.setPosition(newPosition.x, newPosition.y, newPosition.z);
+                    
+                    // Stop player movement in collision direction
+                    this.player.velocity.multiplyScalar(0.5);
+                }
+            }
+        }
+        
+        // Check border walls
+        for (let borderWall of borderWalls) {
+            const borderWallBounds = this.getWallBoundingBox(borderWall.position);
+            
+            if (this.checkBoxCollision(playerBounds, borderWallBounds)) {
+                // Calculate collision response
+                const response = this.calculateCollisionResponse(playerPosition, borderWall.position);
                 
                 // Apply collision response
                 if (response.length() > 0) {
@@ -317,11 +348,41 @@ export class CollisionSystem {
                 if (this.checkBoxCollision(playerBounds, collectibleBounds)) {
                     // Collect the item
                     if (this.gridManager.collectItem(collectible)) {
-                        this.score += 10;
+                        // Calculate level-based collectible score multiplier
+                        const collectibleScore = this.calculateCollectibleScore(10);
+                        this.score += collectibleScore;
                         this.collectiblesCollected++;
+                        
+                        console.log(`Collectible collected! Base: 10, Multiplied: ${collectibleScore}`);
                         
                         // Create collection effect (could be expanded)
                         this.createCollectionEffect(collectible.position);
+                    }
+                }
+            }
+        }
+    }
+    
+    checkFruitCollisions() {
+        const playerPosition = this.player.getPosition();
+        const playerBounds = this.getPlayerBoundingBox(playerPosition);
+        const fruits = this.gridManager.getFruit();
+        
+        for (let fruit of fruits) {
+            if (!fruit.collected) {
+                const fruitBounds = this.getFruitBoundingBox(fruit.position);
+                
+                if (this.checkBoxCollision(playerBounds, fruitBounds)) {
+                    // Collect the fruit
+                    if (this.gridManager.collectFruit(fruit)) {
+                        // Calculate level-based fruit score multiplier
+                        const fruitScore = this.calculateFruitScore(fruit.points || 500);
+                        this.score += fruitScore;
+                        
+                        console.log(`Fruit collected! Base: ${fruit.points || 500}, Multiplied: ${fruitScore}`);
+                        
+                        // Create collection effect (could be expanded)
+                        this.createCollectionEffect(fruit.position);
                     }
                 }
             }
@@ -378,15 +439,34 @@ export class CollisionSystem {
     checkGhostCollisions() {
         const ghosts = this.gridManager.getGhosts();
         if (ghosts && ghosts.length > 0) {
+            // Check if ghost immunity has expired
+            if (this.ghostImmunity && Date.now() - this.ghostImmunityStartTime > this.ghostImmunityDuration) {
+                this.ghostImmunity = false;
+                console.log('Ghost immunity expired');
+            }
+            
+            // Skip collision detection if player has ghost immunity
+            if (this.ghostImmunity) {
+                console.log('Ghost collision blocked by immunity - remaining time:', this.ghostImmunityDuration - (Date.now() - this.ghostImmunityStartTime));
+                return;
+            }
+            
             const playerPosition = this.player.getPosition();
             const playerBounds = this.getPlayerBoundingBox(playerPosition);
             
             for (let ghost of ghosts) {
+                // Only check collision with active ghosts
+                if (!ghost.isActive) {
+                    continue; // Skip inactive ghosts (during head start periods)
+                }
+                
                 const ghostBounds = this.getGhostBoundingBox(ghost.mesh.position);
                 
                 if (this.checkBoxCollision(playerBounds, ghostBounds)) {
+                    console.log(`Ghost collision detected with ${ghost.color} ghost! Processing...`);
                     // Ghost touched player - reset player position or reduce health
                     this.handleGhostCollision(ghost);
+                    break; // Only handle one ghost collision per frame
                 }
             }
         }
@@ -395,8 +475,14 @@ export class CollisionSystem {
     handleGhostCollision(ghost) {
         console.log(`Ghost collision with ${ghost.color} ghost!`);
         
-        // Lose a life
+        // Lose a life first
         const remainingLives = this.player.loseLife();
+        console.log(`Player lost a life! Remaining lives: ${remainingLives}`);
+        
+        // Activate ghost immunity to prevent rapid-fire kills
+        this.ghostImmunity = true;
+        this.ghostImmunityStartTime = Date.now();
+        console.log('Ghost immunity activated for 200ms');
         
         // Reset player to spawn position
         const levelData = this.gridManager.levelLoader.getCurrentLevel();
@@ -411,14 +497,21 @@ export class CollisionSystem {
             this.gridManager.resetGhostsAfterPlayerDeath();
         }
         
+        // Show death notification popup
+        if (window.game && window.game.uiManager) {
+            const livesText = remainingLives === 1 ? 'life' : 'lives';
+            if (remainingLives > 0) {
+                window.game.uiManager.showNotification(`You died! ${remainingLives} ${livesText} remaining`, 'error', 3000);
+            } else {
+                window.game.uiManager.showNotification(`You died! Game Over!`, 'error', 3000);
+            }
+        }
+        
         // Check if player is out of lives
         if (this.player.isOutOfLives()) {
             console.log('Game Over! Out of lives!');
             
-            // Reset lives for next game
-            this.player.resetLives();
-            
-            // Call game over callback if set
+            // Call game over callback if set - let main game handle life management
             if (this.gameOverCallback) {
                 this.gameOverCallback();
             }
@@ -547,14 +640,21 @@ export class CollisionSystem {
         this.spikeImmunityStartTime = Date.now();
         console.log('Spike immunity activated for 4 seconds');
         
+        // Show death notification popup
+        if (window.game && window.game.uiManager) {
+            const livesText = remainingLives === 1 ? 'life' : 'lives';
+            if (remainingLives > 0) {
+                window.game.uiManager.showNotification(`You died! ${remainingLives} ${livesText} remaining`, 'error', 3000);
+            } else {
+                window.game.uiManager.showNotification(`You died! Game Over!`, 'error', 3000);
+            }
+        }
+        
         // Check if player is out of lives
         if (this.player.isOutOfLives()) {
             console.log('Game Over! Out of lives!');
             
-            // Reset lives for next game
-            this.player.resetLives();
-            
-            // Call game over callback if set
+            // Call game over callback if set - let main game handle life management
             if (this.gameOverCallback) {
                 this.gameOverCallback();
             }
@@ -881,27 +981,32 @@ export class CollisionSystem {
     
     checkWorldBoundaries() {
         const playerPosition = this.player.getPosition();
-        const gridSize = this.gridManager.gridSize;
+        const levelData = this.gridManager.levelLoader.getCurrentLevel();
         const tileSize = this.gridManager.tileSize;
-        const halfWorld = (gridSize * tileSize) / 2;
+        
+        // Use actual level dimensions instead of assuming square grid
+        const levelWidth = levelData.size.width;
+        const levelHeight = levelData.size.height;
+        const halfWidth = (levelWidth * tileSize) / 2;
+        const halfHeight = (levelHeight * tileSize) / 2;
         
         let corrected = false;
         
-        // Check X boundaries
-        if (playerPosition.x < -halfWorld + this.playerRadius) {
-            this.player.setPosition(-halfWorld + this.playerRadius, playerPosition.y, playerPosition.z);
+        // Check X boundaries (width)
+        if (playerPosition.x < -halfWidth + this.playerRadius) {
+            this.player.setPosition(-halfWidth + this.playerRadius, playerPosition.y, playerPosition.z);
             corrected = true;
-        } else if (playerPosition.x > halfWorld - this.playerRadius) {
-            this.player.setPosition(halfWorld - this.playerRadius, playerPosition.y, playerPosition.z);
+        } else if (playerPosition.x > halfWidth - this.playerRadius) {
+            this.player.setPosition(halfWidth - this.playerRadius, playerPosition.y, playerPosition.z);
             corrected = true;
         }
         
-        // Check Z boundaries
-        if (playerPosition.z < -halfWorld + this.playerRadius) {
-            this.player.setPosition(playerPosition.x, playerPosition.y, -halfWorld + this.playerRadius);
+        // Check Z boundaries (height)
+        if (playerPosition.z < -halfHeight + this.playerRadius) {
+            this.player.setPosition(playerPosition.x, playerPosition.y, -halfHeight + this.playerRadius);
             corrected = true;
-        } else if (playerPosition.z > halfWorld - this.playerRadius) {
-            this.player.setPosition(playerPosition.x, playerPosition.y, halfWorld - this.playerRadius);
+        } else if (playerPosition.z > halfHeight - this.playerRadius) {
+            this.player.setPosition(playerPosition.x, playerPosition.y, halfHeight - this.playerRadius);
             corrected = true;
         }
         
@@ -1034,23 +1139,37 @@ export class CollisionSystem {
         // Check against walls (Pacman mode only)
         if (this.gridManager.levelType === 'pacman') {
             const walls = this.gridManager.getWalls();
+            const borderWalls = this.gridManager.getBorderWalls();
+            
+            // Check regular walls
             for (let wall of walls) {
                 const wallBounds = this.getWallBoundingBox(wall.position);
                 if (this.checkBoxCollision(testBounds, wallBounds)) {
                     return false;
                 }
             }
+            
+            // Check border walls
+            for (let borderWall of borderWalls) {
+                const borderWallBounds = this.getWallBoundingBox(borderWall.position);
+                if (this.checkBoxCollision(testBounds, borderWallBounds)) {
+                    return false;
+                }
+            }
         }
         
         // Check world boundaries (account for sphere radius)
-        const gridSize = this.gridManager.gridSize;
+        const levelData = this.gridManager.levelLoader.getCurrentLevel();
         const tileSize = this.gridManager.tileSize;
-        const halfWorld = (gridSize * tileSize) / 2;
+        const levelWidth = levelData.size.width;
+        const levelHeight = levelData.size.height;
+        const halfWidth = (levelWidth * tileSize) / 2;
+        const halfHeight = (levelHeight * tileSize) / 2;
         
-        if (position.x < -halfWorld + this.playerRadius || 
-            position.x > halfWorld - this.playerRadius ||
-            position.z < -halfWorld + this.playerRadius || 
-            position.z > halfWorld - this.playerRadius ||
+        if (position.x < -halfWidth + this.playerRadius || 
+            position.x > halfWidth - this.playerRadius ||
+            position.z < -halfHeight + this.playerRadius || 
+            position.z > halfHeight - this.playerRadius ||
             position.y < this.playerRadius) { // Prevent sphere from going below ground
             return false;
         }
@@ -1125,5 +1244,46 @@ export class CollisionSystem {
     // Add points to score
     addScore(points) {
         this.score += points;
+    }
+    
+    // Calculate level-based scoring for collectibles/pebbles
+    calculateCollectibleScore(baseScore) {
+        if (!window.game) return baseScore;
+        
+        const currentLevel = window.game.currentLevel;
+        
+        // Level-based multipliers for collectibles
+        switch (currentLevel) {
+            case 1: return 10;      // Level 1: 10 points
+            case 2: return 50;      // Level 2: 50 points (5x)
+            case 3: return 100;     // Level 3: 100 points (10x)
+            case 4: return 200;     // Level 4: 200 points (20x)
+            case 5: return 1000;    // Level 5: 1000 points (100x)
+            default: return 10 + (currentLevel - 1) * 200; // Continue progression
+        }
+    }
+    
+    // Calculate level-based scoring for fruit
+    calculateFruitScore(baseScore) {
+        if (!window.game) return baseScore;
+        
+        const currentLevel = window.game.currentLevel;
+        const isClassicMode = window.game.isClassicMode;
+        
+        // Classic mode uses wave-based scoring
+        if (isClassicMode) {
+            const wave = window.game.classicWave || 1;
+            return 500 + (wave * 100); // Base 500 + 100 per wave
+        }
+        
+        // Level-based multipliers for fruit (similar to collectibles but higher base)
+        switch (currentLevel) {
+            case 1: return 500;     // Level 1: 500 points
+            case 2: return 1000;    // Level 2: 1000 points (2x)
+            case 3: return 2000;    // Level 3: 2000 points (4x)
+            case 4: return 4000;    // Level 4: 4000 points (8x)
+            case 5: return 10000;   // Level 5: 10000 points (20x)
+            default: return 500 + (currentLevel - 1) * 2000; // Continue progression
+        }
     }
 } 

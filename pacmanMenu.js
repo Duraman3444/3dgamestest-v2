@@ -12,6 +12,7 @@ export class PacmanMenu {
         this.isInLevelSelect = false;
         this.levelSelectButtons = [];
         this.levelSelectIndex = 0;
+        this.isClassicMode = false; // Flag for classic mode
         
         // Available pacman levels with their details
         this.availableLevels = [
@@ -352,7 +353,7 @@ export class PacmanMenu {
         
         const levelDisplay = document.createElement('span');
         levelDisplay.id = 'pacmanLevelDisplay';
-        levelDisplay.textContent = this.availableLevels[0].name;
+        levelDisplay.textContent = this.isClassicMode ? 'CLASSIC MODE - Endless Level 2' : this.availableLevels[0].name;
         levelDisplay.style.cssText = `
             color: #ffff00;
             font-weight: bold;
@@ -413,6 +414,7 @@ export class PacmanMenu {
         // Create menu buttons
         const buttons = [
             { text: 'Level Select', action: () => this.showLevelSelect() },
+            { text: 'Classic Mode', action: () => this.toggleClassicMode() },
             { text: 'Change Difficulty', action: () => this.changeDifficulty() },
             { text: 'Start Game', action: () => this.startGame() },
             { text: 'Back to Main Menu', action: () => this.backToMain() }
@@ -943,10 +945,48 @@ export class PacmanMenu {
         }
     }
     
+    toggleClassicMode() {
+        this.isClassicMode = !this.isClassicMode;
+        this.updateLevelDisplay();
+        this.updateClassicModeButton();
+    }
+    
+    updateLevelDisplay() {
+        const levelDisplay = document.getElementById('pacmanLevelDisplay');
+        if (levelDisplay) {
+            if (this.isClassicMode) {
+                levelDisplay.textContent = 'CLASSIC MODE - Endless Level 2';
+                levelDisplay.style.color = '#ff00ff'; // Pink for classic mode
+            } else {
+                levelDisplay.textContent = this.availableLevels[this.selectedLevel - 1].name;
+                levelDisplay.style.color = '#ffff00'; // Yellow for normal
+            }
+        }
+    }
+    
+    updateClassicModeButton() {
+        const buttons = this.menuButtons;
+        if (buttons && buttons[1]) { // Classic Mode button is at index 1
+            if (this.isClassicMode) {
+                buttons[1].textContent = '✓ CLASSIC MODE ACTIVE';
+                buttons[1].style.background = 'linear-gradient(135deg, #660066 0%, #990099 100%)';
+                buttons[1].style.borderColor = '#ff00ff';
+            } else {
+                buttons[1].textContent = 'CLASSIC MODE';
+                buttons[1].style.background = 'linear-gradient(135deg, #333300 0%, #666600 100%)';
+                buttons[1].style.borderColor = '#ffff00';
+            }
+        }
+    }
+
     startGame() {
         this.hide();
         if (this.onStartGame) {
-            this.onStartGame('pacman', this.selectedLevel, this.selectedDifficulty);
+            if (this.isClassicMode) {
+                this.onStartGame('pacman_classic', 2, this.selectedDifficulty); // Always use level 2 for classic mode
+            } else {
+                this.onStartGame('pacman', this.selectedLevel, this.selectedDifficulty);
+            }
         }
     }
     

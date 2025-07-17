@@ -370,6 +370,12 @@ export class Player {
         return this.lives;
     }
     
+    setLives(newLives) {
+        // Ensure lives never exceed maxLives (3) and never go below 0
+        this.lives = Math.max(0, Math.min(newLives, this.maxLives));
+        return this.lives;
+    }
+    
     isOutOfLives() {
         return this.lives <= 0;
     }
