@@ -16,6 +16,10 @@ export class CollisionSystem {
         this.score = 0;
         this.collectiblesCollected = 0;
         
+        // Portal teleport cooldown
+        this.lastPortalTeleportTime = 0;
+        this.portalCooldown = 500; // milliseconds
+        
         // Game over callback
         this.gameOverCallback = null;
         
@@ -71,6 +75,9 @@ export class CollisionSystem {
         
         // Check collision with holes
         this.checkHoleCollisions();
+        
+        // Check collision with portals
+        this.checkPortalCollisions();
         
         // Check world boundaries
         this.checkWorldBoundaries();
@@ -438,6 +445,44 @@ export class CollisionSystem {
                 hole.mesh.material.color.setHex(originalColor);
             }, 500);
         }
+    }
+    
+    // Check collision with portals
+    checkPortalCollisions() {
+        const now = performance.now();
+        if (now - this.lastPortalTeleportTime < this.portalCooldown) return;
+        
+        const levelData = this.gridManager.levelLoader.getCurrentLevel();
+        const portals = levelData.portals || [];
+        if (portals.length === 0) return;
+        
+        const playerPos = this.player.getPosition();
+        const playerRadius = this.playerRadius;
+        
+        for (let portal of portals) {
+            const dx = playerPos.x - portal.x;
+            const dz = playerPos.z - portal.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+            
+            if (distance <= playerRadius + 0.5 && Math.abs(playerPos.y - portal.y) <= 2) {
+                this.handlePortalCollision(portal);
+                this.lastPortalTeleportTime = now;
+                break;
+            }
+        }
+    }
+    
+    // Handle portal collision (teleport player)
+    handlePortalCollision(portal) {
+        console.log(`Teleporting via ${portal.type || 'portal'} to (${portal.destination.x}, ${portal.destination.y}, ${portal.destination.z})`);
+        
+        // Teleport player to destination
+        this.player.setPosition(portal.destination.x, portal.destination.y || 1, portal.destination.z);
+        
+        // Reset velocity to avoid immediate re-entry or unintended motion
+        this.player.velocity.set(0, 0, 0);
+        
+        // Optional: add small visual effect or sound here
     }
     
     getGhostBoundingBox(position) {

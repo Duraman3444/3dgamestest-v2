@@ -124,6 +124,9 @@ export class LevelLoader {
         // Add holes if present
         validated.holes = this.validateHoles(levelData.holes || []);
         
+        // Add portals if present
+        validated.portals = this.validatePortals(levelData.portals || []);
+        
         // Add level-specific requirements
         validated.requireAllCoins = levelData.requireAllCoins || false;
         
@@ -260,6 +263,27 @@ export class LevelLoader {
         }));
     }
     
+    // Validate portals array
+    validatePortals(portals) {
+        return portals.filter(portal =>
+            typeof portal.x === 'number' &&
+            typeof portal.z === 'number' &&
+            portal.destination &&
+            typeof portal.destination.x === 'number' &&
+            typeof portal.destination.z === 'number'
+        ).map(portal => ({
+            x: Math.floor(portal.x),
+            z: Math.floor(portal.z),
+            y: portal.y ?? 1,
+            destination: {
+                x: Math.floor(portal.destination.x),
+                z: Math.floor(portal.destination.z),
+                y: portal.destination.y ?? 1
+            },
+            type: portal.type || 'default'
+        }));
+    }
+    
     // Validate holes array
     validateHoles(holes) {
         return holes.filter(hole => 
@@ -313,6 +337,11 @@ export class LevelLoader {
     // Get exit
     getExit() {
         return this.getCurrentLevel().exit;
+    }
+    
+    // Getter for portals
+    getPortals() {
+        return this.levelData?.portals || [];
     }
     
     // Get level size
