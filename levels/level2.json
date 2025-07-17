@@ -298,8 +298,8 @@
     "z": 6
   },
   "exit": {
-    "x": 10,
-    "z": 10
+    "x": 18,
+    "z": 18
   },
   "obstacles": [
     {"x": 5, "z": 7, "type": "box", "width": 1, "height": 2, "depth": 1},
