@@ -25,6 +25,30 @@ export class SinglePlayerMenu {
         
         this.createMenu();
     }
+
+    // Get progress from localStorage
+    getProgress() {
+        try {
+            const saved = localStorage.getItem('gameProgress');
+            if (saved) {
+                return JSON.parse(saved);
+            }
+        } catch (error) {
+            console.error('Error loading progress:', error);
+        }
+        
+        return {
+            completedLevels: [],
+            pacmanLevelsUnlocked: false,
+            completedPacmanLevels: []
+        };
+    }
+
+    // Check if a level is completed
+    isLevelCompleted(levelId) {
+        const progress = this.getProgress();
+        return progress.completedLevels.includes(levelId);
+    }
     
     createMenu() {
         // Create menu container
@@ -335,6 +359,8 @@ export class SinglePlayerMenu {
     
     createLevelBox(level, index) {
         const levelBox = document.createElement('div');
+        const isCompleted = this.isLevelCompleted(level.id);
+        
         levelBox.style.cssText = `
             background: linear-gradient(135deg, #003366 0%, #0066cc 100%);
             border: 4px solid #00ffff;
@@ -355,13 +381,30 @@ export class SinglePlayerMenu {
             position: relative;
         `;
         
+        // Add completion checkmark
+        if (isCompleted) {
+            const checkmark = document.createElement('div');
+            checkmark.textContent = '✓';
+            checkmark.style.cssText = `
+                position: absolute;
+                top: 8px;
+                right: 12px;
+                font-size: 24px;
+                font-weight: bold;
+                color: #00ff00;
+                text-shadow: 2px 2px 0px #000000;
+                z-index: 1;
+            `;
+            levelBox.appendChild(checkmark);
+        }
+        
         // Level number display
         const levelNumber = document.createElement('div');
         levelNumber.textContent = level.id;
         levelNumber.style.cssText = `
             font-size: 36px;
             font-weight: bold;
-            color: #ffff00;
+            color: ${isCompleted ? '#00ff00' : '#ffff00'};
             margin-bottom: 10px;
             text-shadow: 2px 2px 0px #000000;
         `;
@@ -372,7 +415,7 @@ export class SinglePlayerMenu {
         levelName.style.cssText = `
             font-size: 12px;
             font-weight: bold;
-            color: #00ffff;
+            color: ${isCompleted ? '#00ff00' : '#00ffff'};
             text-align: center;
             line-height: 1.2;
             text-transform: uppercase;
@@ -385,6 +428,13 @@ export class SinglePlayerMenu {
             levelBox.style.borderColor = '#ffff00';
             levelNumber.style.color = '#ffff00';
             levelName.style.color = '#ff00ff';
+        }
+        
+        // Apply completed styling
+        if (isCompleted) {
+            levelBox.style.background = 'linear-gradient(135deg, #004d00 0%, #00b300 100%)';
+            levelBox.style.borderColor = '#00ff00';
+            levelBox.style.boxShadow = '5px 5px 0px #000000, 0px 0px 10px #00ff00';
         }
         
         levelBox.appendChild(levelNumber);
@@ -585,11 +635,18 @@ export class SinglePlayerMenu {
                 // Selected style for level boxes
                 if (index < this.availableLevels.length) {
                     const level = this.availableLevels[index];
+                    const isCompleted = this.isLevelCompleted(level.id);
+                    
                     if (level.file === 'pacman.json') {
                         element.style.background = 'linear-gradient(135deg, #ffff00 0%, #ff9900 100%)';
                         element.style.borderColor = '#ff00ff';
                         element.style.transform = 'translateY(-3px) scale(1.05)';
                         element.style.boxShadow = '7px 7px 0px #000000';
+                    } else if (isCompleted) {
+                        element.style.background = 'linear-gradient(135deg, #00ff00 0%, #66ff66 100%)';
+                        element.style.borderColor = '#ffffff';
+                        element.style.transform = 'translateY(-3px) scale(1.05)';
+                        element.style.boxShadow = '7px 7px 0px #000000, 0px 0px 15px #00ff00';
                     } else {
                         element.style.background = 'linear-gradient(135deg, #ff6600 0%, #ff9900 100%)';
                         element.style.borderColor = '#ffff00';
@@ -608,11 +665,18 @@ export class SinglePlayerMenu {
                 // Unselected style for level boxes
                 if (index < this.availableLevels.length) {
                     const level = this.availableLevels[index];
+                    const isCompleted = this.isLevelCompleted(level.id);
+                    
                     if (level.file === 'pacman.json') {
                         element.style.background = 'linear-gradient(135deg, #1a1a1a 0%, #333333 100%)';
                         element.style.borderColor = '#ffff00';
                         element.style.transform = 'translateY(0) scale(1)';
                         element.style.boxShadow = '5px 5px 0px #000000';
+                    } else if (isCompleted) {
+                        element.style.background = 'linear-gradient(135deg, #004d00 0%, #00b300 100%)';
+                        element.style.borderColor = '#00ff00';
+                        element.style.transform = 'translateY(0) scale(1)';
+                        element.style.boxShadow = '5px 5px 0px #000000, 0px 0px 10px #00ff00';
                     } else {
                         element.style.background = 'linear-gradient(135deg, #003366 0%, #0066cc 100%)';
                         element.style.borderColor = '#00ffff';
@@ -652,7 +716,30 @@ export class SinglePlayerMenu {
         this.mainMenuContainer.style.display = 'none';
         this.levelSelectContainer.style.display = 'flex';
         this.levelSelectIndex = 0;
+        
+        // Refresh the level boxes to show updated completion status
+        this.refreshLevelBoxes();
         this.updateLevelSelectButtons();
+    }
+
+    // Refresh level boxes to show updated completion status
+    refreshLevelBoxes() {
+        // Clear existing level boxes
+        const levelGridContainer = this.levelSelectContainer.querySelector('div:nth-child(2)');
+        if (levelGridContainer) {
+            // Remove all level boxes but keep the grid container
+            while (levelGridContainer.firstChild) {
+                levelGridContainer.removeChild(levelGridContainer.firstChild);
+            }
+            
+            // Recreate level boxes with updated completion status
+            this.levelSelectButtons = [];
+            this.availableLevels.forEach((level, index) => {
+                const levelBox = this.createLevelBox(level, index);
+                this.levelSelectButtons.push(levelBox);
+                levelGridContainer.appendChild(levelBox);
+            });
+        }
     }
     
     hideLevelSelect() {

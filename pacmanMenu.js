@@ -101,6 +101,12 @@ export class PacmanMenu {
         // Other levels are unlocked if previous pacman level is completed
         return progress.completedPacmanLevels.includes(levelId - 1);
     }
+
+    // Check if a pacman level is completed
+    isPacmanLevelCompleted(levelId) {
+        const progress = this.getProgress();
+        return progress.completedPacmanLevels.includes(levelId);
+    }
     
     createMenu() {
         // Create menu container
@@ -501,6 +507,7 @@ export class PacmanMenu {
     createLevelBox(level, index) {
         const levelBox = document.createElement('div');
         const isUnlocked = this.isPacmanLevelUnlocked(level.id);
+        const isCompleted = this.isPacmanLevelCompleted(level.id);
         
         levelBox.style.cssText = `
             background: ${isUnlocked ? 'linear-gradient(135deg, #333300 0%, #666600 100%)' : 'linear-gradient(135deg, #330000 0%, #660000 100%)'};
@@ -523,13 +530,30 @@ export class PacmanMenu {
             opacity: ${isUnlocked ? '1' : '0.5'};
         `;
         
+        // Add completion checkmark
+        if (isCompleted) {
+            const checkmark = document.createElement('div');
+            checkmark.textContent = '✓';
+            checkmark.style.cssText = `
+                position: absolute;
+                top: 8px;
+                right: 12px;
+                font-size: 24px;
+                font-weight: bold;
+                color: #00ff00;
+                text-shadow: 2px 2px 0px #000000;
+                z-index: 1;
+            `;
+            levelBox.appendChild(checkmark);
+        }
+        
         // Level number display
         const levelNumber = document.createElement('div');
         levelNumber.textContent = isUnlocked ? level.id : '🔒';
         levelNumber.style.cssText = `
             font-size: 36px;
             font-weight: bold;
-            color: ${isUnlocked ? '#ffff00' : '#ff0000'};
+            color: ${isCompleted ? '#00ff00' : (isUnlocked ? '#ffff00' : '#ff0000')};
             margin-bottom: 10px;
             text-shadow: 2px 2px 0px #000000;
         `;
@@ -540,12 +564,19 @@ export class PacmanMenu {
         levelName.style.cssText = `
             font-size: 12px;
             font-weight: bold;
-            color: ${isUnlocked ? '#00ffff' : '#ff0000'};
+            color: ${isCompleted ? '#00ff00' : (isUnlocked ? '#00ffff' : '#ff0000')};
             text-align: center;
             line-height: 1.2;
             text-transform: uppercase;
             letter-spacing: 1px;
         `;
+        
+        // Apply completed styling
+        if (isCompleted) {
+            levelBox.style.background = 'linear-gradient(135deg, #004d00 0%, #00b300 100%)';
+            levelBox.style.borderColor = '#00ff00';
+            levelBox.style.boxShadow = '5px 5px 0px #000000, 0px 0px 10px #00ff00';
+        }
         
         levelBox.appendChild(levelNumber);
         levelBox.appendChild(levelName);
@@ -748,8 +779,14 @@ export class PacmanMenu {
                 if (index < this.availableLevels.length) {
                     const level = this.availableLevels[index];
                     const isUnlocked = this.isPacmanLevelUnlocked(level.id);
+                    const isCompleted = this.isPacmanLevelCompleted(level.id);
                     
-                    if (isUnlocked) {
+                    if (isCompleted) {
+                        element.style.background = 'linear-gradient(135deg, #00ff00 0%, #66ff66 100%)';
+                        element.style.borderColor = '#ffffff';
+                        element.style.transform = 'translateY(-3px) scale(1.05)';
+                        element.style.boxShadow = '7px 7px 0px #000000, 0px 0px 15px #00ff00';
+                    } else if (isUnlocked) {
                         element.style.background = 'linear-gradient(135deg, #ffff00 0%, #ff9900 100%)';
                         element.style.borderColor = '#ff00ff';
                         element.style.transform = 'translateY(-3px) scale(1.05)';
@@ -773,8 +810,14 @@ export class PacmanMenu {
                 if (index < this.availableLevels.length) {
                     const level = this.availableLevels[index];
                     const isUnlocked = this.isPacmanLevelUnlocked(level.id);
+                    const isCompleted = this.isPacmanLevelCompleted(level.id);
                     
-                    if (isUnlocked) {
+                    if (isCompleted) {
+                        element.style.background = 'linear-gradient(135deg, #004d00 0%, #00b300 100%)';
+                        element.style.borderColor = '#00ff00';
+                        element.style.transform = 'translateY(0) scale(1)';
+                        element.style.boxShadow = '5px 5px 0px #000000, 0px 0px 10px #00ff00';
+                    } else if (isUnlocked) {
                         element.style.background = 'linear-gradient(135deg, #333300 0%, #666600 100%)';
                         element.style.borderColor = '#ffff00';
                         element.style.transform = 'translateY(0) scale(1)';

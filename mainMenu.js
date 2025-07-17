@@ -71,6 +71,7 @@ export class MainMenu {
         
         // Create menu buttons
         const buttons = [
+            { text: 'Continue', action: () => this.continueGame(), id: 'continue-button' },
             { text: 'Single Player', action: () => this.startSinglePlayer() },
             { text: 'Pacman Mode', action: () => this.startPacmanMode() },
             { text: 'Multiplayer', action: () => this.showMultiplayerNotice() },
@@ -81,6 +82,12 @@ export class MainMenu {
         this.menuButtons = [];
         buttons.forEach((button, index) => {
             const buttonElement = this.createButton(button.text, button.action, index);
+            
+            // Hide Continue button if no saved game exists
+            if (button.id === 'continue-button' && !this.hasSavedGame()) {
+                buttonElement.style.display = 'none';
+            }
+            
             this.menuButtons.push(buttonElement);
             buttonsContainer.appendChild(buttonElement);
         });
@@ -167,8 +174,11 @@ export class MainMenu {
         
         // Add mouse hover effects (but keyboard navigation will override)
         button.addEventListener('mouseenter', () => {
-            this.currentOptionIndex = index;
-            this.updateButtonSelection();
+            // Only update selection if button is visible
+            if (button.style.display !== 'none') {
+                this.currentOptionIndex = index;
+                this.updateButtonSelection();
+            }
         });
         
         button.addEventListener('click', onClick);
@@ -200,17 +210,30 @@ export class MainMenu {
     }
     
     navigateUp() {
-        this.currentOptionIndex = (this.currentOptionIndex - 1 + this.menuButtons.length) % this.menuButtons.length;
+        let newIndex = this.currentOptionIndex;
+        do {
+            newIndex = (newIndex - 1 + this.menuButtons.length) % this.menuButtons.length;
+        } while (this.menuButtons[newIndex].style.display === 'none');
+        this.currentOptionIndex = newIndex;
         this.updateButtonSelection();
     }
     
     navigateDown() {
-        this.currentOptionIndex = (this.currentOptionIndex + 1) % this.menuButtons.length;
+        let newIndex = this.currentOptionIndex;
+        do {
+            newIndex = (newIndex + 1) % this.menuButtons.length;
+        } while (this.menuButtons[newIndex].style.display === 'none');
+        this.currentOptionIndex = newIndex;
         this.updateButtonSelection();
     }
     
     updateButtonSelection() {
         this.menuButtons.forEach((button, index) => {
+            // Skip hidden buttons
+            if (button.style.display === 'none') {
+                return;
+            }
+            
             if (index === this.currentOptionIndex) {
                 // Selected style - PS2 era bright selected state
                 button.style.background = 'linear-gradient(135deg, #ff6600 0%, #ff9900 100%)';
@@ -247,6 +270,37 @@ export class MainMenu {
         if (this.onStartGame) {
             this.onStartGame('pacman'); // Pass 'pacman' as mode identifier
         }
+    }
+
+    continueGame() {
+        this.hide();
+        if (window.game && window.game.continueFromSavedState) {
+            window.game.continueFromSavedState();
+        }
+    }
+
+    hasSavedGame() {
+        return window.game && window.game.hasSavedGameState && window.game.hasSavedGameState();
+    }
+
+    updateContinueButtonVisibility() {
+        if (this.menuButtons.length > 0) {
+            const continueButton = this.menuButtons[0]; // Continue button is first
+            if (this.hasSavedGame()) {
+                continueButton.style.display = 'block';
+            } else {
+                continueButton.style.display = 'none';
+            }
+        }
+    }
+
+    getFirstVisibleButtonIndex() {
+        for (let i = 0; i < this.menuButtons.length; i++) {
+            if (this.menuButtons[i].style.display !== 'none') {
+                return i;
+            }
+        }
+        return 0; // Fallback
     }
     
     showMultiplayerNotice() {
@@ -442,7 +496,12 @@ export class MainMenu {
         if (this.menuElement) {
             this.menuElement.style.display = 'flex';
             this.isVisible = true;
-            this.currentOptionIndex = 0;
+            
+            // Update Continue button visibility
+            this.updateContinueButtonVisibility();
+            
+            // Find first visible button for initial selection
+            this.currentOptionIndex = this.getFirstVisibleButtonIndex();
             this.updateButtonSelection();
         }
     }
