@@ -458,13 +458,16 @@ export class CollisionSystem {
         
         const playerPos = this.player.getPosition();
         const playerRadius = this.playerRadius;
+        const tileSize = this.gridManager.tileSize;
         
         for (let portal of portals) {
-            const dx = playerPos.x - portal.x;
-            const dz = playerPos.z - portal.z;
+            // Convert portal grid position to world coordinates
+            const portalWorld = this.gridManager.levelLoader.gridToWorld(portal.x, portal.z, tileSize);
+            const dx = playerPos.x - portalWorld.x;
+            const dz = playerPos.z - portalWorld.z;
             const distance = Math.sqrt(dx * dx + dz * dz);
             
-            if (distance <= playerRadius + 0.5 && Math.abs(playerPos.y - portal.y) <= 2) {
+            if (distance <= playerRadius + tileSize * 0.3 && Math.abs(playerPos.y - (portal.y ?? 1)) <= 2) {
                 this.handlePortalCollision(portal);
                 this.lastPortalTeleportTime = now;
                 break;
@@ -474,12 +477,12 @@ export class CollisionSystem {
     
     // Handle portal collision (teleport player)
     handlePortalCollision(portal) {
-        console.log(`Teleporting via ${portal.type || 'portal'} to (${portal.destination.x}, ${portal.destination.y}, ${portal.destination.z})`);
+        const tileSize = this.gridManager.tileSize;
+        const destWorld = this.gridManager.levelLoader.gridToWorld(portal.destination.x, portal.destination.z, tileSize);
+        const destY = portal.destination.y ?? 1;
+        console.log(`Teleporting via ${portal.type || 'portal'} to (grid ${portal.destination.x}, ${portal.destination.z}) => world (${destWorld.x.toFixed(2)}, ${destY}, ${destWorld.z.toFixed(2)})`);
         
-        // Teleport player to destination
-        this.player.setPosition(portal.destination.x, portal.destination.y || 1, portal.destination.z);
-        
-        // Reset velocity to avoid immediate re-entry or unintended motion
+        this.player.setPosition(destWorld.x, destY, destWorld.z);
         this.player.velocity.set(0, 0, 0);
         
         // Optional: add small visual effect or sound here
