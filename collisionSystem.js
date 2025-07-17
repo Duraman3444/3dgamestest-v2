@@ -376,7 +376,7 @@ export class CollisionSystem {
         this.player.velocity.set(0, 0, 0);
         
         // Visual feedback - make spike flash
-        if (spike.mesh.material) {
+        if (spike.mesh.material && spike.mesh.material.color && spike.mesh.material.emissive) {
             const originalColor = spike.mesh.material.color.getHex();
             const originalEmissive = spike.mesh.material.emissive.getHex();
             
