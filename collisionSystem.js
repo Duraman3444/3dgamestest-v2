@@ -95,16 +95,45 @@ export class CollisionSystem {
         
         for (let obstacle of obstacles) {
             if (this.checkBoxCollision(playerBounds, obstacle.boundingBox)) {
-                // Calculate collision response
-                const response = this.calculateCollisionResponse(playerPosition, obstacle.position);
-                
-                // Apply collision response
-                if (response.length() > 0) {
-                    const newPosition = playerPosition.clone().add(response);
-                    this.player.setPosition(newPosition.x, newPosition.y, newPosition.z);
+                // Special handling for stair steps - they should be walkable
+                if (obstacle.type === 'box' && obstacle.height < 2) {
+                    // This is likely a stair step (low height box)
+                    // Check if player is above the step (trying to walk on it)
+                    const stepTop = obstacle.position.y + obstacle.height / 2;
+                    const playerBottom = playerPosition.y - this.playerRadius;
                     
-                    // Stop player movement in collision direction
-                    this.player.velocity.multiplyScalar(0.8);
+                    // If player is close to the top of the step, support them
+                    if (playerBottom <= stepTop + 1.0 && playerBottom >= stepTop - 1.0) {
+                        // Support the player on top of the step
+                        const supportHeight = stepTop + this.playerRadius;
+                        if (playerPosition.y < supportHeight) {
+                            this.player.setPosition(playerPosition.x, supportHeight, playerPosition.z);
+                            this.player.velocity.y = Math.max(0, this.player.velocity.y); // Stop downward movement
+                        }
+                        continue; // Don't treat as blocking obstacle
+                    }
+                    
+                    // Only block if player is significantly below the step
+                    if (playerPosition.y < stepTop - 2) {
+                        const response = this.calculateCollisionResponse(playerPosition, obstacle.position);
+                        if (response.length() > 0) {
+                            const newPosition = playerPosition.clone().add(response);
+                            this.player.setPosition(newPosition.x, newPosition.y, newPosition.z);
+                            this.player.velocity.multiplyScalar(0.8);
+                        }
+                    }
+                } else {
+                    // Regular obstacle collision (for cylinder and tall obstacles)
+                    const response = this.calculateCollisionResponse(playerPosition, obstacle.position);
+                    
+                    // Apply collision response
+                    if (response.length() > 0) {
+                        const newPosition = playerPosition.clone().add(response);
+                        this.player.setPosition(newPosition.x, newPosition.y, newPosition.z);
+                        
+                        // Stop player movement in collision direction
+                        this.player.velocity.multiplyScalar(0.8);
+                    }
                 }
             }
         }
@@ -722,7 +751,26 @@ export class CollisionSystem {
         
         // For sphere collision, we need to consider 3D distance
         const distance = direction.length();
-        const minDistance = this.playerRadius + 1; // obstacle half-width + sphere radius
+        
+        // Find the obstacle to get its type and radius
+        let obstacleRadius = 1; // Default radius for box obstacles
+        const obstacles = this.gridManager.getObstacles();
+        for (let obstacle of obstacles) {
+            if (obstacle.position.equals(obstaclePos)) {
+                // Use stored radius if available, otherwise calculate from bounding box
+                if (obstacle.type === 'cylinder' && obstacle.radius) {
+                    obstacleRadius = obstacle.radius;
+                } else {
+                    // For box obstacles, use half the width as radius
+                    const boundingBox = obstacle.boundingBox;
+                    const boxWidth = boundingBox.max.x - boundingBox.min.x;
+                    obstacleRadius = boxWidth / 2;
+                }
+                break;
+            }
+        }
+        
+        const minDistance = this.playerRadius + obstacleRadius;
         
         if (distance < minDistance && distance > 0) {
             direction.normalize();

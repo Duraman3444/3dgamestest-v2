@@ -706,7 +706,11 @@ export class GridManager {
                 position: obstacle.position.clone(),
                 gridX: obstacleData.x,
                 gridZ: obstacleData.z,
-                boundingBox: new THREE.Box3().setFromObject(obstacle)
+                boundingBox: new THREE.Box3().setFromObject(obstacle),
+                type: 'box',
+                width: obstacleData.width || 2,
+                height: obstacleData.height || 3,
+                depth: obstacleData.depth || 2
             });
         });
     }
@@ -921,7 +925,11 @@ export class GridManager {
                     mesh: obstacle,
                     position: obstacle.position.clone(),
                     tile: tile,
-                    boundingBox: new THREE.Box3().setFromObject(obstacle)
+                    boundingBox: new THREE.Box3().setFromObject(obstacle),
+                    type: 'box',
+                    width: 2,
+                    height: 3,
+                    depth: 2
                 });
                 
                 tile.occupied = true;
@@ -1664,14 +1672,15 @@ export class GridManager {
     }
     
     addSpiralStaircase(center, radius, steps, heightPerStep) {
-        // Create the central brown cylinder pillar - NOW SOLID
+        // Create the central brown cylinder pillar - EXTRA SOLID
         const pillarHeight = steps * heightPerStep + 10; // Make it taller than the staircase
-        const pillarRadius = 3; // Make pillar solid instead of thin (was radius * 0.2)
+        const pillarRadius = 5; // Make pillar extra solid and thick
         const pillarGeometry = new THREE.CylinderGeometry(pillarRadius, pillarRadius, pillarHeight);
         const pillarMaterial = new THREE.MeshLambertMaterial({ 
             color: 0x8B4513, // Brown color
             emissive: 0x2A1A09,
-            emissiveIntensity: 0.1
+            emissiveIntensity: 0.2, // More emissive for solid appearance
+            roughness: 0.8 // More rough/solid texture
         });
         const pillarMesh = new THREE.Mesh(pillarGeometry, pillarMaterial);
         pillarMesh.position.set(center.x, pillarHeight / 2, center.z);
@@ -1686,7 +1695,9 @@ export class GridManager {
             position: pillarMesh.position.clone(),
             gridX: Math.round(center.x / this.tileSize),
             gridZ: Math.round(center.z / this.tileSize),
-            boundingBox: new THREE.Box3().setFromObject(pillarMesh)
+            boundingBox: new THREE.Box3().setFromObject(pillarMesh),
+            type: 'cylinder',
+            radius: pillarRadius
         });
         
         // Create spiral staircase steps
@@ -1737,7 +1748,11 @@ export class GridManager {
                 position: stepMesh.position.clone(),
                 gridX: Math.round(stepX / this.tileSize),
                 gridZ: Math.round(stepZ / this.tileSize),
-                boundingBox: new THREE.Box3().setFromObject(stepMesh)
+                boundingBox: new THREE.Box3().setFromObject(stepMesh),
+                type: 'box',
+                width: stepWidth,
+                height: stepHeight,
+                depth: stepDepth
             });
             
             // Create bounce pad on each step
