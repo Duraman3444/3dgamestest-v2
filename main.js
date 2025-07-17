@@ -9,6 +9,7 @@ import { LevelLoader } from './levelLoader.js';
 import { MainMenu } from './mainMenu.js';
 import { SinglePlayerMenu } from './singlePlayerMenu.js';
 import { GameOverScreen } from './gameOverScreen.js';
+import { SettingsManager } from './settingsManager.js';
 
 class Game {
     constructor() {
@@ -24,6 +25,7 @@ class Game {
         this.mainMenu = null;
         this.singlePlayerMenu = null;
         this.gameOverScreen = null;
+        this.settingsManager = null;
         this.isGameInitialized = false;
         this.isPaused = false;
         this.pauseOverlay = null;
@@ -32,7 +34,7 @@ class Game {
         this.currentLevel = 1;
         this.maxLevel = 10; // Maximum number of levels
         this.gameMode = 'normal'; // 'normal' or 'pacman'
-        
+     
         this.initializeMenu();
     }
     
@@ -57,6 +59,14 @@ class Game {
     }
     
     initializeMenu() {
+        // Create settings manager
+        this.settingsManager = new SettingsManager();
+        
+        // Set up settings change callback
+        this.settingsManager.setOnSettingsChanged((category, key, value) => {
+            this.applyGameSetting(category, key, value);
+        });
+        
         // Create main menu
         this.mainMenu = new MainMenu((mode) => this.handleMainMenuSelection(mode));
         
@@ -84,6 +94,9 @@ class Game {
         if (gameUI) gameUI.style.display = 'none';
         if (crosshair) crosshair.style.display = 'none';
         if (instructions) instructions.style.display = 'none';
+        
+        // Set global game reference for settings
+        window.game = this;
     }
     
     createPauseOverlay() {
@@ -177,6 +190,25 @@ class Game {
             min-width: 250px;
         `;
         
+        // Settings button
+        const settingsButton = document.createElement('button');
+        settingsButton.textContent = 'SETTINGS';
+        settingsButton.style.cssText = `
+            background: linear-gradient(135deg, #1a0033 0%, #330066 100%);
+            border: 2px solid #00ff00;
+            color: #00ff00;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            border-radius: 8px;
+            cursor: pointer;
+            text-shadow: 2px 2px 0px #000000;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            min-width: 250px;
+        `;
+        
         // Quit button
         const quitButton = document.createElement('button');
         quitButton.textContent = 'QUIT GAME';
@@ -215,6 +247,7 @@ class Game {
         
         addHoverEffect(resumeButton, '#00ffff');
         addHoverEffect(mainMenuButton, '#ffff00');
+        addHoverEffect(settingsButton, '#00ff00');
         addHoverEffect(quitButton, '#ff00ff');
         
         // Add event listeners
@@ -226,6 +259,10 @@ class Game {
             this.pauseToMainMenu();
         });
         
+        settingsButton.addEventListener('click', () => {
+            this.showPauseSettings();
+        });
+        
         quitButton.addEventListener('click', () => {
             this.quitGame();
         });
@@ -233,6 +270,7 @@ class Game {
         // Add elements to containers
         buttonsContainer.appendChild(resumeButton);
         buttonsContainer.appendChild(mainMenuButton);
+        buttonsContainer.appendChild(settingsButton);
         buttonsContainer.appendChild(quitButton);
         
         pauseOverlay.appendChild(pauseTitle);
@@ -288,6 +326,149 @@ class Game {
         }
     }
     
+    showPauseSettings() {
+        if (this.settingsManager) {
+            this.settingsManager.createSettingsPanel(() => {
+                // Settings panel closed - no additional action needed
+            });
+        }
+    }
+    
+    applyGameSetting(category, key, value) {
+        console.log(`Applying setting: ${category}.${key} = ${value}`);
+        
+        switch (category) {
+            case 'audio':
+                this.applyAudioSetting(key, value);
+                break;
+            case 'graphics':
+                this.applyGraphicsSetting(key, value);
+                break;
+            case 'controls':
+                this.applyControlsSetting(key, value);
+                break;
+            case 'ui':
+                this.applyUISetting(key, value);
+                break;
+        }
+    }
+    
+    applyAudioSetting(key, value) {
+        // Apply audio settings
+        switch (key) {
+            case 'masterVolume':
+                // Apply master volume (would need audio system)
+                console.log(`Master volume set to ${value}%`);
+                break;
+            case 'musicVolume':
+                // Apply music volume
+                console.log(`Music volume set to ${value}%`);
+                break;
+            case 'sfxVolume':
+                // Apply SFX volume
+                console.log(`SFX volume set to ${value}%`);
+                break;
+        }
+    }
+    
+    applyGraphicsSetting(key, value) {
+        // Apply graphics settings
+        switch (key) {
+            case 'quality':
+                this.applyGraphicsQuality(value);
+                break;
+            case 'enableShadows':
+                this.applyTsShadows(value);
+                break;
+            case 'enableFog':
+                this.applyFogSetting(value);
+                break;
+            case 'enableAntiAliasing':
+                this.applyAntiAliasing(value);
+                break;
+        }
+    }
+    
+    applyControlsSetting(key, value) {
+        // Apply controls settings
+        switch (key) {
+            case 'mouseSensitivity':
+                if (this.player) {
+                    this.player.mouseSensitivity = value * 0.00004; // Convert to usable range
+                }
+                break;
+            case 'invertY':
+                if (this.player) {
+                    this.player.invertY = value;
+                }
+                break;
+        }
+    }
+    
+    applyUISetting(key, value) {
+        // Apply UI settings
+        switch (key) {
+            case 'showFPS':
+                if (this.uiManager) {
+                    this.uiManager.settings.showFPS = value;
+                    this.uiManager.updateVisibility();
+                }
+                break;
+            case 'showMinimap':
+                if (this.uiManager) {
+                    this.uiManager.settings.showMinimap = value;
+                    this.uiManager.updateVisibility();
+                }
+                break;
+            case 'showCrosshair':
+                const crosshair = document.getElementById('crosshair');
+                if (crosshair) {
+                    crosshair.style.display = value ? 'block' : 'none';
+                }
+                break;
+        }
+    }
+    
+    applyGraphicsQuality(quality) {
+        if (this.renderer) {
+            switch (quality) {
+                case 'low':
+                    this.renderer.setPixelRatio(0.5);
+                    this.renderer.shadowMap.enabled = false;
+                    break;
+                case 'medium':
+                    this.renderer.setPixelRatio(1);
+                    this.renderer.shadowMap.enabled = true;
+                    break;
+                case 'high':
+                    this.renderer.setPixelRatio(window.devicePixelRatio);
+                    this.renderer.shadowMap.enabled = true;
+                    break;
+            }
+        }
+    }
+    
+    applyTsShadows(enabled) {
+        if (this.renderer) {
+            this.renderer.shadowMap.enabled = enabled;
+        }
+    }
+    
+    applyFogSetting(enabled) {
+        if (this.scene) {
+            if (enabled) {
+                this.scene.fog = new THREE.Fog(0x000000, 10, 100);
+            } else {
+                this.scene.fog = null;
+            }
+        }
+    }
+    
+    applyAntiAliasing(enabled) {
+        // Anti-aliasing requires renderer recreation, so just log for now
+        console.log(`Anti-aliasing ${enabled ? 'enabled' : 'disabled'} - requires restart`);
+    }
+    
     async startGame(mode = 'normal', level = 1, difficulty = 'normal') {
         this.gameMode = mode; // Store game mode
         this.difficulty = difficulty; // Store difficulty
@@ -319,6 +500,11 @@ class Game {
         
         // Start the game loop
         this.gameLoop.start();
+        
+        // Apply initial settings
+        if (this.settingsManager) {
+            this.settingsManager.applySettings();
+        }
     }
     
     async init() {

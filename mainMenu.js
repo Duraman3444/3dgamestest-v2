@@ -254,7 +254,15 @@ export class MainMenu {
     }
     
     showSettings() {
-        this.createSettingsPanel();
+        // Use the global game settings manager if available
+        if (window.game && window.game.settingsManager) {
+            window.game.settingsManager.createSettingsPanel(() => {
+                // Settings panel closed - no additional action needed
+            });
+        } else {
+            // Fallback to local settings panel if game not available
+            this.createSettingsPanel();
+        }
     }
     
     createSettingsPanel() {

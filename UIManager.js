@@ -574,6 +574,33 @@ export class UIManager {
         }
     }
     
+    updateVisibility() {
+        // Update visibility of UI elements based on settings
+        if (this.elements.fpsDisplay) {
+            this.elements.fpsDisplay.style.display = this.settings.showFPS ? 'block' : 'none';
+        }
+        
+        if (this.elements.positionDisplay) {
+            this.elements.positionDisplay.style.display = this.settings.showPosition ? 'block' : 'none';
+        }
+        
+        if (this.elements.minimap) {
+            this.elements.minimap.style.display = this.settings.showMinimap ? 'block' : 'none';
+        }
+        
+        if (this.elements.scoreElement) {
+            this.elements.scoreElement.style.display = this.settings.showScore ? 'block' : 'none';
+        }
+        
+        if (this.elements.healthElement) {
+            this.elements.healthElement.style.display = this.settings.showHealth ? 'block' : 'none';
+        }
+        
+        if (this.elements.instructionsElement) {
+            this.elements.instructionsElement.style.display = this.settings.showInstructions ? 'block' : 'none';
+        }
+    }
+    
     toggleFPS() {
         this.settings.showFPS = !this.settings.showFPS;
         if (this.elements.fpsElement) {

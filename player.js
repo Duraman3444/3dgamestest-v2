@@ -34,6 +34,7 @@ export class Player {
         this.mouseSensitivity = 0.002;
         this.pitch = 0;
         this.yaw = 0;
+        this.invertY = false;
         this.controlsEnabled = false;
         
         // Create player mesh (simple capsule)
@@ -184,7 +185,7 @@ export class Player {
             const movementY = event.movementY || 0;
             
             this.yaw -= movementX * this.mouseSensitivity;
-            this.pitch -= movementY * this.mouseSensitivity;
+            this.pitch -= movementY * this.mouseSensitivity * (this.invertY ? -1 : 1);
             
             // Limit pitch
             this.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, this.pitch));
