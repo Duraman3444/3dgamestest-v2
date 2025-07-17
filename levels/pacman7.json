@@ -1,0 +1,33 @@
+{
+  "name": "Pacman Level 7",
+  "type": "pacman",
+  "size": {
+    "width": 19,
+    "height": 19
+  },
+  "spawn": {
+    "x": 9,
+    "y": 1,
+    "z": 17
+  },
+  "timer": 150,
+  "tiles": [],
+  "walls": [],
+  "coins": [],
+  "fruit": {
+    "x": 9,
+    "z": 9,
+    "type": "key",
+    "points": 700
+  },
+  "ghosts": [
+    {"x": 5, "z": 9, "color": "red", "speed": 5.0},
+    {"x": 9, "z": 9, "color": "blue", "speed": 5.0},
+    {"x": 13, "z": 9, "color": "green", "speed": 5.0}
+  ],
+  "exit": {
+    "x": 9,
+    "z": 1
+  },
+  "requireAllCoins": true
+} 

@@ -12,7 +12,6 @@ import { PacmanMenu } from './pacmanMenu.js';
 import { BattleMenu } from './battleMenu.js';
 import { GameOverScreen } from './gameOverScreen.js';
 import { SettingsManager } from './settingsManager.js';
-import { VictoryMenu } from './victoryMenu.js';
 import { BattleSystem } from './battleSystem.js';
 import { BattleUI } from './battleUI.js';
 
@@ -125,12 +124,6 @@ class Game {
             () => this.returnToMainMenu(),
             () => this.retryLevel(),
             () => this.quitGame()
-        );
-        
-        // Create victory menu
-        this.victoryMenu = new VictoryMenu(
-            () => this.returnToMainMenu(),
-            () => this.startWorld2()
         );
         
         // Hide the game canvas initially
@@ -811,8 +804,6 @@ class Game {
         this.collisionSystem.setGrid(this.gridManager);
         this.collisionSystem.setGameOverCallback(() => this.handleGameOver());
         this.collisionSystem.setLevelCompletionCallback(() => this.handleLevelCompletion());
-        this.collisionSystem.setUIManager(this.uiManager);
-        this.collisionSystem.setVictoryMenu(this.victoryMenu);
         
         // Reset collision system state for new level
         this.collisionSystem.resetForNewLevel();
@@ -1111,19 +1102,6 @@ class Game {
         } catch (error) {
             console.error('Error saving progress:', error);
         }
-    }
-    
-    // Start World 2 (Level 1) from victory menu
-    async startWorld2() {
-        console.log('Starting World 2...');
-        
-        // Hide the victory menu
-        if (this.victoryMenu) {
-            this.victoryMenu.hide();
-        }
-        
-        // Start level 1 as World 2
-        await this.startGame('normal', 1, this.difficulty || 'normal');
     }
     
     // Enhanced save system that tracks collected items per level
@@ -1468,7 +1446,7 @@ class Game {
             this.autoSaveInterval = null;
         }
     }
-    
+
     // Level progression methods for pacman mode
     getCurrentLevel() {
         return this.currentLevel;

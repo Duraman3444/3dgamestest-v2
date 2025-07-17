@@ -1,0 +1,33 @@
+{
+  "name": "Pacman Level 6",
+  "type": "pacman",
+  "size": {
+    "width": 17,
+    "height": 17
+  },
+  "spawn": {
+    "x": 8,
+    "y": 1,
+    "z": 15
+  },
+  "timer": 150,
+  "tiles": [],
+  "walls": [],
+  "coins": [],
+  "fruit": {
+    "x": 8,
+    "z": 8,
+    "type": "bell",
+    "points": 600
+  },
+  "ghosts": [
+    {"x": 4, "z": 8, "color": "red", "speed": 4.5},
+    {"x": 8, "z": 8, "color": "blue", "speed": 4.5},
+    {"x": 12, "z": 8, "color": "green", "speed": 4.5}
+  ],
+  "exit": {
+    "x": 8,
+    "z": 1
+  },
+  "requireAllCoins": true
+} 
