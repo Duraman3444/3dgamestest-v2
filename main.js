@@ -1478,13 +1478,14 @@ class Game {
     // Calculate ghost speed based on current level
     getGhostSpeed() {
         if (this.gameMode === 'pacman') {
-            // For pacman mode, use level-based progression
-            if (this.currentLevel <= 3) {
-                // First 3 levels: much slower ghost speed
-                return 4.0 + (this.currentLevel - 1) * 1.0; // 4, 5, 6
-            } else {
-                // Level 4+: original speed progression
-                return 11.0 + (this.currentLevel - 4) * 1.5; // 11, 12.5, 14, etc.
+            // Ghost speeds adjusted to match faster player speeds but still catchable
+            switch (this.currentLevel) {
+                case 1: return 14;   // Slightly slower than player (18) for training
+                case 2: return 16;   // Slightly slower than player (20)
+                case 3: return 18;   // Slightly slower than player (22)
+                case 4: return 20;   // Slightly slower than player (24)
+                case 5: return 22;   // Slightly slower than player (26)
+                default: return 14 + (this.currentLevel - 1) * 2; // Continue progression
             }
         } else {
             // For normal mode, check if level has specific ghost speeds
@@ -1500,14 +1501,14 @@ class Game {
     // Calculate player speed based on current level for pacman mode
     getPlayerSpeed() {
         if (this.gameMode === 'pacman') {
-            // Progressive speed increase for larger levels
+            // All levels use fast base speed (18) with slight increases for larger levels
             switch (this.currentLevel) {
-                case 1: return 10;  // Normal speed for training level
-                case 2: return 12;  // Slightly faster for bigger level
-                case 3: return 14;  // Faster for even bigger level
-                case 4: return 16;  // Much faster for large level
-                case 5: return 18;  // Fastest for biggest level
-                default: return 10 + (this.currentLevel - 1) * 2; // Continue progression
+                case 1: return 18;  // Fast base speed for training level
+                case 2: return 20;  // Slightly faster for bigger level
+                case 3: return 22;  // Faster for even bigger level
+                case 4: return 24;  // Much faster for large level
+                case 5: return 26;  // Fastest for biggest level
+                default: return 18 + (this.currentLevel - 1) * 2; // Continue progression
             }
         } else {
             return 10; // Default speed for non-pacman modes
