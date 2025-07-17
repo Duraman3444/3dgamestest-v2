@@ -12,6 +12,7 @@ export class GridManager {
         this.exitObject = null;
         this.walls = []; // For Pacman mode
         this.ghosts = []; // For Pacman mode
+        this.borderWalls = []; // For Pacman mode border
         
         // Get level data
         const levelData = this.levelLoader ? this.levelLoader.getCurrentLevel() : null;
@@ -114,6 +115,11 @@ export class GridManager {
         planeMesh.position.y = 0;
         planeMesh.receiveShadow = true;
         this.scene.add(planeMesh);
+        
+        // Add border for Pacman mode
+        if (this.levelType === 'pacman') {
+            this.generateMapBorder(levelData.size.width, levelData.size.height);
+        }
         
         // Generate tiles from level data
         this.generateTilesFromData(levelData.tiles);
@@ -439,26 +445,60 @@ export class GridManager {
             this.exitObject.mesh.scale.set(scale, scale, scale);
         }
         
-        // Neon pulsing effect for walls in Pacman mode
-        if (this.levelType === 'pacman' && this.walls.length > 0) {
+        // Seamless color transitions for walls and border in Pacman mode
+        if (this.levelType === 'pacman') {
             const time = performance.now() * 0.001;
-            const pulseIntensity = 0.5 + Math.sin(time * 3) * 0.3; // Pulsing between 0.2 and 0.8
+            const colorCycleSpeed = 0.5; // Slower for smoother transitions
             
-            this.walls.forEach(wall => {
-                if (wall.mesh && wall.mesh.material) {
-                    // Create pulsing neon effect
-                    const baseCyan = 0x00FFFF;
-                    const baseEmissive = 0x006666;
-                    
-                    // Modify emissive color for pulsing effect
-                    const emissiveIntensity = Math.floor(baseEmissive * pulseIntensity);
-                    wall.mesh.material.emissive.setHex(emissiveIntensity);
-                    
-                    // Subtle scale pulsing
-                    const scaleMultiplier = 1 + Math.sin(time * 2.5) * 0.02;
-                    wall.mesh.scale.set(scaleMultiplier, scaleMultiplier, scaleMultiplier);
-                }
-            });
+            // Create smooth color transitions: blue -> pink -> yellow -> repeat
+            const colorPhase = (time * colorCycleSpeed) % 3; // 3 colors in cycle
+            
+            let currentColor, currentEmissive;
+            
+            if (colorPhase < 1) {
+                // Blue to Pink transition
+                const t = colorPhase;
+                currentColor = this.lerpColor(0x00FFFF, 0xFF0080, t); // Cyan to Neon Pink
+                currentEmissive = this.lerpColor(0x006666, 0x440022, t);
+            } else if (colorPhase < 2) {
+                // Pink to Yellow transition
+                const t = colorPhase - 1;
+                currentColor = this.lerpColor(0xFF0080, 0xFFFF00, t); // Neon Pink to Yellow
+                currentEmissive = this.lerpColor(0x440022, 0x666600, t);
+            } else {
+                // Yellow to Blue transition
+                const t = colorPhase - 2;
+                currentColor = this.lerpColor(0xFFFF00, 0x00FFFF, t); // Yellow to Cyan
+                currentEmissive = this.lerpColor(0x666600, 0x006666, t);
+            }
+            
+            // Apply color to walls
+            if (this.walls && this.walls.length > 0) {
+                this.walls.forEach(wall => {
+                    if (wall.mesh && wall.mesh.material) {
+                        wall.mesh.material.color.setHex(currentColor);
+                        wall.mesh.material.emissive.setHex(currentEmissive);
+                        
+                        // Gentle breathing effect
+                        const breathingScale = 1 + Math.sin(time * 2) * 0.03;
+                        wall.mesh.scale.set(breathingScale, breathingScale, breathingScale);
+                    }
+                });
+            }
+            
+            // Apply same color to border walls
+            if (this.borderWalls && this.borderWalls.length > 0) {
+                this.borderWalls.forEach(borderWall => {
+                    if (borderWall.mesh && borderWall.mesh.material) {
+                        borderWall.mesh.material.color.setHex(currentColor);
+                        borderWall.mesh.material.emissive.setHex(currentEmissive);
+                        
+                        // Gentle breathing effect
+                        const breathingScale = 1 + Math.sin(time * 2.2) * 0.03;
+                        borderWall.mesh.scale.set(breathingScale, breathingScale, breathingScale);
+                    }
+                });
+            }
         }
         
         // Update ghosts (Pacman mode)
@@ -707,348 +747,9 @@ export class GridManager {
                 ghost.mesh.position.x = testX;
                 ghost.mesh.position.z = testZ;
                 ghost.stuckCounter = 0;
-                console.log(`${ghost.color} ghost unstuck to nearby position!`);
+                console.log(`${ghost.color} ghost unstuck!`);
                 return;
             }
         }
-        
-        // Last resort: reset stuck counter to prevent infinite attempts
-        ghost.stuckCounter = 0;
-        console.log(`Could not unstuck ${ghost.color} ghost, resetting counter`);
     }
-    
-    getPlayerPosition() {
-        // First try to use direct player reference
-        if (this.player) {
-            return this.player.getPosition();
-        }
-        
-        // Fallback: try to get player position from the scene
-        const player = this.scene.getObjectByName('player');
-        if (player) {
-            return player.position.clone();
-        }
-        
-        // No player found
-        return null;
-    }
-    
-    hasLineOfSight(ghostPosition, playerPosition) {
-        // Simple line-of-sight check: cast a ray from ghost to player
-        // and see if it hits any walls
-        
-        const direction = new THREE.Vector3(
-            playerPosition.x - ghostPosition.x,
-            0,
-            playerPosition.z - ghostPosition.z
-        ).normalize();
-        
-        const distance = Math.sqrt(
-            Math.pow(playerPosition.x - ghostPosition.x, 2) + 
-            Math.pow(playerPosition.z - ghostPosition.z, 2)
-        );
-        
-        // Check for wall intersections along the path
-        const checkPoints = Math.ceil(distance / (this.tileSize * 0.5));
-        
-        for (let i = 1; i < checkPoints; i++) {
-            const checkX = ghostPosition.x + (direction.x * (distance * i / checkPoints));
-            const checkZ = ghostPosition.z + (direction.z * (distance * i / checkPoints));
-            
-            // Check if this point intersects with any wall
-            for (let wall of this.walls) {
-                const wallDistance = Math.sqrt(
-                    Math.pow(wall.position.x - checkX, 2) + 
-                    Math.pow(wall.position.z - checkZ, 2)
-                );
-                
-                if (wallDistance < this.tileSize * 0.4) {
-                    return false; // Line of sight blocked by wall
-                }
-            }
-        }
-        
-        return true; // Clear line of sight
-    }
-    
-    getTileAt(worldX, worldZ) {
-        const gridX = Math.floor((worldX + this.gridSize * this.tileSize / 2) / this.tileSize);
-        const gridZ = Math.floor((worldZ + this.gridSize * this.tileSize / 2) / this.tileSize);
-        
-        if (gridX >= 0 && gridX < this.gridSize && gridZ >= 0 && gridZ < this.gridSize) {
-            const tileKey = `${gridX},${gridZ}`;
-            return this.tiles.get(tileKey);
-        }
-        return null;
-    }
-    
-    getObstacles() {
-        return this.obstacles;
-    }
-    
-    getCollectibles() {
-        return this.collectibles.filter(c => !c.collected);
-    }
-    
-    getKey() {
-        return this.keyObject;
-    }
-    
-    getExit() {
-        return this.exitObject;
-    }
-    
-    // Get walls (for Pacman mode)
-    getWalls() {
-        return this.walls;
-    }
-    
-    // Get ghosts (for Pacman mode)
-    getGhosts() {
-        return this.ghosts;
-    }
-    
-    // Get walls (for Pacman mode)
-    getWalls() {
-        return this.walls;
-    }
-    
-    // Get ghost positions for minimap
-    getGhostPositions() {
-        return this.ghosts.map(ghost => ({
-            x: ghost.gridX,
-            z: ghost.gridZ,
-            worldX: ghost.mesh.position.x,
-            worldZ: ghost.mesh.position.z,
-            color: ghost.color,
-            chaseMode: ghost.chaseMode
-        }));
-    }
-    
-    // Set player reference for better position access
-    setPlayer(player) {
-        this.player = player;
-    }
-    
-    // Get key information
-    getKeyInfo() {
-        const hasKey = this.keyObject !== null;
-        const isCollected = this.keyObject && this.keyObject.collected;
-        
-        return {
-            totalKeys: hasKey ? 1 : 0,
-            collectedKeys: isCollected ? 1 : 0
-        };
-    }
-
-    collectItem(collectible) {
-        if (!collectible.collected) {
-            collectible.collected = true;
-            collectible.mesh.visible = false;
-            if (collectible.tile) {
-                collectible.tile.occupied = false;
-                collectible.tile.type = 'ground';
-            }
-            return true;
-        }
-        return false;
-    }
-    
-    collectKey() {
-        if (this.keyObject && !this.keyObject.collected) {
-            this.keyObject.collected = true;
-            this.keyObject.mesh.visible = false;
-            return true;
-        }
-        return false;
-    }
-    
-    canActivateExit() {
-        // Different win conditions for different game modes
-        if (this.levelType === 'pacman') {
-            // In Pacman mode, just need to collect all collectibles (no key required)
-            const remainingCollectibles = this.collectibles.filter(c => !c.collected);
-            return remainingCollectibles.length === 0;
-        } else {
-            // In normal mode, check if key is collected (if key exists)
-            if (this.keyObject && !this.keyObject.collected) {
-                return false;
-            }
-            
-            // Check if all collectibles are collected
-            const remainingCollectibles = this.collectibles.filter(c => !c.collected);
-            return remainingCollectibles.length === 0;
-        }
-    }
-    
-    activateExit() {
-        if (this.exitObject && this.canActivateExit()) {
-            this.exitObject.activated = true;
-            // Change exit color to indicate it's active
-            this.exitObject.mesh.material.color.setHex(0x00ff00);
-            this.exitObject.mesh.material.emissive.setHex(0x004400);
-            return true;
-        }
-        return false;
-    }
-    
-    // Check if a position is within bounds
-    isInBounds(x, z) {
-        const halfSize = (this.gridSize * this.tileSize) / 2;
-        return x >= -halfSize && x <= halfSize && z >= -halfSize && z <= halfSize;
-    }
-    
-    // Get ground height at position (for collision system)
-    getGroundHeight(x, z) {
-        const tile = this.getTileAt(x, z);
-        return tile ? tile.height : 0;
-    }
-    
-    // Get all solid objects for collision detection
-    getSolidObjects() {
-        return this.obstacles.map(obstacle => ({
-            boundingBox: obstacle.boundingBox,
-            position: obstacle.position,
-            type: 'obstacle'
-        })).concat(this.walls.map(wall => ({
-            boundingBox: wall.boundingBox,
-            position: wall.position,
-            type: 'wall'
-        })));
-    }
-    
-    // Utility method to add new obstacles dynamically
-    addObstacle(x, z, height = 3) {
-        const tile = this.getTileAt(x, z);
-        if (tile && !tile.occupied) {
-            const obstacleGeometry = new THREE.BoxGeometry(2, height, 2);
-            const obstacle = new THREE.Mesh(obstacleGeometry, this.obstacleMaterial);
-            obstacle.position.set(tile.worldX, height / 2, tile.worldZ);
-            obstacle.castShadow = true;
-            obstacle.receiveShadow = true;
-            
-            this.scene.add(obstacle);
-            this.obstacles.push({
-                mesh: obstacle,
-                position: obstacle.position.clone(),
-                tile: tile,
-                boundingBox: new THREE.Box3().setFromObject(obstacle)
-            });
-            
-            tile.occupied = true;
-            tile.type = 'obstacle';
-            return true;
-        }
-        return false;
-    }
-    
-    // Get remaining collectibles count
-    getRemainingCollectibles() {
-        return this.collectibles.filter(c => !c.collected).length;
-    }
-    
-    // Get collectible positions for minimap
-    getCollectiblePositions() {
-        return this.collectibles
-            .filter(c => !c.collected)
-            .map(c => ({
-                x: c.gridX,
-                z: c.gridZ,
-                worldX: c.position.x,
-                worldZ: c.position.z
-            }));
-    }
-    
-    // Get key position for minimap
-    getKeyPosition() {
-        if (this.keyObject && !this.keyObject.collected) {
-            return {
-                x: this.keyObject.gridX,
-                z: this.keyObject.gridZ,
-                worldX: this.keyObject.position.x,
-                worldZ: this.keyObject.position.z
-            };
-        }
-        return null;
-    }
-    
-    // Get exit position for minimap
-    getExitPosition() {
-        if (this.exitObject) {
-            return {
-                x: this.exitObject.gridX,
-                z: this.exitObject.gridZ,
-                worldX: this.exitObject.position.x,
-                worldZ: this.exitObject.position.z,
-                activated: this.exitObject.activated
-            };
-        }
-        return null;
-    }
-    
-    // Validate spawn point and ensure ground exists
-    validateSpawnPoint() {
-        const spawnPoint = { x: 0, y: 1, z: 0 }; // Adjusted for sphere radius (1 unit above ground)
-        
-        // Check if there's ground at spawn point
-        const tile = this.getTileAt(spawnPoint.x, spawnPoint.z);
-        if (!tile) {
-            console.warn('No ground tile at spawn point, creating one');
-            this.createGroundTileAt(spawnPoint.x, spawnPoint.z);
-        }
-        
-        // Ensure spawn point is clear of obstacles (larger radius for sphere)
-        this.clearObstaclesAtPosition(spawnPoint.x, spawnPoint.z, 4); // 4 tile radius for sphere
-        
-        return spawnPoint;
-    }
-    
-    // Get spawn point from level data or use default
-    getSpawnPoint(levelData) {
-        if (levelData && levelData.spawnPoint) {
-            return {
-                x: levelData.spawnPoint.x || 0,
-                y: Math.max(levelData.spawnPoint.y || 1, 1), // Ensure above ground (sphere radius)
-                z: levelData.spawnPoint.z || 0
-            };
-        }
-        return { x: 0, y: 1, z: 0 }; // Fallback default for sphere
-    }
-    
-    // Create ground tile at specific position
-    createGroundTileAt(worldX, worldZ) {
-        const gridX = Math.floor((worldX + this.gridSize * this.tileSize / 2) / this.tileSize);
-        const gridZ = Math.floor((worldZ + this.gridSize * this.tileSize / 2) / this.tileSize);
-        
-        if (gridX >= 0 && gridX < this.gridSize && gridZ >= 0 && gridZ < this.gridSize) {
-            const tileKey = `${gridX},${gridZ}`;
-            if (!this.tiles.has(tileKey)) {
-                const tile = this.createTile(gridX, gridZ);
-                this.tiles.set(tileKey, tile);
-            }
-        }
-    }
-    
-    // Clear obstacles in a radius around a position
-    clearObstaclesAtPosition(worldX, worldZ, radius) {
-        for (let i = this.obstacles.length - 1; i >= 0; i--) {
-            const obstacle = this.obstacles[i];
-            const distance = Math.sqrt(
-                Math.pow(obstacle.position.x - worldX, 2) + 
-                Math.pow(obstacle.position.z - worldZ, 2)
-            );
-            
-            if (distance <= radius) {
-                // Remove obstacle from scene
-                this.scene.remove(obstacle.mesh);
-                // Mark tile as unoccupied
-                if (obstacle.tile) {
-                    obstacle.tile.occupied = false;
-                    obstacle.tile.type = 'ground';
-                }
-                // Remove from obstacles array
-                this.obstacles.splice(i, 1);
-            }
-        }
-    }
-} 
+}
