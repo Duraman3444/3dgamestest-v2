@@ -22,7 +22,6 @@ export class UIManager {
         this.settings = {
             showFPS: true,
             showPosition: true,
-            showHealth: true,
             showScore: true,
             showCollectibles: true,
             showInstructions: true
@@ -44,7 +43,6 @@ export class UIManager {
     setupUIElements() {
         // Get existing UI elements from HTML
         this.elements.scoreElement = document.getElementById('score');
-        this.elements.healthElement = document.getElementById('health');
         this.elements.instructionsElement = document.getElementById('instructions');
         this.elements.uiContainer = document.getElementById('ui');
         
@@ -340,25 +338,7 @@ export class UIManager {
             this.elements.scoreElement.textContent = `Score: ${this.gameState.score}`;
         }
         
-        // Update health - hide for pacman mode
-        if (this.elements.healthElement && this.settings.showHealth) {
-            if (isPacmanMode) {
-                this.elements.healthElement.style.display = 'none';
-            } else {
-                this.elements.healthElement.style.display = 'block';
-                this.elements.healthElement.textContent = `Health: ${this.gameState.health}`;
-                
-                // Color health based on value
-                const healthPercent = this.gameState.health / this.gameState.maxHealth;
-                if (healthPercent > 0.6) {
-                    this.elements.healthElement.style.color = '#00ff00';
-                } else if (healthPercent > 0.3) {
-                    this.elements.healthElement.style.color = '#ffff00';
-                } else {
-                    this.elements.healthElement.style.color = '#ff0000';
-                }
-            }
-        }
+
         
         // Update FPS - hide for pacman mode
         if (this.elements.fpsElement && this.settings.showFPS) {
@@ -592,9 +572,7 @@ export class UIManager {
             this.elements.scoreElement.style.display = this.settings.showScore ? 'block' : 'none';
         }
         
-        if (this.elements.healthElement) {
-            this.elements.healthElement.style.display = this.settings.showHealth ? 'block' : 'none';
-        }
+
         
         if (this.elements.instructionsElement) {
             this.elements.instructionsElement.style.display = this.settings.showInstructions ? 'block' : 'none';

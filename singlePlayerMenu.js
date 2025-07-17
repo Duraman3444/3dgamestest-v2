@@ -18,7 +18,7 @@ export class SinglePlayerMenu {
             { id: 1, name: "Level 1 - Getting Started", file: "level1.json" },
             { id: 2, name: "Level 2 - The Maze", file: "level2.json" },
             { id: 3, name: "Level 3 - The Challenge", file: "level3.json" },
-            { id: 4, name: "Level 4 - Full Speed Challenge", file: "level4.json" },
+            { id: 4, name: "Level 4 - Portal Maze: Teleportation Challenge", file: "level4.json" },
             { id: 5, name: "Pacman Mode - Maze Adventure", file: "pacman.json" }
         ];
         

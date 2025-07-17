@@ -2,6 +2,7 @@ import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
 
 export class GridManager {
     constructor(scene, levelLoader = null) {
+        console.log('🔍 DEBUG: GridManager constructor called');
         this.scene = scene;
         this.levelLoader = levelLoader;
         this.tileSize = 5;
@@ -16,6 +17,7 @@ export class GridManager {
         this.bouncePads = []; // For bounce pad mechanics
         this.spikes = []; // For spike trap mechanics
         this.holes = []; // For hole mechanics
+        this.portals = []; // For portal mechanics
         
         // Get level data
         const levelData = this.levelLoader ? this.levelLoader.getCurrentLevel() : null;
@@ -161,6 +163,59 @@ export class GridManager {
                     transparent: false
                 })
             };
+            
+            // Portal materials for different portal types (Pacman mode)
+            this.portalMaterials = {
+                blue: new THREE.MeshLambertMaterial({ 
+                    color: 0x0099FF,
+                    emissive: 0x0066AA,
+                    emissiveIntensity: 0.6,
+                    transparent: true,
+                    opacity: 0.8
+                }),
+                red: new THREE.MeshLambertMaterial({ 
+                    color: 0xFF3333,
+                    emissive: 0xAA2222,
+                    emissiveIntensity: 0.6,
+                    transparent: true,
+                    opacity: 0.8
+                }),
+                green: new THREE.MeshLambertMaterial({ 
+                    color: 0x33FF33,
+                    emissive: 0x22AA22,
+                    emissiveIntensity: 0.6,
+                    transparent: true,
+                    opacity: 0.8
+                }),
+                yellow: new THREE.MeshLambertMaterial({ 
+                    color: 0xFFFF33,
+                    emissive: 0xAAAA22,
+                    emissiveIntensity: 0.6,
+                    transparent: true,
+                    opacity: 0.8
+                }),
+                purple: new THREE.MeshLambertMaterial({ 
+                    color: 0x9933FF,
+                    emissive: 0x6622AA,
+                    emissiveIntensity: 0.6,
+                    transparent: true,
+                    opacity: 0.8
+                }),
+                orange: new THREE.MeshLambertMaterial({ 
+                    color: 0xFF6633,
+                    emissive: 0xAA4422,
+                    emissiveIntensity: 0.6,
+                    transparent: true,
+                    opacity: 0.8
+                }),
+                default: new THREE.MeshLambertMaterial({ 
+                    color: 0x9999FF,
+                    emissive: 0x6666AA,
+                    emissiveIntensity: 0.6,
+                    transparent: true,
+                    opacity: 0.8
+                })
+            };
         } else if (isPS2Mode) {
             // PS2 theme for single player mode with per-level colors
             this.groundMaterial = new THREE.MeshLambertMaterial({
@@ -201,6 +256,59 @@ export class GridManager {
                 green: new THREE.MeshLambertMaterial({ color: 0x00ff00 }),
                 pink: new THREE.MeshLambertMaterial({ color: 0xff69b4 })
             };
+            
+            // Portal materials for different portal types (PS2 mode)
+            this.portalMaterials = {
+                blue: new THREE.MeshLambertMaterial({ 
+                    color: 0x0099FF,
+                    emissive: 0x0066AA,
+                    emissiveIntensity: 0.6,
+                    transparent: true,
+                    opacity: 0.8
+                }),
+                red: new THREE.MeshLambertMaterial({ 
+                    color: 0xFF3333,
+                    emissive: 0xAA2222,
+                    emissiveIntensity: 0.6,
+                    transparent: true,
+                    opacity: 0.8
+                }),
+                green: new THREE.MeshLambertMaterial({ 
+                    color: 0x33FF33,
+                    emissive: 0x22AA22,
+                    emissiveIntensity: 0.6,
+                    transparent: true,
+                    opacity: 0.8
+                }),
+                yellow: new THREE.MeshLambertMaterial({ 
+                    color: 0xFFFF33,
+                    emissive: 0xAAAA22,
+                    emissiveIntensity: 0.6,
+                    transparent: true,
+                    opacity: 0.8
+                }),
+                purple: new THREE.MeshLambertMaterial({ 
+                    color: 0x9933FF,
+                    emissive: 0x6622AA,
+                    emissiveIntensity: 0.6,
+                    transparent: true,
+                    opacity: 0.8
+                }),
+                orange: new THREE.MeshLambertMaterial({ 
+                    color: 0xFF6633,
+                    emissive: 0xAA4422,
+                    emissiveIntensity: 0.6,
+                    transparent: true,
+                    opacity: 0.8
+                }),
+                default: new THREE.MeshLambertMaterial({ 
+                    color: 0x9999FF,
+                    emissive: 0x6666AA,
+                    emissiveIntensity: 0.6,
+                    transparent: true,
+                    opacity: 0.8
+                })
+            };
         } else {
             // Standard theme for normal mode (fallback)
             this.groundMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
@@ -239,6 +347,59 @@ export class GridManager {
                 color: 0x000000,
                 emissive: 0x000000
             });
+            
+            // Portal materials for different portal types
+            this.portalMaterials = {
+                blue: new THREE.MeshLambertMaterial({ 
+                    color: 0x0099FF,
+                    emissive: 0x0066AA,
+                    emissiveIntensity: 0.6,
+                    transparent: true,
+                    opacity: 0.8
+                }),
+                red: new THREE.MeshLambertMaterial({ 
+                    color: 0xFF3333,
+                    emissive: 0xAA2222,
+                    emissiveIntensity: 0.6,
+                    transparent: true,
+                    opacity: 0.8
+                }),
+                green: new THREE.MeshLambertMaterial({ 
+                    color: 0x33FF33,
+                    emissive: 0x22AA22,
+                    emissiveIntensity: 0.6,
+                    transparent: true,
+                    opacity: 0.8
+                }),
+                yellow: new THREE.MeshLambertMaterial({ 
+                    color: 0xFFFF33,
+                    emissive: 0xAAAA22,
+                    emissiveIntensity: 0.6,
+                    transparent: true,
+                    opacity: 0.8
+                }),
+                purple: new THREE.MeshLambertMaterial({ 
+                    color: 0x9933FF,
+                    emissive: 0x6622AA,
+                    emissiveIntensity: 0.6,
+                    transparent: true,
+                    opacity: 0.8
+                }),
+                orange: new THREE.MeshLambertMaterial({ 
+                    color: 0xFF6633,
+                    emissive: 0xAA4422,
+                    emissiveIntensity: 0.6,
+                    transparent: true,
+                    opacity: 0.8
+                }),
+                default: new THREE.MeshLambertMaterial({ 
+                    color: 0x9999FF,
+                    emissive: 0x6666AA,
+                    emissiveIntensity: 0.6,
+                    transparent: true,
+                    opacity: 0.8
+                })
+            };
         }
         
         this.generateLevel();
@@ -330,6 +491,14 @@ export class GridManager {
         });
         this.holes = [];
         
+        // Remove portals
+        this.portals.forEach(portal => {
+            if (portal.mesh) {
+                this.scene.remove(portal.mesh);
+            }
+        });
+        this.portals = [];
+        
         // Remove ground plane if it exists
         // Find and remove ground plane by traversing scene children
         const objectsToRemove = [];
@@ -344,18 +513,23 @@ export class GridManager {
     }
     
     generateLevel() {
+        console.log('🔍 DEBUG: generateLevel called');
         // Clean up existing level objects before generating new ones
         this.cleanupLevel();
         
         if (this.levelLoader) {
+            console.log('🔍 DEBUG: levelLoader exists, calling generateLevelFromData');
             this.generateLevelFromData();
         } else {
+            console.log('🔍 DEBUG: No levelLoader, calling generateDefaultLevel');
             this.generateDefaultLevel();
         }
     }
     
     generateLevelFromData() {
+        console.log('🔍 DEBUG: generateLevelFromData called');
         const levelData = this.levelLoader.getCurrentLevel();
+        console.log('🔍 DEBUG: Level data from loader:', levelData);
         
         // Create ground plane
         const planeGeometry = new THREE.PlaneGeometry(levelData.size.width * this.tileSize, levelData.size.height * this.tileSize);
@@ -414,6 +588,15 @@ export class GridManager {
         // Generate holes if present
         if (levelData.holes) {
             this.generateHolesFromData(levelData.holes);
+        }
+        
+        // Generate portals if present
+        console.log('Checking for portals in level data:', levelData.portals);
+        if (levelData.portals && levelData.portals.length > 0) {
+            console.log('Portals found, generating...');
+            this.generatePortalsFromData(levelData.portals);
+        } else {
+            console.log('No portals found in level data or portals array is empty');
         }
     }
     
@@ -670,6 +853,38 @@ export class GridManager {
         });
     }
     
+    // Generate portals from level data
+    generatePortalsFromData(portalsData) {
+        console.log(`Generating ${portalsData.length} portals:`, portalsData);
+        
+        portalsData.forEach(portalData => {
+            const worldPos = this.levelLoader.gridToWorld(portalData.x, portalData.z, this.tileSize);
+            
+            // Create portal geometry - glowing cylinder
+            const geometry = new THREE.CylinderGeometry(1.5, 1.5, 3, 16);
+            const portalMaterial = this.portalMaterials[portalData.type] || this.portalMaterials.default;
+            const portal = new THREE.Mesh(geometry, portalMaterial);
+            
+            // Position portal at the specified coordinates and height
+            portal.position.set(worldPos.x, (portalData.y || 1) + 1.5, worldPos.z);
+            portal.castShadow = true;
+            portal.receiveShadow = true;
+            
+            this.scene.add(portal);
+            
+            this.portals.push({
+                mesh: portal,
+                x: portalData.x,
+                z: portalData.z,
+                y: portalData.y || 1,
+                type: portalData.type || 'default',
+                destination: portalData.destination
+            });
+            
+            console.log(`Portal created at grid (${portalData.x}, ${portalData.z}) -> world (${worldPos.x}, ${(portalData.y || 1) + 1.5}, ${worldPos.z})`);
+        });
+    }
+    
     generateObstacles() {
         const obstacleCount = 30;
         const obstacleGeometry = new THREE.BoxGeometry(2, 3, 2);
@@ -893,6 +1108,25 @@ export class GridManager {
                     }
                 });
             }
+        }
+        
+        // Animate portals
+        if (this.portals && this.portals.length > 0) {
+            const time = performance.now() * 0.001;
+            this.portals.forEach(portal => {
+                if (portal.mesh) {
+                    // Rotate portal
+                    portal.mesh.rotation.y += 0.02;
+                    
+                    // Gentle pulsing effect
+                    const pulseScale = 1 + Math.sin(time * 3) * 0.1;
+                    portal.mesh.scale.set(pulseScale, 1, pulseScale);
+                    
+                    // Subtle up/down floating motion
+                    const originalY = (portal.y || 1) + 1.5;
+                    portal.mesh.position.y = originalY + Math.sin(time * 2) * 0.2;
+                }
+            });
         }
         
         // Update ghosts (Pacman mode)
