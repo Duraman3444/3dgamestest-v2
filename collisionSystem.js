@@ -18,7 +18,7 @@ export class CollisionSystem {
         
         // Portal teleport cooldown
         this.lastPortalTeleportTime = 0;
-        this.portalCooldown = 500; // milliseconds
+        this.portalCooldown = 1000; // milliseconds
         
         // Game over callback
         this.gameOverCallback = null;
@@ -372,7 +372,10 @@ export class CollisionSystem {
     
     // Handle spike collision
     handleSpikeCollision(spike) {
-        console.log('Player hit spikes! Respawning...');
+        console.log('Player hit spikes! Player killed!');
+        
+        // Kill the player - lose a life
+        const remainingLives = this.player.loseLife();
         
         // Reset player to spawn position
         const levelData = this.gridManager.levelLoader.getCurrentLevel();
@@ -382,18 +385,33 @@ export class CollisionSystem {
         // Reset player velocity
         this.player.velocity.set(0, 0, 0);
         
-        // Visual feedback - make spike flash
+        // Check if player is out of lives
+        if (this.player.isOutOfLives()) {
+            console.log('Game Over! Out of lives!');
+            
+            // Reset lives for next game
+            this.player.resetLives();
+            
+            // Call game over callback if set
+            if (this.gameOverCallback) {
+                this.gameOverCallback();
+            }
+        } else {
+            console.log(`Player killed by spikes! Lives remaining: ${remainingLives}`);
+        }
+        
+        // Visual feedback - make spike flash red
         if (spike.mesh.material && spike.mesh.material.color && spike.mesh.material.emissive) {
             const originalColor = spike.mesh.material.color.getHex();
             const originalEmissive = spike.mesh.material.emissive.getHex();
             
-            spike.mesh.material.color.setHex(0xffffff);
-            spike.mesh.material.emissive.setHex(0x999999);
+            spike.mesh.material.color.setHex(0xff0000);
+            spike.mesh.material.emissive.setHex(0x660000);
             
             setTimeout(() => {
                 spike.mesh.material.color.setHex(originalColor);
                 spike.mesh.material.emissive.setHex(originalEmissive);
-            }, 300);
+            }, 500);
         }
     }
     
@@ -467,7 +485,7 @@ export class CollisionSystem {
             const dz = playerPos.z - portalWorld.z;
             const distance = Math.sqrt(dx * dx + dz * dz);
             
-            if (distance <= playerRadius + tileSize * 0.3 && Math.abs(playerPos.y - (portal.y ?? 1)) <= 2) {
+            if (distance <= playerRadius + tileSize * 0.15 && Math.abs(playerPos.y - (portal.y ?? 1)) <= 2) {
                 this.handlePortalCollision(portal);
                 this.lastPortalTeleportTime = now;
                 break;
@@ -588,7 +606,13 @@ export class CollisionSystem {
         const direction = playerPos.clone().sub(tileCenter);
         
         // Check if player is above the tile (standing on it)
-        if (playerPos.y >= tile.height - this.playerRadius && 
+        // Only allow standing on elevated tiles if player is already at the correct height
+        // This prevents the "ramp" effect where players can walk up to elevated tiles
+        const heightTolerance = 3; // Allow some tolerance for landing on tiles after teleporting
+        const isAtCorrectHeight = Math.abs(playerPos.y - tile.height) <= heightTolerance;
+        
+        if (isAtCorrectHeight && 
+            playerPos.y >= tile.height - this.playerRadius && 
             playerPos.y <= tile.height + this.playerRadius &&
             Math.abs(direction.x) <= halfTileSize + this.playerRadius &&
             Math.abs(direction.z) <= halfTileSize + this.playerRadius) {
@@ -597,23 +621,27 @@ export class CollisionSystem {
             return new THREE.Vector3(0, tile.height + this.playerRadius - playerPos.y, 0);
         }
         
-        // Check side collisions
-        const distance = direction.length();
-        const minDistance = this.playerRadius + Math.min(halfTileSize, tile.height / 2);
-        
-        if (distance < minDistance && distance > 0) {
-            direction.normalize();
-            const pushDistance = minDistance - distance + this.collisionTolerance;
+        // Check side collisions - treat elevated tiles as solid blocks
+        // Players at ground level should be blocked by the sides of elevated tiles
+        if (Math.abs(direction.x) <= halfTileSize + this.playerRadius &&
+            Math.abs(direction.z) <= halfTileSize + this.playerRadius &&
+            playerPos.y >= 0 && playerPos.y <= tile.height + this.playerRadius) {
             
-            // Push player away from the tile
-            const response = direction.multiplyScalar(pushDistance);
+            // Determine which side of the tile the player is approaching from
+            const absX = Math.abs(direction.x);
+            const absZ = Math.abs(direction.z);
             
-            // Limit vertical response
-            if (response.y > 0) {
-                response.y = Math.min(response.y, this.playerRadius * 0.5);
+            if (absX > absZ) {
+                // Collision from X direction (left/right side)
+                const pushX = direction.x > 0 ? halfTileSize + this.playerRadius : -(halfTileSize + this.playerRadius);
+                const targetX = tile.worldX + pushX;
+                return new THREE.Vector3(targetX - playerPos.x, 0, 0);
+            } else {
+                // Collision from Z direction (front/back side)
+                const pushZ = direction.z > 0 ? halfTileSize + this.playerRadius : -(halfTileSize + this.playerRadius);
+                const targetZ = tile.worldZ + pushZ;
+                return new THREE.Vector3(0, 0, targetZ - playerPos.z);
             }
-            
-            return response;
         }
         
         return new THREE.Vector3(0, 0, 0);

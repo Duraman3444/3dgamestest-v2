@@ -15,11 +15,11 @@ export class SinglePlayerMenu {
         
         // Available levels with their details
         this.availableLevels = [
-            { id: 1, name: "Level 1 - Getting Started", file: "level1.json" },
-            { id: 2, name: "Level 2 - The Maze", file: "level2.json" },
-            { id: 3, name: "Level 3 - The Challenge", file: "level3.json" },
+            { id: 1, name: "Level 1 - Coin and Key Intro", file: "level1.json" },
+            { id: 2, name: "Level 2 - Bounce Pad Challenges", file: "level2.json" },
+            { id: 3, name: "Level 3 - Deadly Spike Maze", file: "level3.json" },
             { id: 4, name: "Level 4 - Portal Maze: Teleportation Challenge", file: "level4.json" },
-            { id: 5, name: "Pacman Mode - Maze Adventure", file: "pacman.json" }
+            { id: 5, name: "Level 5 - Spike Parkour Challenge", file: "level5.json" }
         ];
         
         this.createMenu();
