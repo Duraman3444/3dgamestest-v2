@@ -705,8 +705,14 @@ export class GridManager {
         
         coinsData.forEach(coinData => {
             const worldPos = this.levelLoader.gridToWorld(coinData.x, coinData.z, this.tileSize);
+            
+            // Get tile height to position collectible correctly
+            const tileKey = `${coinData.x},${coinData.z}`;
+            const tile = this.tiles.get(tileKey);
+            const tileHeight = tile ? tile.height : 0;
+            
             const collectible = new THREE.Mesh(collectibleGeometry, this.collectibleMaterial);
-            collectible.position.set(worldPos.x, coinData.y || 1, worldPos.z);
+            collectible.position.set(worldPos.x, tileHeight + (coinData.y || 1), worldPos.z);
             collectible.castShadow = true;
             
             this.scene.add(collectible);
@@ -727,8 +733,13 @@ export class GridManager {
         const keyGeometry = new THREE.BoxGeometry(0.5, 0.2, 1);
         const worldPos = this.levelLoader.gridToWorld(keyData.x, keyData.z, this.tileSize);
         
+        // Get tile height to position key correctly
+        const tileKey = `${keyData.x},${keyData.z}`;
+        const tile = this.tiles.get(tileKey);
+        const tileHeight = tile ? tile.height : 0;
+        
         const key = new THREE.Mesh(keyGeometry, this.keyMaterial);
-        key.position.set(worldPos.x, keyData.y || 1, worldPos.z);
+        key.position.set(worldPos.x, tileHeight + (keyData.y || 1), worldPos.z);
         key.castShadow = true;
         
         this.scene.add(key);
@@ -750,8 +761,13 @@ export class GridManager {
         );
         const worldPos = this.levelLoader.gridToWorld(exitData.x, exitData.z, this.tileSize);
         
+        // Get tile height to position exit correctly
+        const tileKey = `${exitData.x},${exitData.z}`;
+        const tile = this.tiles.get(tileKey);
+        const tileHeight = tile ? tile.height : 0;
+        
         const exit = new THREE.Mesh(exitGeometry, this.exitMaterial);
-        exit.position.set(worldPos.x, (exitData.height || 4) / 2, worldPos.z);
+        exit.position.set(worldPos.x, tileHeight + (exitData.height || 4) / 2, worldPos.z);
         exit.castShadow = true;
         exit.receiveShadow = true;
         
@@ -1222,6 +1238,10 @@ export class GridManager {
     
     getWalls() {
         return this.walls;
+    }
+    
+    getTiles() {
+        return this.tiles;
     }
     
     getGhosts() {

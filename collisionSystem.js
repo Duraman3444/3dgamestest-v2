@@ -48,6 +48,9 @@ export class CollisionSystem {
         // Check collision with walls (Pacman mode)
         this.checkWallCollisions();
         
+        // Check collision with elevated tiles
+        this.checkElevatedTileCollisions();
+        
         // Check collision with collectibles
         this.checkCollectibleCollisions();
         
@@ -122,6 +125,33 @@ export class CollisionSystem {
                     
                     // Stop player movement in collision direction
                     this.player.velocity.multiplyScalar(0.5);
+                }
+            }
+        }
+    }
+    
+    checkElevatedTileCollisions() {
+        const playerPosition = this.player.getPosition();
+        const playerBounds = this.getPlayerBoundingBox(playerPosition);
+        const tiles = this.gridManager.getTiles();
+        
+        for (let [tileKey, tile] of tiles) {
+            // Only check collision with elevated tiles that have a mesh
+            if (tile.height > 0 && tile.mesh) {
+                const tileBounds = this.getElevatedTileBoundingBox(tile);
+                
+                if (this.checkBoxCollision(playerBounds, tileBounds)) {
+                    // Calculate collision response for elevated tiles
+                    const response = this.calculateElevatedTileCollisionResponse(playerPosition, tile);
+                    
+                    // Apply collision response
+                    if (response.length() > 0) {
+                        const newPosition = playerPosition.clone().add(response);
+                        this.player.setPosition(newPosition.x, newPosition.y, newPosition.z);
+                        
+                        // Stop player movement in collision direction
+                        this.player.velocity.multiplyScalar(0.8);
+                    }
                 }
             }
         }
@@ -481,6 +511,64 @@ export class CollisionSystem {
                 position.z + depth/2
             )
         );
+    }
+    
+    getElevatedTileBoundingBox(tile) {
+        const tileSize = this.gridManager.tileSize;
+        const halfTileSize = tileSize / 2;
+        
+        return new THREE.Box3(
+            new THREE.Vector3(
+                tile.worldX - halfTileSize,
+                0,
+                tile.worldZ - halfTileSize
+            ),
+            new THREE.Vector3(
+                tile.worldX + halfTileSize,
+                tile.height,
+                tile.worldZ + halfTileSize
+            )
+        );
+    }
+    
+    calculateElevatedTileCollisionResponse(playerPos, tile) {
+        const tileSize = this.gridManager.tileSize;
+        const halfTileSize = tileSize / 2;
+        
+        // Calculate the closest point on the tile to the player
+        const tileCenter = new THREE.Vector3(tile.worldX, tile.height / 2, tile.worldZ);
+        const direction = playerPos.clone().sub(tileCenter);
+        
+        // Check if player is above the tile (standing on it)
+        if (playerPos.y >= tile.height - this.playerRadius && 
+            playerPos.y <= tile.height + this.playerRadius &&
+            Math.abs(direction.x) <= halfTileSize + this.playerRadius &&
+            Math.abs(direction.z) <= halfTileSize + this.playerRadius) {
+            
+            // Player is on top of the tile - push them up to stand on it
+            return new THREE.Vector3(0, tile.height + this.playerRadius - playerPos.y, 0);
+        }
+        
+        // Check side collisions
+        const distance = direction.length();
+        const minDistance = this.playerRadius + Math.min(halfTileSize, tile.height / 2);
+        
+        if (distance < minDistance && distance > 0) {
+            direction.normalize();
+            const pushDistance = minDistance - distance + this.collisionTolerance;
+            
+            // Push player away from the tile
+            const response = direction.multiplyScalar(pushDistance);
+            
+            // Limit vertical response
+            if (response.y > 0) {
+                response.y = Math.min(response.y, this.playerRadius * 0.5);
+            }
+            
+            return response;
+        }
+        
+        return new THREE.Vector3(0, 0, 0);
     }
     
     checkWorldBoundaries() {
