@@ -700,8 +700,9 @@ class Game {
         const spawnPoint = this.levelLoader.getSpawnPoint();
         this.player.setSpawnPoint(spawnPoint);
         
-        // Set player reference in grid manager for ghost AI
+        // Set cross-references between player and grid manager
         this.gridManager.setPlayer(this.player);
+        this.player.setGridManager(this.gridManager);
         
         this.cameraSystem = new CameraSystem(this.player);
         this.collisionSystem = new CollisionSystem();

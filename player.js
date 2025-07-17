@@ -3,6 +3,7 @@ import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
 export class Player {
     constructor(scene) {
         this.scene = scene;
+        this.gridManager = null; // Will be set later
         // Set safe default spawn position (adjusted for sphere radius)
         this.spawnPoint = new THREE.Vector3(0, 1, 0);
         this.position = this.spawnPoint.clone();
@@ -42,6 +43,10 @@ export class Player {
         
         // Setup input handlers
         this.setupInputHandlers();
+    }
+    
+    setGridManager(gridManager) {
+        this.gridManager = gridManager;
     }
     
     createPlayerMesh() {
@@ -238,9 +243,12 @@ export class Player {
             return;
         }
         
-        // Simple ground check (y = 0 is ground level, account for sphere radius)
-        if (this.position.y <= this.radius) {
-            this.position.y = this.radius;
+        // Ground check with elevated tiles support
+        const groundHeight = this.gridManager ? this.gridManager.getGroundHeight(this.position.x, this.position.z) : 0;
+        const minPlayerHeight = groundHeight + this.radius;
+        
+        if (this.position.y <= minPlayerHeight) {
+            this.position.y = minPlayerHeight;
             this.velocity.y = 0;
             this.isOnGround = true;
         }
