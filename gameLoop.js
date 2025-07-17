@@ -70,8 +70,24 @@ export class GameLoop {
             this.systems.collisionSystem.update(deltaTime);
         }
         
+        // Update battle system if in battle mode
+        if (this.systems.battleSystem && this.systems.battleSystem.isActive) {
+            this.systems.battleSystem.update(deltaTime);
+        }
+        
+        // Update battle UI if in battle mode
+        if (this.systems.battleUI && this.systems.battleSystem && this.systems.battleSystem.isActive) {
+            this.systems.battleUI.update(deltaTime, {
+                playerDamage: this.systems.battleSystem.playerDamage,
+                botDamages: this.systems.battleSystem.bots.map(bot => bot.damage),
+                currentLevel: this.systems.battleSystem.currentLevel,
+                levelName: this.systems.battleSystem.levelConfigs[this.systems.battleSystem.currentLevel].name,
+                roundTimer: Date.now() - this.systems.battleSystem.roundStartTime
+            });
+        }
+        
         // Update UI
-        if (this.systems.uiManager) {
+        if (this.systems.uiManager && (!this.systems.battleSystem || !this.systems.battleSystem.isActive)) {
             this.systems.uiManager.update(deltaTime, {
                 fps: this.fps,
                 playerPosition: this.systems.player ? this.systems.player.position : null,

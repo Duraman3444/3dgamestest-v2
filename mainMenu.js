@@ -74,6 +74,7 @@ export class MainMenu {
             { text: 'Continue', action: () => this.continueGame(), id: 'continue-button' },
             { text: 'Single Player', action: () => this.startSinglePlayer() },
             { text: 'Pacman Mode', action: () => this.startPacmanMode() },
+            { text: 'Battle Mode', action: () => this.startBattleMode() },
             { text: 'Multiplayer', action: () => this.showMultiplayerNotice() },
             { text: 'Settings', action: () => this.showSettings() },
             { text: 'Exit Game', action: () => this.exitGame() }
@@ -269,6 +270,13 @@ export class MainMenu {
         this.hide();
         if (this.onStartGame) {
             this.onStartGame('pacman'); // Pass 'pacman' as mode identifier
+        }
+    }
+
+    startBattleMode() {
+        this.hide();
+        if (this.onStartGame) {
+            this.onStartGame('battle'); // Pass 'battle' as mode identifier
         }
     }
 
@@ -494,6 +502,11 @@ export class MainMenu {
     
     show() {
         if (this.menuElement) {
+            // Clear any active notifications when showing main menu
+            if (window.game && window.game.uiManager) {
+                window.game.uiManager.clearNotification();
+            }
+            
             this.menuElement.style.display = 'flex';
             this.isVisible = true;
             

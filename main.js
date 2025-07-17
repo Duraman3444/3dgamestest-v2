@@ -9,9 +9,12 @@ import { LevelLoader } from './levelLoader.js';
 import { MainMenu } from './mainMenu.js';
 import { SinglePlayerMenu } from './singlePlayerMenu.js';
 import { PacmanMenu } from './pacmanMenu.js';
+import { BattleMenu } from './battleMenu.js';
 import { GameOverScreen } from './gameOverScreen.js';
 import { SettingsManager } from './settingsManager.js';
 import { VictoryMenu } from './victoryMenu.js';
+import { BattleSystem } from './battleSystem.js';
+import { BattleUI } from './battleUI.js';
 
 class Game {
     constructor() {
@@ -27,8 +30,11 @@ class Game {
         this.mainMenu = null;
         this.singlePlayerMenu = null;
         this.pacmanMenu = null;
+        this.battleMenu = null;
         this.gameOverScreen = null;
         this.settingsManager = null;
+        this.battleSystem = null;
+        this.battleUI = null;
         this.isGameInitialized = false;
         this.isPaused = false;
         this.pauseOverlay = null;
@@ -48,6 +54,9 @@ class Game {
         } else if (mode === 'pacman') {
             // Show pacman mode menu
             this.showPacmanMenu();
+        } else if (mode === 'battle') {
+            // Show battle mode menu
+            this.showBattleMenu();
         } else {
             // For other modes, start directly
             this.startGame(mode);
@@ -55,9 +64,15 @@ class Game {
     }
     
     showMainMenu() {
+        // Clear any active notifications
+        if (this.uiManager) {
+            this.uiManager.clearNotification();
+        }
+        
         this.mainMenu.show();
         this.singlePlayerMenu.hide();
         this.pacmanMenu.hide();
+        this.battleMenu.hide();
     }
     
     showSinglePlayerMenu() {
@@ -68,6 +83,11 @@ class Game {
     showPacmanMenu() {
         this.mainMenu.hide();
         this.pacmanMenu.show();
+    }
+    
+    showBattleMenu() {
+        this.mainMenu.hide();
+        this.battleMenu.show();
     }
     
     initializeMenu() {
@@ -91,6 +111,12 @@ class Game {
         // Create pacman menu
         this.pacmanMenu = new PacmanMenu(
             (mode, level, difficulty) => this.startGame(mode, level, difficulty),
+            () => this.showMainMenu()
+        );
+        
+        // Create battle menu
+        this.battleMenu = new BattleMenu(
+            (mode, level, difficulty) => this.startGame('battle', level, difficulty),
             () => this.showMainMenu()
         );
         
@@ -387,6 +413,11 @@ class Game {
     async restartCurrentLevelFromPause() {
         console.log('Restarting current level from pause menu...');
         
+        // Clear any active notifications
+        if (this.uiManager) {
+            this.uiManager.clearNotification();
+        }
+        
         // Clear per-level progress for current level
         this.clearPerLevelProgress();
         
@@ -551,6 +582,11 @@ class Game {
             this.currentLevel = level;
         } else {
             this.currentLevel = 1; // Default to level 1 for other modes
+        }
+        
+        // Clear any active notifications
+        if (this.uiManager) {
+            this.uiManager.clearNotification();
         }
         
         // Clean up UI elements to prevent duplication
@@ -778,6 +814,22 @@ class Game {
         this.collisionSystem.setUIManager(this.uiManager);
         this.collisionSystem.setVictoryMenu(this.victoryMenu);
         
+        // Reset collision system state for new level
+        this.collisionSystem.resetForNewLevel();
+        
+        // Initialize battle system if in battle mode
+        if (this.gameMode === 'battle') {
+            this.battleSystem = new BattleSystem(this.scene, this.player);
+            this.battleUI = new BattleUI();
+            
+            // Setup battle system callbacks
+            this.battleSystem.setVictoryCallback(() => this.handleBattleVictory());
+            this.battleSystem.setDefeatCallback(() => this.handleBattleDefeat());
+            
+            // Start battle at specified level
+            this.battleSystem.startBattle(this.currentLevel);
+        }
+
         // Setup game loop
         this.gameLoop = new GameLoop(this.renderer, this.scene, this.cameraSystem.camera, {
             player: this.player,
@@ -785,13 +837,17 @@ class Game {
             cameraSystem: this.cameraSystem,
             collisionSystem: this.collisionSystem,
             uiManager: this.uiManager,
-            levelLoader: this.levelLoader
+            levelLoader: this.levelLoader,
+            battleSystem: this.battleSystem,
+            battleUI: this.battleUI
         });
 
-        // Load existing level progress if available
-        // This ensures that if a player has previously played this level and collected items,
-        // those items remain collected when they restart the level
-        this.loadAndApplyLevelProgress();
+        // Load existing level progress if available (skip for battle mode)
+        if (this.gameMode !== 'battle') {
+            // This ensures that if a player has previously played this level and collected items,
+            // those items remain collected when they restart the level
+            this.loadAndApplyLevelProgress();
+        }
     }
 
     // Load and apply existing level progress
@@ -901,6 +957,11 @@ class Game {
             }
         } else {
             // Show menu and pause game
+            // Clear any active notifications
+            if (this.uiManager) {
+                this.uiManager.clearNotification();
+            }
+            
             this.mainMenu.show();
             this.canvas.style.display = 'none';
             
@@ -945,6 +1006,11 @@ class Game {
     async handleLevelCompletion() {
         console.log('Level completed! Advancing to next level...');
         
+        // Clear any active notifications
+        if (this.uiManager) {
+            this.uiManager.clearNotification();
+        }
+        
         // Save progress for the completed level
         this.saveProgress(this.currentLevel);
         
@@ -981,6 +1047,32 @@ class Game {
             console.log('All levels completed!');
             this.clearSavedGameState(); // Clear save since game is completed
             this.handleGameOver(); // For now, treat as game over
+        }
+    }
+    
+    // Handle battle victory
+    handleBattleVictory() {
+        console.log('Battle victory!');
+        if (this.battleSystem && this.battleUI) {
+            const currentConfig = this.battleSystem.levelConfigs[this.battleSystem.currentLevel];
+            const isLastLevel = this.battleSystem.currentLevel >= this.battleSystem.maxLevel;
+            
+            this.battleUI.showVictoryScreen(currentConfig, isLastLevel);
+            
+            if (!isLastLevel) {
+                // Auto-advance to next level after victory screen
+                setTimeout(() => {
+                    this.battleSystem.startBattle(this.battleSystem.currentLevel + 1);
+                }, 6000);
+            }
+        }
+    }
+    
+    // Handle battle defeat
+    handleBattleDefeat() {
+        console.log('Battle defeat!');
+        if (this.battleUI) {
+            this.battleUI.showDefeatScreen();
         }
     }
     
@@ -1428,6 +1520,11 @@ class Game {
     pauseToMainMenu() {
         console.log('Returning to main menu from pause');
         
+        // Clear any active notifications
+        if (this.uiManager) {
+            this.uiManager.clearNotification();
+        }
+        
         // Stop the game loop
         if (this.gameLoop) {
             this.gameLoop.stop();
@@ -1468,6 +1565,11 @@ class Game {
     returnToMainMenu() {
         console.log('Returning to main menu');
         
+        // Clear any active notifications
+        if (this.uiManager) {
+            this.uiManager.clearNotification();
+        }
+        
         // Stop auto-save system
         this.stopAutoSave();
         
@@ -1492,6 +1594,11 @@ class Game {
     
     retryLevel() {
         console.log('Retrying level');
+        
+        // Clear any active notifications
+        if (this.uiManager) {
+            this.uiManager.clearNotification();
+        }
         
         // Reset player lives
         if (this.player) {
@@ -1608,6 +1715,11 @@ class Game {
     
     async restartCurrentLevel() {
         try {
+            // Clear any active notifications
+            if (this.uiManager) {
+                this.uiManager.clearNotification();
+            }
+            
             // Hide game over screen
             this.gameOverScreen.hide();
             

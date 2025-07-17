@@ -28,6 +28,14 @@ export class CollisionSystem {
 
         // Victory condition for cylinder
         this.cylinderVictoryTriggered = false;
+        
+        // Spike immunity system
+        this.spikeImmunity = false;
+        this.spikeImmunityDuration = 4000; // 4 seconds in milliseconds
+        this.spikeImmunityStartTime = 0;
+        
+        // Level completion notification
+        this.readyToLeaveNotificationShown = false;
     }
     
     setPlayer(player) {
@@ -52,6 +60,14 @@ export class CollisionSystem {
     
     setVictoryMenu(victoryMenu) {
         this.victoryMenu = victoryMenu;
+    }
+    
+    // Reset collision system state for new level
+    resetForNewLevel() {
+        this.readyToLeaveNotificationShown = false;
+        this.spikeImmunity = false;
+        this.spikeImmunityStartTime = 0;
+        console.log('Collision system reset for new level');
     }
     
     update(deltaTime) {
@@ -89,6 +105,9 @@ export class CollisionSystem {
         
         // Check collision with portals
         this.checkPortalCollisions();
+        
+        // Check if player is ready to leave level (only in regular mode)
+        this.checkReadyToLeaveNotification();
         
         // Check world boundaries
         this.checkWorldBoundaries();
@@ -480,6 +499,15 @@ export class CollisionSystem {
     checkSpikeCollisions() {
         if (!this.gridManager.spikes) return;
         
+        // Check if spike immunity has expired
+        if (this.spikeImmunity && Date.now() - this.spikeImmunityStartTime > this.spikeImmunityDuration) {
+            this.spikeImmunity = false;
+            console.log('Spike immunity expired');
+        }
+        
+        // Skip collision detection if player has spike immunity
+        if (this.spikeImmunity) return;
+        
         const playerPos = this.player.position;
         const playerRadius = this.player.radius;
         
@@ -506,13 +534,18 @@ export class CollisionSystem {
         // Kill the player - lose a life
         const remainingLives = this.player.loseLife();
         
-        // Reset player to spawn position
+        // Reset player to spawn position (using safe spawn point)
         const levelData = this.gridManager.levelLoader.getCurrentLevel();
-        const spawnPoint = levelData.spawn;
+        const spawnPoint = this.getSafeSpawnPoint(levelData);
         this.player.setPosition(spawnPoint.x, spawnPoint.y, spawnPoint.z);
         
         // Reset player velocity
         this.player.velocity.set(0, 0, 0);
+        
+        // Activate spike immunity
+        this.spikeImmunity = true;
+        this.spikeImmunityStartTime = Date.now();
+        console.log('Spike immunity activated for 4 seconds');
         
         // Check if player is out of lives
         if (this.player.isOutOfLives()) {
@@ -541,6 +574,76 @@ export class CollisionSystem {
                 spike.mesh.material.color.setHex(originalColor);
                 spike.mesh.material.emissive.setHex(originalEmissive);
             }, 500);
+        }
+    }
+    
+    // Get safe spawn point away from spikes
+    getSafeSpawnPoint(levelData) {
+        const originalSpawn = levelData.spawn;
+        const spikes = levelData.spikes || [];
+        
+        // For level 3, find a safe area away from spikes
+        if (levelData.name && levelData.name.includes('Level 3')) {
+                         // Look for safe spawn areas in level 3
+            const safeSpawnCandidates = [
+                { x: 12, y: 1, z: 1 },  // Main safe spawn (center)
+                { x: 6, y: 1, z: 1 },   // Alternative safe spot
+                { x: 18, y: 1, z: 1 },  // Alternative safe spot
+                { x: 2, y: 1, z: 1 },   // Alternative safe spot
+                { x: 10, y: 1, z: 1 },  // Alternative safe spot
+                { x: 14, y: 1, z: 1 },  // Alternative safe spot
+                { x: 22, y: 1, z: 1 }   // Alternative safe spot
+            ];
+            
+            // Find the first safe spawn point (minimum 2 units away from any spike)
+            for (const candidate of safeSpawnCandidates) {
+                let isSafe = true;
+                const minSafeDistance = 2.5; // Safety buffer
+                
+                for (const spike of spikes) {
+                    const distance = Math.sqrt(
+                        Math.pow(candidate.x - spike.x, 2) + 
+                        Math.pow(candidate.z - spike.z, 2)
+                    );
+                    
+                    if (distance < minSafeDistance) {
+                        isSafe = false;
+                        break;
+                    }
+                }
+                
+                if (isSafe) {
+                    console.log(`Using safe spawn point: (${candidate.x}, ${candidate.y}, ${candidate.z})`);
+                    return candidate;
+                }
+            }
+        }
+        
+        // Fallback to original spawn point if no safe alternative found
+        return originalSpawn;
+    }
+    
+    // Check if player is ready to leave level and show notification
+    checkReadyToLeaveNotification() {
+        // Only show notification in regular mode, not in battle or pacman mode
+        if (this.gridManager.levelType === 'pacman' || 
+            (window.game && window.game.gameMode === 'battle')) {
+            return;
+        }
+        
+        // Check if all items are collected and notification hasn't been shown
+        if (!this.readyToLeaveNotificationShown && this.gridManager.canActivateExit()) {
+            this.readyToLeaveNotificationShown = true;
+            
+            // Show notification via UI Manager
+            if (window.game && window.game.uiManager) {
+                const levelData = this.gridManager.levelLoader.getCurrentLevel();
+                const levelName = levelData.name || 'Level';
+                const message = `🎉 All collectibles and keys found!<br>You are ready to leave ${levelName}!<br>Find and enter the exit to continue.`;
+                
+                window.game.uiManager.showNotification(message, 'success', 6000);
+                console.log('Ready to leave level notification shown');
+            }
         }
     }
     
