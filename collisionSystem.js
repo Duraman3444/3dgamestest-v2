@@ -201,6 +201,11 @@ export class CollisionSystem {
         // Reset player velocity
         this.player.velocity.set(0, 0, 0);
         
+        // Reset ghosts and give head start (classic Pacman behavior)
+        if (this.gridManager.resetGhostsAfterPlayerDeath) {
+            this.gridManager.resetGhostsAfterPlayerDeath();
+        }
+        
         // Check if player is out of lives
         if (this.player.isOutOfLives()) {
             console.log('Game Over! Out of lives!');

@@ -52,28 +52,28 @@ export class GridManager {
             });
             this.ghostMaterials = {
                 red: new THREE.MeshLambertMaterial({ 
-                    color: 0xFF0040, // Bright neon red
-                    emissive: 0x880022, // Strong red glow - most intimidating
-                    transparent: true,
-                    opacity: 0.95
+                    color: 0xFF0000, // Pure bright red - classic Pacman red
+                    emissive: 0xFF0000, // Strong red glow for high visibility
+                    emissiveIntensity: 0.3,
+                    transparent: false
                 }),
                 blue: new THREE.MeshLambertMaterial({ 
-                    color: 0x0080FF, // Bright neon blue
-                    emissive: 0x004488, // Medium blue glow - steady and reliable
-                    transparent: true,
-                    opacity: 0.9
+                    color: 0x00BFFF, // Bright sky blue - classic Pacman blue
+                    emissive: 0x0080FF, // Strong blue glow for visibility
+                    emissiveIntensity: 0.3,
+                    transparent: false
                 }),
                 green: new THREE.MeshLambertMaterial({ 
-                    color: 0x40FF00, // Bright neon green
-                    emissive: 0x228800, // Medium green glow - sleek and fast
-                    transparent: true,
-                    opacity: 0.85
+                    color: 0x00FF00, // Pure bright green - easy to distinguish
+                    emissive: 0x00FF00, // Strong green glow for visibility
+                    emissiveIntensity: 0.3,
+                    transparent: false
                 }),
                 pink: new THREE.MeshLambertMaterial({ 
-                    color: 0xFF0080, // Bright neon pink
-                    emissive: 0x660044, // Bright pink glow - small but fierce
-                    transparent: true,
-                    opacity: 0.8
+                    color: 0xFF69B4, // Classic hot pink - distinctive
+                    emissive: 0xFF1493, // Strong pink glow for visibility
+                    emissiveIntensity: 0.3,
+                    transparent: false
                 })
             };
         } else {
@@ -259,40 +259,11 @@ export class GridManager {
     
     generateGhostsFromData(ghostsData) {
         ghostsData.forEach(ghostData => {
-            // Create unique geometry and properties for each ghost color
-            let ghostGeometry, ghostScale = 1.0, ghostHeight = 1.0;
-            
-            switch(ghostData.color) {
-                case 'red':
-                    // Red ghost: Traditional cylinder, largest and most intimidating
-                    ghostGeometry = new THREE.CylinderGeometry(1.0, 1.0, 2.0, 12);
-                    ghostScale = 1.0;
-                    ghostHeight = 2.0;
-                    break;
-                case 'blue':
-                    // Blue ghost: Octagonal prism, medium size
-                    ghostGeometry = new THREE.CylinderGeometry(0.85, 0.85, 1.8, 8);
-                    ghostScale = 0.9;
-                    ghostHeight = 1.8;
-                    break;
-                case 'green':
-                    // Green ghost: Hexagonal prism, sleek and fast
-                    ghostGeometry = new THREE.CylinderGeometry(0.8, 0.8, 1.6, 6);
-                    ghostScale = 0.85;
-                    ghostHeight = 1.6;
-                    break;
-                case 'pink':
-                    // Pink ghost: Smooth sphere-cylinder hybrid, smallest but quickest
-                    ghostGeometry = new THREE.CylinderGeometry(0.75, 0.75, 1.5, 16);
-                    ghostScale = 0.8;
-                    ghostHeight = 1.5;
-                    break;
-                default:
-                    // Default fallback
-                    ghostGeometry = new THREE.CylinderGeometry(0.9, 0.9, 1.8, 12);
-                    ghostScale = 1.0;
-                    ghostHeight = 1.8;
-            }
+            // Create uniform geometry for all ghosts - classic Pacman style
+            // All ghosts same shape and size for easy recognition by color
+            const ghostGeometry = new THREE.CylinderGeometry(0.9, 0.9, 1.8, 12);
+            const ghostScale = 1.0;
+            const ghostHeight = 1.8;
             
             // For pacman mode, spawn ghosts at top of map instead of their defined position
             let spawnX, spawnZ;
@@ -329,7 +300,13 @@ export class GridManager {
                 // Pacman-specific properties
                 isActive: this.levelType !== 'pacman', // Start inactive for pacman mode (8 second delay)
                 activationTime: this.levelType === 'pacman' ? 8.0 : 0, // 8 second head start
-                spawnTime: performance.now() * 0.001
+                spawnTime: performance.now() * 0.001,
+                
+                // Respawn system properties
+                originalPosition: { x: spawnX, z: spawnZ }, // Store original spawn position
+                isRespawning: false, // Whether ghost is in respawn state
+                respawnHeadStart: 3.0, // 3 seconds head start after player death
+                respawnStartTime: 0 // When respawn head start began
             });
         });
     }
@@ -555,14 +532,32 @@ export class GridManager {
         const currentTime = performance.now() * 0.001;
         
         this.ghosts.forEach((ghost, index) => {
-            // Check if ghost should be active yet (8-second delay for pacman mode)
+            // Check if ghost should be active yet (8-second delay for pacman mode or respawn head start)
             if (!ghost.isActive) {
-                if (currentTime - ghost.spawnTime >= ghost.activationTime) {
+                // Check for respawn head start first
+                if (ghost.isRespawning) {
+                    if (currentTime - ghost.respawnStartTime >= ghost.respawnHeadStart) {
+                        ghost.isRespawning = false;
+                        ghost.isActive = true;
+                        console.log(`${ghost.color} ghost finished respawn head start and is now active!`);
+                    } else {
+                        // Show visual indicator during head start (make ghost semi-transparent)
+                        ghost.mesh.material.opacity = 0.5;
+                        ghost.mesh.material.transparent = true;
+                        return; // Skip this ghost during head start
+                    }
+                } else if (currentTime - ghost.spawnTime >= ghost.activationTime) {
                     ghost.isActive = true;
                     console.log(`${ghost.color} ghost activated!`);
                 } else {
                     return; // Skip this ghost if not active yet
                 }
+            }
+            
+            // Make sure ghost is fully opaque when active
+            if (ghost.isActive && !ghost.isRespawning) {
+                ghost.mesh.material.opacity = 1.0;
+                ghost.mesh.material.transparent = false;
             }
             
             // Update ghost speed based on current level (for pacman mode)
@@ -673,37 +668,11 @@ export class GridManager {
                 ghost.lastDirectionChange = currentTime;
             }
             
-            // Add unique visual animations for each ghost color
-            const time = currentTime;
-            switch(ghost.color) {
-                case 'red':
-                    // Red ghost: Aggressive pulsing and slight wobble
-                    const redPulse = 1 + Math.sin(time * 4) * 0.15;
-                    const redWobble = Math.sin(time * 2) * 0.05;
-                    ghost.mesh.scale.set(redPulse, redPulse, redPulse);
-                    ghost.mesh.position.x += redWobble;
-                    break;
-                case 'blue':
-                    // Blue ghost: Steady breathing and slight rotation
-                    const bluePulse = 1 + Math.sin(time * 2) * 0.1;
-                    ghost.mesh.scale.set(0.9 * bluePulse, 0.9 * bluePulse, 0.9 * bluePulse);
-                    ghost.mesh.rotation.y += 0.01;
-                    break;
-                case 'green':
-                    // Green ghost: Fast oscillation and vertical bob
-                    const greenPulse = 1 + Math.sin(time * 6) * 0.08;
-                    const greenBob = Math.sin(time * 3) * 0.2;
-                    ghost.mesh.scale.set(0.85 * greenPulse, 0.85 * greenPulse, 0.85 * greenPulse);
-                    ghost.mesh.position.y += greenBob;
-                    break;
-                case 'pink':
-                    // Pink ghost: Smooth wave motion and shimmer
-                    const pinkPulse = 1 + Math.sin(time * 5) * 0.12;
-                    const pinkShimmer = Math.sin(time * 8) * 0.03;
-                    ghost.mesh.scale.set(0.8 * pinkPulse, 0.8 * pinkPulse, 0.8 * pinkPulse);
-                    ghost.mesh.position.x += pinkShimmer;
-                    ghost.mesh.position.z += pinkShimmer;
-                    break;
+            // Simple visual effects - subtle breathing for all ghosts
+            if (!ghost.isRespawning) {
+                const time = currentTime;
+                const subtlePulse = 1 + Math.sin(time * 2) * 0.05; // Very subtle breathing
+                ghost.mesh.scale.set(subtlePulse, subtlePulse, subtlePulse);
             }
         });
     }
@@ -826,6 +795,30 @@ export class GridManager {
                 return;
             }
         }
+    }
+    
+    // Reset ghosts after player death - give head start
+    resetGhostsAfterPlayerDeath() {
+        const currentTime = performance.now() * 0.001;
+        
+        this.ghosts.forEach(ghost => {
+            // Return ghost to original spawn position
+            const worldPos = this.levelLoader.gridToWorld(ghost.originalPosition.x, ghost.originalPosition.z, this.tileSize);
+            ghost.mesh.position.set(worldPos.x, 1, worldPos.z);
+            
+            // Reset ghost state
+            ghost.gridX = ghost.originalPosition.x;
+            ghost.gridZ = ghost.originalPosition.z;
+            ghost.direction = { x: 1, z: 0 }; // Reset direction
+            ghost.stuckCounter = 0;
+            
+            // Start respawn head start period
+            ghost.isRespawning = true;
+            ghost.respawnStartTime = currentTime;
+            ghost.isActive = false; // Temporarily deactivate
+            
+            console.log(`${ghost.color} ghost returned to spawn and giving ${ghost.respawnHeadStart}s head start`);
+        });
     }
     
     getPlayerPosition() {
