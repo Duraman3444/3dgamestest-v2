@@ -1,13 +1,13 @@
 {
-  "name": "Level 3 - The Challenge",
+  "name": "Level 3 - Spike Traps",
   "size": {
     "width": 14,
     "height": 14
   },
   "spawn": {
-    "x": 0,
+    "x": 1,
     "y": 1,
-    "z": 0
+    "z": 1
   },
   "tiles": [
     {"x": 0, "z": 0, "type": "ground"},
@@ -208,46 +208,29 @@
     {"x": 13, "z": 13, "type": "ground"}
   ],
   "coins": [
-    {"x": 2, "z": 2},
-    {"x": 5, "z": 3},
-    {"x": 8, "z": 2},
-    {"x": 11, "z": 4},
-    {"x": 3, "z": 7},
-    {"x": 7, "z": 8},
-    {"x": 10, "z": 9},
-    {"x": 2, "z": 11},
-    {"x": 11, "z": 12}
+    {"x": 2, "z": 3},
+    {"x": 6, "z": 5},
+    {"x": 10, "z": 7},
+    {"x": 4, "z": 11},
+    {"x": 12, "z": 9}
   ],
-  "obstacles": [
-    {"x": 3, "z": 3, "type": "box"},
-    {"x": 6, "z": 3, "type": "box"},
-    {"x": 9, "z": 3, "type": "box"},
-    {"x": 12, "z": 3, "type": "box"},
-    {"x": 2, "z": 6, "type": "box"},
-    {"x": 5, "z": 6, "type": "box"},
-    {"x": 8, "z": 6, "type": "box"},
-    {"x": 11, "z": 6, "type": "box"},
-    {"x": 3, "z": 9, "type": "box"},
-    {"x": 6, "z": 9, "type": "box"},
-    {"x": 9, "z": 9, "type": "box"},
-    {"x": 12, "z": 9, "type": "box"},
-    {"x": 1, "z": 12, "type": "box"},
-    {"x": 4, "z": 12, "type": "box"},
-    {"x": 7, "z": 12, "type": "box"},
-    {"x": 10, "z": 12, "type": "box"}
-  ],
-  "ghosts": [
-    {"x": 13, "z": 1, "color": "red", "speed": 8.0},
-    {"x": 1, "z": 13, "color": "blue", "speed": 8.0},
-    {"x": 12, "z": 12, "color": "green", "speed": 8.0},
-    {"x": 2, "z": 3, "color": "pink", "speed": 8.0}
+  "spikes": [
+    {"x": 4, "z": 2, "height": 2},
+    {"x": 6, "z": 3, "height": 2},
+    {"x": 8, "z": 4, "height": 2},
+    {"x": 3, "z": 6, "height": 2},
+    {"x": 9, "z": 6, "height": 2},
+    {"x": 5, "z": 8, "height": 2},
+    {"x": 7, "z": 10, "height": 2},
+    {"x": 11, "z": 5, "height": 2}
   ],
   "key": {
     "x": 12,
-    "z": 11
+    "z": 12
   },
   "exit": {
-    "x": 1,
-    "z": 12
-  }
+    "x": 6,
+    "z": 6
+  },
+  "obstacles": []
 } 

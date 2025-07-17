@@ -60,6 +60,15 @@ export class CollisionSystem {
         // Check collision with ghosts (Pacman mode)
         this.checkGhostCollisions();
         
+        // Check collision with bounce pads
+        this.checkBouncePadCollisions();
+        
+        // Check collision with spikes
+        this.checkSpikeCollisions();
+        
+        // Check collision with holes
+        this.checkHoleCollisions();
+        
         // Check world boundaries
         this.checkWorldBoundaries();
         
@@ -234,6 +243,171 @@ export class CollisionSystem {
         
         // Optional: reduce score slightly
         this.score = Math.max(0, this.score - 10);
+    }
+    
+    // Check collision with bounce pads
+    checkBouncePadCollisions() {
+        if (!this.gridManager.bouncePads) return;
+        
+        const playerPos = this.player.position;
+        const playerRadius = this.player.radius;
+        
+        this.gridManager.bouncePads.forEach(pad => {
+            const padPos = pad.mesh.position;
+            const distance = Math.sqrt(
+                Math.pow(playerPos.x - padPos.x, 2) + 
+                Math.pow(playerPos.z - padPos.z, 2)
+            );
+            
+            if (distance <= (playerRadius + 1.5) && 
+                playerPos.y <= padPos.y + 1 && 
+                playerPos.y >= padPos.y - 0.5) {
+                
+                this.handleBouncePadCollision(pad);
+            }
+        });
+    }
+    
+    // Handle bounce pad collision
+    handleBouncePadCollision(pad) {
+        console.log(`Bounce pad activated: ${pad.type}!`);
+        
+        if (pad.type === 'vertical') {
+            // Vertical bounce - launch upward
+            this.player.velocity.y = pad.force;
+            this.player.isOnGround = false;
+        } else if (pad.type === 'horizontal') {
+            // Horizontal bounce - launch in direction
+            const force = pad.force;
+            switch(pad.direction) {
+                case 'forward':
+                    this.player.velocity.z = -force;
+                    break;
+                case 'backward':
+                    this.player.velocity.z = force;
+                    break;
+                case 'left':
+                    this.player.velocity.x = -force;
+                    break;
+                case 'right':
+                    this.player.velocity.x = force;
+                    break;
+            }
+        }
+        
+        // Visual feedback - make pad flash
+        if (pad.mesh.material) {
+            const originalColor = pad.mesh.material.color.getHex();
+            const originalEmissive = pad.mesh.material.emissive.getHex();
+            
+            pad.mesh.material.color.setHex(0xffffff);
+            pad.mesh.material.emissive.setHex(0x666666);
+            
+            setTimeout(() => {
+                pad.mesh.material.color.setHex(originalColor);
+                pad.mesh.material.emissive.setHex(originalEmissive);
+            }, 200);
+        }
+    }
+    
+    // Check collision with spikes
+    checkSpikeCollisions() {
+        if (!this.gridManager.spikes) return;
+        
+        const playerPos = this.player.position;
+        const playerRadius = this.player.radius;
+        
+        this.gridManager.spikes.forEach(spike => {
+            const spikePos = spike.mesh.position;
+            const distance = Math.sqrt(
+                Math.pow(playerPos.x - spikePos.x, 2) + 
+                Math.pow(playerPos.z - spikePos.z, 2)
+            );
+            
+            if (distance <= (playerRadius + 0.5) && 
+                playerPos.y <= spikePos.y + 1 && 
+                playerPos.y >= spikePos.y - 1) {
+                
+                this.handleSpikeCollision(spike);
+            }
+        });
+    }
+    
+    // Handle spike collision
+    handleSpikeCollision(spike) {
+        console.log('Player hit spikes! Respawning...');
+        
+        // Reset player to spawn position
+        const levelData = this.gridManager.levelLoader.getCurrentLevel();
+        const spawnPoint = levelData.spawn;
+        this.player.setPosition(spawnPoint.x, spawnPoint.y, spawnPoint.z);
+        
+        // Reset player velocity
+        this.player.velocity.set(0, 0, 0);
+        
+        // Visual feedback - make spike flash
+        if (spike.mesh.material) {
+            const originalColor = spike.mesh.material.color.getHex();
+            const originalEmissive = spike.mesh.material.emissive.getHex();
+            
+            spike.mesh.material.color.setHex(0xffffff);
+            spike.mesh.material.emissive.setHex(0x999999);
+            
+            setTimeout(() => {
+                spike.mesh.material.color.setHex(originalColor);
+                spike.mesh.material.emissive.setHex(originalEmissive);
+            }, 300);
+        }
+    }
+    
+    // Check collision with holes
+    checkHoleCollisions() {
+        if (!this.gridManager.holes) return;
+        
+        const playerPos = this.player.position;
+        const playerRadius = this.player.radius;
+        
+        this.gridManager.holes.forEach(hole => {
+            const holePos = hole.mesh.position;
+            const distance = Math.sqrt(
+                Math.pow(playerPos.x - holePos.x, 2) + 
+                Math.pow(playerPos.z - holePos.z, 2)
+            );
+            
+            const holeRadius = Math.max(hole.width, hole.depth) * 2.5; // Tile size factor
+            
+            if (distance <= holeRadius && playerPos.y <= holePos.y + 1) {
+                this.handleHoleCollision(hole);
+            }
+        });
+    }
+    
+    // Handle hole collision
+    handleHoleCollision(hole) {
+        console.log('Player fell into hole! Teleporting to underworld...');
+        
+        // For now, just teleport to underworld spawn (same position but lower)
+        // In future, this could load a separate underworld level
+        const underworldSpawn = hole.underworldSpawn;
+        this.player.setPosition(
+            underworldSpawn.x, 
+            underworldSpawn.y || -10, // Go to underworld level
+            underworldSpawn.z
+        );
+        
+        // Reset player velocity
+        this.player.velocity.set(0, 0, 0);
+        
+        // Visual feedback - make hole flash
+        if (hole.mesh.material) {
+            const originalColor = hole.mesh.material.color.getHex();
+            
+            hole.mesh.material.color.setHex(0x333333);
+            
+            setTimeout(() => {
+                hole.mesh.material.color.setHex(originalColor);
+            }, 500);
+        }
     }
     
     getGhostBoundingBox(position) {

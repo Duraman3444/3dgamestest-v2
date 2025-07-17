@@ -115,6 +115,18 @@ export class LevelLoader {
             validated.ghosts = this.validateGhosts(levelData.ghosts || []);
         }
         
+        // Add bounce pads if present
+        validated.bouncePads = this.validateBouncePads(levelData.bouncePads || []);
+        
+        // Add spike traps if present
+        validated.spikes = this.validateSpikes(levelData.spikes || []);
+        
+        // Add holes if present
+        validated.holes = this.validateHoles(levelData.holes || []);
+        
+        // Add level-specific requirements
+        validated.requireAllCoins = levelData.requireAllCoins || false;
+        
         // Ensure we have at least some ground tiles
         if (validated.tiles.length === 0) {
             validated.tiles = this.generateDefaultTiles(validated.size.width, validated.size.height);
@@ -218,6 +230,50 @@ export class LevelLoader {
         }));
     }
     
+    // Validate bounce pads array
+    validateBouncePads(bouncePads) {
+        return bouncePads.filter(pad => 
+            typeof pad.x === 'number' && 
+            typeof pad.z === 'number' &&
+            pad.type
+        ).map(pad => ({
+            x: Math.floor(pad.x),
+            z: Math.floor(pad.z),
+            type: pad.type, // 'vertical' or 'horizontal'
+            force: pad.force || 15,
+            direction: pad.direction || 'up', // for horizontal: 'forward', 'backward', 'left', 'right'
+            y: pad.y || 0.5
+        }));
+    }
+    
+    // Validate spike traps array
+    validateSpikes(spikes) {
+        return spikes.filter(spike => 
+            typeof spike.x === 'number' && 
+            typeof spike.z === 'number'
+        ).map(spike => ({
+            x: Math.floor(spike.x),
+            z: Math.floor(spike.z),
+            y: spike.y || 0.1,
+            height: spike.height || 1.5,
+            damage: spike.damage || 100 // Instant kill
+        }));
+    }
+    
+    // Validate holes array
+    validateHoles(holes) {
+        return holes.filter(hole => 
+            typeof hole.x === 'number' && 
+            typeof hole.z === 'number'
+        ).map(hole => ({
+            x: Math.floor(hole.x),
+            z: Math.floor(hole.z),
+            width: hole.width || 1,
+            depth: hole.depth || 1,
+            underworldSpawn: hole.underworldSpawn || { x: hole.x, z: hole.z }
+        }));
+    }
+    
     // Get current level data
     getCurrentLevel() {
         return this.levelData || this.defaultLevel;
@@ -274,6 +330,30 @@ export class LevelLoader {
     getGhosts() {
         const level = this.getCurrentLevel();
         return level.ghosts || [];
+    }
+    
+    // Get bounce pads
+    getBouncePads() {
+        const level = this.getCurrentLevel();
+        return level.bouncePads || [];
+    }
+    
+    // Get spike traps
+    getSpikes() {
+        const level = this.getCurrentLevel();
+        return level.spikes || [];
+    }
+    
+    // Get holes
+    getHoles() {
+        const level = this.getCurrentLevel();
+        return level.holes || [];
+    }
+    
+    // Check if level requires all coins
+    requiresAllCoins() {
+        const level = this.getCurrentLevel();
+        return level.requireAllCoins || false;
     }
     
     // Convert world coordinates to grid coordinates

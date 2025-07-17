@@ -1,5 +1,5 @@
 {
-  "name": "Level 2 - The Maze",
+  "name": "Level 2 - Bounce Pads",
   "size": {
     "width": 12,
     "height": 12
@@ -156,48 +156,25 @@
     {"x": 11, "z": 11, "type": "ground"}
   ],
   "coins": [
-    {"x": 3, "z": 2},
-    {"x": 8, "z": 2},
-    {"x": 2, "z": 5},
-    {"x": 9, "z": 5},
+    {"x": 2, "z": 2},
     {"x": 5, "z": 8},
-    {"x": 6, "z": 9}
+    {"x": 9, "z": 3},
+    {"x": 7, "z": 10}
   ],
-  "obstacles": [
-    {"x": 2, "z": 3, "type": "box"},
-    {"x": 3, "z": 3, "type": "box"},
-    {"x": 4, "z": 3, "type": "box"},
-    {"x": 7, "z": 3, "type": "box"},
-    {"x": 8, "z": 3, "type": "box"},
-    {"x": 9, "z": 3, "type": "box"},
-    {"x": 4, "z": 4, "type": "box"},
-    {"x": 4, "z": 5, "type": "box"},
-    {"x": 4, "z": 6, "type": "box"},
-    {"x": 7, "z": 4, "type": "box"},
-    {"x": 7, "z": 5, "type": "box"},
-    {"x": 7, "z": 6, "type": "box"},
-    {"x": 2, "z": 7, "type": "box"},
-    {"x": 3, "z": 7, "type": "box"},
-    {"x": 4, "z": 7, "type": "box"},
-    {"x": 7, "z": 7, "type": "box"},
-    {"x": 8, "z": 7, "type": "box"},
-    {"x": 9, "z": 7, "type": "box"},
-    {"x": 5, "z": 4, "type": "box"},
-    {"x": 6, "z": 4, "type": "box"},
-    {"x": 5, "z": 6, "type": "box"},
-    {"x": 6, "z": 6, "type": "box"}
-  ],
-  "ghosts": [
-    {"x": 10, "z": 2, "color": "red", "speed": 6.5},
-    {"x": 1, "z": 10, "color": "blue", "speed": 6.5},
-    {"x": 8, "z": 10, "color": "green", "speed": 6.5}
+  "bouncePads": [
+    {"x": 3, "z": 3, "type": "vertical", "force": 15},
+    {"x": 6, "z": 2, "type": "horizontal", "direction": "forward", "force": 12},
+    {"x": 2, "z": 7, "type": "vertical", "force": 18},
+    {"x": 8, "z": 6, "type": "horizontal", "direction": "right", "force": 12},
+    {"x": 10, "z": 9, "type": "vertical", "force": 15}
   ],
   "key": {
     "x": 10,
     "z": 10
   },
   "exit": {
-    "x": 0,
-    "z": 0
-  }
+    "x": 5,
+    "z": 5
+  },
+  "obstacles": []
 } 

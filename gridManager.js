@@ -13,6 +13,9 @@ export class GridManager {
         this.walls = []; // For Pacman mode
         this.ghosts = []; // For Pacman mode
         this.borderWalls = []; // For Pacman mode border
+        this.bouncePads = []; // For bounce pad mechanics
+        this.spikes = []; // For spike trap mechanics
+        this.holes = []; // For hole mechanics
         
         // Get level data
         const levelData = this.levelLoader ? this.levelLoader.getCurrentLevel() : null;
@@ -222,6 +225,20 @@ export class GridManager {
                 green: new THREE.MeshLambertMaterial({ color: 0x00ff00 }),
                 pink: new THREE.MeshLambertMaterial({ color: 0xff69b4 })
             };
+            
+            // New level mechanics materials
+            this.bouncePadMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x00ff00,
+                emissive: 0x003300
+            });
+            this.spikeMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0xff0000,
+                emissive: 0x330000
+            });
+            this.holeMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x000000,
+                emissive: 0x000000
+            });
         }
         
         this.generateLevel();
@@ -288,6 +305,30 @@ export class GridManager {
             }
         });
         this.borderWalls = [];
+        
+        // Remove bounce pads
+        this.bouncePads.forEach(pad => {
+            if (pad.mesh) {
+                this.scene.remove(pad.mesh);
+            }
+        });
+        this.bouncePads = [];
+        
+        // Remove spikes
+        this.spikes.forEach(spike => {
+            if (spike.mesh) {
+                this.scene.remove(spike.mesh);
+            }
+        });
+        this.spikes = [];
+        
+        // Remove holes
+        this.holes.forEach(hole => {
+            if (hole.mesh) {
+                this.scene.remove(hole.mesh);
+            }
+        });
+        this.holes = [];
         
         // Remove ground plane if it exists
         // Find and remove ground plane by traversing scene children
@@ -358,6 +399,21 @@ export class GridManager {
         // Generate exit if present
         if (levelData.exit) {
             this.generateExit(levelData.exit);
+        }
+        
+        // Generate bounce pads if present
+        if (levelData.bouncePads) {
+            this.generateBouncePadsFromData(levelData.bouncePads);
+        }
+        
+        // Generate spike traps if present
+        if (levelData.spikes) {
+            this.generateSpikesFromData(levelData.spikes);
+        }
+        
+        // Generate holes if present
+        if (levelData.holes) {
+            this.generateHolesFromData(levelData.holes);
         }
     }
     
@@ -507,6 +563,88 @@ export class GridManager {
                 isRespawning: false, // Whether ghost is in respawn state
                 respawnHeadStart: 3.0, // 3 seconds head start after player death
                 respawnStartTime: 0 // When respawn head start began
+            });
+        });
+    }
+    
+    // Generate bounce pads from level data
+    generateBouncePadsFromData(bouncePadsData) {
+        bouncePadsData.forEach(padData => {
+            const worldPos = this.gridToWorld(padData.x, padData.z);
+            
+            // Create bounce pad geometry - cylinder for vertical, box for horizontal
+            let geometry;
+            if (padData.type === 'vertical') {
+                geometry = new THREE.CylinderGeometry(1, 1, 0.5, 8);
+            } else {
+                geometry = new THREE.BoxGeometry(2, 0.5, 2);
+            }
+            
+            const pad = new THREE.Mesh(geometry, this.bouncePadMaterial);
+            pad.position.set(worldPos.x, padData.y || 0.5, worldPos.z);
+            pad.castShadow = true;
+            pad.receiveShadow = true;
+            
+            this.scene.add(pad);
+            
+            this.bouncePads.push({
+                mesh: pad,
+                x: padData.x,
+                z: padData.z,
+                type: padData.type,
+                force: padData.force || 15,
+                direction: padData.direction || 'up'
+            });
+        });
+    }
+    
+    // Generate spikes from level data
+    generateSpikesFromData(spikesData) {
+        spikesData.forEach(spikeData => {
+            const worldPos = this.gridToWorld(spikeData.x, spikeData.z);
+            
+            // Create spike geometry - cone
+            const geometry = new THREE.ConeGeometry(0.5, spikeData.height || 1.5, 4);
+            const spike = new THREE.Mesh(geometry, this.spikeMaterial);
+            spike.position.set(worldPos.x, (spikeData.height || 1.5) / 2, worldPos.z);
+            spike.castShadow = true;
+            spike.receiveShadow = true;
+            
+            this.scene.add(spike);
+            
+            this.spikes.push({
+                mesh: spike,
+                x: spikeData.x,
+                z: spikeData.z,
+                damage: spikeData.damage || 100
+            });
+        });
+    }
+    
+    // Generate holes from level data
+    generateHolesFromData(holesData) {
+        holesData.forEach(holeData => {
+            const worldPos = this.gridToWorld(holeData.x, holeData.z);
+            
+            // Create hole geometry - dark plane below ground level
+            const geometry = new THREE.PlaneGeometry(
+                (holeData.width || 1) * this.tileSize,
+                (holeData.depth || 1) * this.tileSize
+            );
+            const hole = new THREE.Mesh(geometry, this.holeMaterial);
+            hole.position.set(worldPos.x, -0.1, worldPos.z);
+            hole.rotation.x = -Math.PI / 2;
+            hole.receiveShadow = true;
+            
+            this.scene.add(hole);
+            
+            this.holes.push({
+                mesh: hole,
+                x: holeData.x,
+                z: holeData.z,
+                width: holeData.width || 1,
+                depth: holeData.depth || 1,
+                underworldSpawn: holeData.underworldSpawn || { x: holeData.x, z: holeData.z }
             });
         });
     }
