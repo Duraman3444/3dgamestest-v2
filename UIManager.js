@@ -396,9 +396,7 @@ export class UIManager {
         const isPacmanMode = this.gameState.gameMode === 'pacman' || this.gameState.gameMode === 'pacman_classic';
         
         // Create or update classic mode wave display
-        if (this.gameState.isClassicMode && this.gameState.classicWave) {
-            this.updateClassicModeDisplay();
-        }
+        this.updateClassicModeDisplay();
         
         // Update score
         if (this.elements.scoreElement && this.settings.showScore) {
@@ -534,28 +532,35 @@ export class UIManager {
     
     // Create or update classic mode wave display
     updateClassicModeDisplay() {
-        if (!this.elements.classicWaveElement) {
-            // Create classic wave display element
-            const classicWaveElement = document.createElement('div');
-            classicWaveElement.id = 'classic-wave-display';
-            classicWaveElement.style.cssText = `
-                position: absolute;
-                top: 60px;
-                left: 10px;
-                color: #FF00FF;
-                font-family: Arial, sans-serif;
-                font-size: 16px;
-                font-weight: bold;
-                z-index: 101;
-                text-shadow: 2px 2px 0px #000000;
-            `;
-            document.body.appendChild(classicWaveElement);
-            this.elements.classicWaveElement = classicWaveElement;
-        }
-        
-        // Update the wave display
-        if (this.elements.classicWaveElement) {
+        // Only show wave display in classic mode
+        if (this.gameState.isClassicMode && this.gameState.classicWave) {
+            // Create the element if it doesn't exist
+            if (!this.elements.classicWaveElement) {
+                const classicWaveElement = document.createElement('div');
+                classicWaveElement.id = 'classic-wave-display';
+                classicWaveElement.style.cssText = `
+                    position: absolute;
+                    top: 60px;
+                    left: 10px;
+                    color: #FF00FF;
+                    font-family: Arial, sans-serif;
+                    font-size: 16px;
+                    font-weight: bold;
+                    z-index: 101;
+                    text-shadow: 2px 2px 0px #000000;
+                `;
+                document.body.appendChild(classicWaveElement);
+                this.elements.classicWaveElement = classicWaveElement;
+            }
+            
+            // Show and update the wave display
+            this.elements.classicWaveElement.style.display = 'block';
             this.elements.classicWaveElement.textContent = `Wave: ${this.gameState.classicWave}`;
+        } else {
+            // Hide the wave display when not in classic mode
+            if (this.elements.classicWaveElement) {
+                this.elements.classicWaveElement.style.display = 'none';
+            }
         }
     }
     
