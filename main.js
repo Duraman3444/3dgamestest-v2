@@ -546,6 +546,9 @@ class Game {
             this.currentLevel = 1; // Default to level 1 for other modes
         }
         
+        // Clean up UI elements to prevent duplication
+        this.cleanupUIElements();
+        
         // Show the game canvas
         this.canvas.style.display = 'block';
         
