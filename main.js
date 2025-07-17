@@ -570,8 +570,8 @@ class Game {
         this.gameMode = mode; // Store game mode
         this.difficulty = difficulty; // Store difficulty
         
-        // Set starting level (for single player mode with level selection)
-        if (mode === 'normal' && level) {
+        // Set starting level (for single player mode and pacman mode with level selection)
+        if ((mode === 'normal' || mode === 'pacman') && level) {
             this.currentLevel = level;
         } else {
             this.currentLevel = 1; // Default to level 1 for other modes
