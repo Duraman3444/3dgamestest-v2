@@ -758,6 +758,16 @@ export class UIManager {
         }
     }
     
+    // Force clear notification immediately (for level transitions)
+    clearNotification() {
+        this.notification.isActive = false;
+        
+        if (this.elements.notificationElement) {
+            this.elements.notificationElement.style.display = 'none';
+            this.elements.notificationElement.style.animation = 'fadeIn 0.3s ease-in-out';
+        }
+    }
+    
     // Update notifications
     updateNotifications() {
         if (this.notification.isActive) {

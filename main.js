@@ -401,6 +401,11 @@ class Game {
     async restartCurrentLevelFromPause() {
         console.log('Restarting current level from pause menu...');
         
+        // Clear any active notifications
+        if (this.uiManager) {
+            this.uiManager.clearNotification();
+        }
+        
         // Clear per-level progress for current level
         this.clearPerLevelProgress();
         
@@ -565,6 +570,11 @@ class Game {
             this.currentLevel = level;
         } else {
             this.currentLevel = 1; // Default to level 1 for other modes
+        }
+        
+        // Clear any active notifications
+        if (this.uiManager) {
+            this.uiManager.clearNotification();
         }
         
         // Clean up UI elements to prevent duplication
@@ -933,6 +943,11 @@ class Game {
             }
         } else {
             // Show menu and pause game
+            // Clear any active notifications
+            if (this.uiManager) {
+                this.uiManager.clearNotification();
+            }
+            
             this.mainMenu.show();
             this.canvas.style.display = 'none';
             
@@ -976,6 +991,11 @@ class Game {
     // Handle level completion - advance to next level and reload
     async handleLevelCompletion() {
         console.log('Level completed! Advancing to next level...');
+        
+        // Clear any active notifications
+        if (this.uiManager) {
+            this.uiManager.clearNotification();
+        }
         
         // Save progress for the completed level
         this.saveProgress(this.currentLevel);
@@ -1513,6 +1533,11 @@ class Game {
     returnToMainMenu() {
         console.log('Returning to main menu');
         
+        // Clear any active notifications
+        if (this.uiManager) {
+            this.uiManager.clearNotification();
+        }
+        
         // Stop auto-save system
         this.stopAutoSave();
         
@@ -1537,6 +1562,11 @@ class Game {
     
     retryLevel() {
         console.log('Retrying level');
+        
+        // Clear any active notifications
+        if (this.uiManager) {
+            this.uiManager.clearNotification();
+        }
         
         // Reset player lives
         if (this.player) {
@@ -1653,6 +1683,11 @@ class Game {
     
     async restartCurrentLevel() {
         try {
+            // Clear any active notifications
+            if (this.uiManager) {
+                this.uiManager.clearNotification();
+            }
+            
             // Hide game over screen
             this.gameOverScreen.hide();
             
