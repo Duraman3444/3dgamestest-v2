@@ -250,7 +250,9 @@ export class GridManager {
     }
     
     generateGhostsFromData(ghostsData) {
-        const ghostGeometry = new THREE.SphereGeometry(0.4, 8, 8);
+        // Create cylinder geometry for classic Pacman ghost shape
+        // radiusTop, radiusBottom, height, radialSegments
+        const ghostGeometry = new THREE.CylinderGeometry(0.9, 0.9, 1.8, 12);
         
         ghostsData.forEach(ghostData => {
             // For pacman mode, spawn ghosts at top of map instead of their defined position
