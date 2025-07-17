@@ -195,6 +195,25 @@ class Game {
             min-width: 250px;
         `;
         
+        // Restart level button
+        const restartLevelButton = document.createElement('button');
+        restartLevelButton.textContent = 'RESTART LEVEL';
+        restartLevelButton.style.cssText = `
+            background: linear-gradient(135deg, #1a0033 0%, #330066 100%);
+            border: 2px solid #ff6600;
+            color: #ff6600;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            border-radius: 8px;
+            cursor: pointer;
+            text-shadow: 2px 2px 0px #000000;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            min-width: 250px;
+        `;
+        
         // Main menu button
         const mainMenuButton = document.createElement('button');
         mainMenuButton.textContent = 'MAIN MENU';
@@ -270,6 +289,7 @@ class Game {
         };
         
         addHoverEffect(resumeButton, '#00ffff');
+        addHoverEffect(restartLevelButton, '#ff6600');
         addHoverEffect(mainMenuButton, '#ffff00');
         addHoverEffect(settingsButton, '#00ff00');
         addHoverEffect(quitButton, '#ff00ff');
@@ -277,6 +297,10 @@ class Game {
         // Add event listeners
         resumeButton.addEventListener('click', () => {
             this.togglePause();
+        });
+        
+        restartLevelButton.addEventListener('click', () => {
+            this.restartCurrentLevelFromPause();
         });
         
         mainMenuButton.addEventListener('click', () => {
@@ -293,6 +317,7 @@ class Game {
         
         // Add elements to containers
         buttonsContainer.appendChild(resumeButton);
+        buttonsContainer.appendChild(restartLevelButton);
         buttonsContainer.appendChild(mainMenuButton);
         buttonsContainer.appendChild(settingsButton);
         buttonsContainer.appendChild(quitButton);
@@ -356,6 +381,30 @@ class Game {
                 // Settings panel closed - no additional action needed
             });
         }
+    }
+
+    // Restart current level from pause menu
+    async restartCurrentLevelFromPause() {
+        console.log('Restarting current level from pause menu...');
+        
+        // Clear per-level progress for current level
+        this.clearPerLevelProgress();
+        
+        // Clear current saved game state
+        this.clearSavedGameState();
+        
+        // Hide pause overlay
+        if (this.pauseOverlay) {
+            document.body.removeChild(this.pauseOverlay);
+            this.pauseOverlay = null;
+        }
+        
+        this.isPaused = false;
+        
+        // Restart the current level
+        await this.restartCurrentLevel();
+        
+        console.log(`Level ${this.currentLevel} restarted successfully`);
     }
     
     applyGameSetting(category, key, value) {
@@ -503,6 +552,9 @@ class Game {
         } else {
             this.currentLevel = 1; // Default to level 1 for other modes
         }
+        
+        // Clean up UI elements to prevent duplication
+        this.cleanupUIElements();
         
         // Show the game canvas
         this.canvas.style.display = 'block';
@@ -1580,6 +1632,9 @@ class Game {
             if (this.gridManager) {
                 this.gridManager.cleanupLevel();
             }
+            
+            // Clean up UI elements to prevent duplication
+            this.cleanupUIElements();
             
             // Clean up existing player objects
             if (this.player) {
