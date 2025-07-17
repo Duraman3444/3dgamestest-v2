@@ -457,7 +457,7 @@ class Game {
     applyFogSetting(enabled) {
         if (this.scene) {
             if (enabled) {
-                this.scene.fog = new THREE.Fog(0x000000, 10, 100);
+                this.scene.fog = new THREE.Fog(0x222222, 80, 300);
             } else {
                 this.scene.fog = null;
             }
@@ -523,9 +523,9 @@ class Game {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(window.devicePixelRatio);
         
-        // Set background color based on game mode
+        // Set background color based on game mode - slightly brighter
         if (this.gameMode === 'pacman') {
-            this.renderer.setClearColor(0x000000); // Black background for neon theme
+            this.renderer.setClearColor(0x111122); // Dark blue-grey background for neon theme
         } else {
             this.renderer.setClearColor(0x87CEEB); // Sky blue background for normal mode
         }
@@ -537,48 +537,48 @@ class Game {
     setupScene() {
         this.scene = new THREE.Scene();
         
-        // Add fog for depth
-        this.scene.fog = new THREE.Fog(0x87CEEB, 50, 200);
+        // Add fog for depth - reduced intensity for better visibility
+        this.scene.fog = new THREE.Fog(0x87CEEB, 80, 300);
     }
     
     setupLighting() {
-        // Ambient light for general illumination
-        const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
+        // Ambient light for general illumination - significantly brighter
+        const ambientLight = new THREE.AmbientLight(0x404040, 1.2);
         this.scene.add(ambientLight);
         
         if (this.gameMode === 'pacman') {
-            // Enhanced lighting for neon 80s/Tron theme
+            // Enhanced lighting for neon 80s/Tron theme - much brighter
             
-            // Dim the ambient light for more dramatic effect
-            ambientLight.intensity = 0.2;
-            ambientLight.color = new THREE.Color(0x001122); // Dark blue ambient
+            // Increase ambient light for better visibility while maintaining atmosphere
+            ambientLight.intensity = 0.8;
+            ambientLight.color = new THREE.Color(0x223344); // Brighter blue ambient
             
-            // Add colored neon-style lights
-            const neonLight1 = new THREE.DirectionalLight(0x00FFFF, 0.8); // Cyan light
+            // Add colored neon-style lights - increased intensity
+            const neonLight1 = new THREE.DirectionalLight(0x00FFFF, 1.5); // Cyan light - brighter
             neonLight1.position.set(10, 10, 10);
             neonLight1.castShadow = true;
             neonLight1.shadow.mapSize.width = 2048;
             neonLight1.shadow.mapSize.height = 2048;
             this.scene.add(neonLight1);
             
-            const neonLight2 = new THREE.DirectionalLight(0xFF00FF, 0.6); // Magenta light
+            const neonLight2 = new THREE.DirectionalLight(0xFF00FF, 1.2); // Magenta light - brighter
             neonLight2.position.set(-10, 10, -10);
             neonLight2.castShadow = true;
             neonLight2.shadow.mapSize.width = 2048;
             neonLight2.shadow.mapSize.height = 2048;
             this.scene.add(neonLight2);
             
-            // Add point lights for extra glow effect
-            const pointLight1 = new THREE.PointLight(0xFFFF00, 2, 30); // Yellow point light
+            // Add point lights for extra glow effect - increased intensity
+            const pointLight1 = new THREE.PointLight(0xFFFF00, 3, 35); // Yellow point light - brighter
             pointLight1.position.set(0, 5, 0);
             this.scene.add(pointLight1);
             
-            const pointLight2 = new THREE.PointLight(0x00FF00, 1.5, 25); // Green point light
+            const pointLight2 = new THREE.PointLight(0x00FF00, 2.5, 30); // Green point light - brighter
             pointLight2.position.set(0, 8, 0);
             this.scene.add(pointLight2);
             
         } else if (this.gameMode === 'normal') {
-            // PS2 theme lighting for single player mode
+            // PS2 theme lighting for single player mode - much brighter
             
             // PS2-style lighting colors based on current level
             const ps2LightThemes = {
@@ -597,35 +597,35 @@ class Game {
             const lightThemeIndex = ((this.currentLevel - 1) % 10) + 1;
             const lightTheme = ps2LightThemes[lightThemeIndex];
             
-            // Adjust ambient light for PS2 theme
-            ambientLight.intensity = 0.3;
-            ambientLight.color = new THREE.Color(0x222244); // Dark blue-purple ambient
+            // Adjust ambient light for PS2 theme - much brighter
+            ambientLight.intensity = 0.9;
+            ambientLight.color = new THREE.Color(0x444466); // Brighter blue-purple ambient
             
-            // PS2-style directional lights
-            const ps2Light1 = new THREE.DirectionalLight(lightTheme.primary, 0.7);
+            // PS2-style directional lights - increased intensity
+            const ps2Light1 = new THREE.DirectionalLight(lightTheme.primary, 1.3);
             ps2Light1.position.set(10, 10, 10);
             ps2Light1.castShadow = true;
             ps2Light1.shadow.mapSize.width = 2048;
             ps2Light1.shadow.mapSize.height = 2048;
             this.scene.add(ps2Light1);
             
-            const ps2Light2 = new THREE.DirectionalLight(lightTheme.secondary, 0.5);
+            const ps2Light2 = new THREE.DirectionalLight(lightTheme.secondary, 1.0);
             ps2Light2.position.set(-10, 10, -10);
             ps2Light2.castShadow = true;
             ps2Light2.shadow.mapSize.width = 2048;
             ps2Light2.shadow.mapSize.height = 2048;
             this.scene.add(ps2Light2);
             
-            // PS2-style point lights for glow effect
-            const ps2PointLight = new THREE.PointLight(lightTheme.primary, 1.5, 25);
+            // PS2-style point lights for glow effect - increased intensity
+            const ps2PointLight = new THREE.PointLight(lightTheme.primary, 2.5, 35);
             ps2PointLight.position.set(0, 6, 0);
             this.scene.add(ps2PointLight);
             
         } else {
-            // Standard lighting for normal mode
+            // Standard lighting for normal mode - much brighter
             
-            // Directional light (sun)
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            // Directional light (sun) - increased intensity
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
             directionalLight.position.set(10, 10, 5);
             directionalLight.castShadow = true;
             directionalLight.shadow.mapSize.width = 2048;
@@ -638,8 +638,8 @@ class Game {
             directionalLight.shadow.camera.bottom = -50;
             this.scene.add(directionalLight);
             
-            // Point light for additional illumination
-            const pointLight = new THREE.PointLight(0xffffff, 1, 50);
+            // Point light for additional illumination - increased intensity
+            const pointLight = new THREE.PointLight(0xffffff, 2, 60);
             pointLight.position.set(0, 10, 0);
             this.scene.add(pointLight);
         }
