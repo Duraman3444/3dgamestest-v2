@@ -688,6 +688,7 @@ class Game {
         this.collisionSystem.setPlayer(this.player);
         this.collisionSystem.setGrid(this.gridManager);
         this.collisionSystem.setGameOverCallback(() => this.handleGameOver());
+        this.collisionSystem.setLevelCompletionCallback(() => this.handleLevelCompletion());
         
         // Setup game loop
         this.gameLoop = new GameLoop(this.renderer, this.scene, this.cameraSystem.camera, {
@@ -825,17 +826,60 @@ class Game {
         this.gameOverScreen.show();
     }
     
+    // Handle level completion - advance to next level and reload
+    async handleLevelCompletion() {
+        console.log('Level completed! Advancing to next level...');
+        
+        // Stop the game loop
+        if (this.gameLoop) {
+            this.gameLoop.stop();
+        }
+        
+        // Advance to next level
+        const hasNextLevel = this.nextLevel();
+        
+        if (hasNextLevel) {
+            try {
+                // Brief pause to show completion
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Reload the game with the new level
+                await this.restartCurrentLevel();
+                
+                console.log(`Started level ${this.currentLevel}`);
+            } catch (error) {
+                console.error('Error advancing to next level:', error);
+                // Fall back to game over if level loading fails
+                this.handleGameOver();
+            }
+        } else {
+            // No more levels - show game completion or return to menu
+            console.log('All levels completed!');
+            this.handleGameOver(); // For now, treat as game over
+        }
+    }
+    
     // Level progression methods for pacman mode
     getCurrentLevel() {
         return this.currentLevel;
     }
     
     nextLevel() {
-        if (this.gameMode === 'pacman' && this.currentLevel < this.maxLevel) {
-            this.currentLevel++;
-            console.log(`Advanced to level ${this.currentLevel}`);
-            // TODO: Reload level with new difficulty
-            return true;
+        if (this.gameMode === 'pacman') {
+            // Pacman mode: advance through levels 1-10
+            if (this.currentLevel < this.maxLevel) {
+                this.currentLevel++;
+                console.log(`Advanced to pacman level ${this.currentLevel}`);
+                return true;
+            }
+        } else {
+            // Normal mode: advance through available level files (level1.json to level4.json)
+            const maxNormalLevel = 4;
+            if (this.currentLevel < maxNormalLevel) {
+                this.currentLevel++;
+                console.log(`Advanced to level ${this.currentLevel}`);
+                return true;
+            }
         }
         return false;
     }
@@ -1062,6 +1106,21 @@ class Game {
             if (gameUI) gameUI.style.display = 'block';
             if (crosshair) crosshair.style.display = 'block';
             if (instructions) instructions.style.display = 'block';
+            
+            // Clean up existing game objects before restarting
+            if (this.gridManager) {
+                this.gridManager.cleanupLevel();
+            }
+            
+            // Clean up existing player objects
+            if (this.player) {
+                if (this.player.mesh) {
+                    this.scene.remove(this.player.mesh);
+                }
+                if (this.player.rotationHelper) {
+                    this.scene.remove(this.player.rotationHelper);
+                }
+            }
             
             // Reinitialize the game systems with current level
             await this.setupSystems();

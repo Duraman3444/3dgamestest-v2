@@ -227,7 +227,85 @@ export class GridManager {
         this.generateLevel();
     }
     
+    // Clean up all existing scene objects before generating new level
+    cleanupLevel() {
+        // Remove all tiles
+        this.tiles.forEach(tile => {
+            if (tile.mesh) {
+                this.scene.remove(tile.mesh);
+            }
+        });
+        this.tiles.clear();
+        
+        // Remove all obstacles
+        this.obstacles.forEach(obstacle => {
+            if (obstacle.mesh) {
+                this.scene.remove(obstacle.mesh);
+            }
+        });
+        this.obstacles = [];
+        
+        // Remove all collectibles
+        this.collectibles.forEach(collectible => {
+            if (collectible.mesh) {
+                this.scene.remove(collectible.mesh);
+            }
+        });
+        this.collectibles = [];
+        
+        // Remove key object
+        if (this.keyObject && this.keyObject.mesh) {
+            this.scene.remove(this.keyObject.mesh);
+            this.keyObject = null;
+        }
+        
+        // Remove exit object
+        if (this.exitObject && this.exitObject.mesh) {
+            this.scene.remove(this.exitObject.mesh);
+            this.exitObject = null;
+        }
+        
+        // Remove walls (Pacman mode)
+        this.walls.forEach(wall => {
+            if (wall.mesh) {
+                this.scene.remove(wall.mesh);
+            }
+        });
+        this.walls = [];
+        
+        // Remove ghosts (Pacman mode)
+        this.ghosts.forEach(ghost => {
+            if (ghost.mesh) {
+                this.scene.remove(ghost.mesh);
+            }
+        });
+        this.ghosts = [];
+        
+        // Remove border walls (Pacman mode)
+        this.borderWalls.forEach(borderWall => {
+            if (borderWall.mesh) {
+                this.scene.remove(borderWall.mesh);
+            }
+        });
+        this.borderWalls = [];
+        
+        // Remove ground plane if it exists
+        // Find and remove ground plane by traversing scene children
+        const objectsToRemove = [];
+        this.scene.traverse(child => {
+            if (child instanceof THREE.Mesh && child.geometry instanceof THREE.PlaneGeometry) {
+                objectsToRemove.push(child);
+            }
+        });
+        objectsToRemove.forEach(obj => this.scene.remove(obj));
+        
+        console.log('Level cleanup completed');
+    }
+    
     generateLevel() {
+        // Clean up existing level objects before generating new ones
+        this.cleanupLevel();
+        
         if (this.levelLoader) {
             this.generateLevelFromData();
         } else {

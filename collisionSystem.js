@@ -18,6 +18,9 @@ export class CollisionSystem {
         
         // Game over callback
         this.gameOverCallback = null;
+        
+        // Level completion callback
+        this.levelCompletionCallback = null;
     }
     
     setPlayer(player) {
@@ -30,6 +33,10 @@ export class CollisionSystem {
     
     setGameOverCallback(callback) {
         this.gameOverCallback = callback;
+    }
+    
+    setLevelCompletionCallback(callback) {
+        this.levelCompletionCallback = callback;
     }
     
     update(deltaTime) {
@@ -162,7 +169,11 @@ export class CollisionSystem {
                 if (this.gridManager.canActivateExit()) {
                     this.gridManager.activateExit();
                     console.log('Level completed!');
-                    // Could trigger level completion event here
+                    
+                    // Trigger level completion callback
+                    if (this.levelCompletionCallback) {
+                        this.levelCompletionCallback();
+                    }
                 } else {
                     console.log('Collect all items and the key first!');
                 }
