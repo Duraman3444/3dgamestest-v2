@@ -615,10 +615,17 @@ export class GridManager {
     }
     
     generateTilesFromData(tilesData) {
+        console.log('🏗️ Generating tiles from data:', tilesData.length, 'tiles');
+        
         tilesData.forEach(tileData => {
             const tileKey = `${tileData.x},${tileData.z}`;
             const tile = this.createTile(tileData.x, tileData.z, tileData.height);
             this.tiles.set(tileKey, tile);
+            
+            // Debug elevated tiles
+            if (tileData.height > 0) {
+                console.log(`🏔️ Created elevated tile at (${tileData.x}, ${tileData.z}) with height ${tileData.height}`);
+            }
         });
     }
     
@@ -627,13 +634,24 @@ export class GridManager {
         
         // Create visual tile if it has height (elevated platform)
         if (height > 0) {
+            console.log(`🎯 Creating elevated tile mesh at grid (${x}, ${z}) world (${worldPos.x}, ${worldPos.z}) height ${height}`);
+            
             const tileGeometry = new THREE.BoxGeometry(this.tileSize, height, this.tileSize);
-            const tileMesh = new THREE.Mesh(tileGeometry, this.groundMaterial);
+            // Temporarily use bright red material to make elevated tiles visible
+            const elevatedMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0xFF0000, // Bright red
+                emissive: 0x330000,
+                emissiveIntensity: 0.3
+            });
+            const tileMesh = new THREE.Mesh(tileGeometry, elevatedMaterial);
             tileMesh.position.set(worldPos.x, height / 2, worldPos.z);
             tileMesh.castShadow = true;
             tileMesh.receiveShadow = true;
             
             this.scene.add(tileMesh);
+            
+            console.log(`✅ Added elevated tile mesh to scene at position (${worldPos.x}, ${height / 2}, ${worldPos.z})`);
+            console.log(`📦 Tile geometry: ${this.tileSize}x${height}x${this.tileSize}, Material: red`);
             
             return {
                 x: x,

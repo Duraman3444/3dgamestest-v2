@@ -50,12 +50,26 @@ export class LevelLoader {
     // Load level from JSON file
     async loadLevel(levelPath) {
         try {
-            const response = await fetch(levelPath);
+            // Add cache-busting to prevent browser caching issues
+            const cacheBuster = `?t=${Date.now()}`;
+            const response = await fetch(levelPath + cacheBuster);
             if (!response.ok) {
                 throw new Error(`Failed to load level: ${response.status}`);
             }
             
             const levelData = await response.json();
+            
+            console.log(`📄 Raw level data loaded from ${levelPath}:`, levelData);
+            console.log('🔍 Raw tiles count:', levelData.tiles?.length || 0);
+            
+            // Debug: Check for elevated tiles in raw data
+            if (levelData.tiles) {
+                const rawElevatedTiles = levelData.tiles.filter(tile => tile.height > 0);
+                console.log('🏔️ Raw elevated tiles from JSON:', rawElevatedTiles.length);
+                rawElevatedTiles.forEach(tile => {
+                    console.log(`   - JSON tile at (${tile.x}, ${tile.z}) height: ${tile.height} (type: ${typeof tile.height})`);
+                });
+            }
 
             this.levelData = this.validateLevel(levelData);
             this.currentLevel = levelPath;
@@ -141,16 +155,43 @@ export class LevelLoader {
     
     // Validate tiles array
     validateTiles(tiles) {
-        return tiles.filter(tile => 
+        console.log('🔍 Validating tiles:', tiles.length, 'tiles');
+        
+        // Debug: Check raw tile data for elevated tiles
+        const rawElevatedTiles = tiles.filter(tile => tile.height > 0);
+        console.log('🏔️ Raw elevated tiles before validation:', rawElevatedTiles.length);
+        rawElevatedTiles.forEach(tile => {
+            console.log(`   - Raw tile at (${tile.x}, ${tile.z}) with height ${tile.height}, type: ${typeof tile.height}`);
+        });
+        
+        const validatedTiles = tiles.filter(tile => 
             typeof tile.x === 'number' && 
             typeof tile.z === 'number' &&
             tile.type
-        ).map(tile => ({
-            x: Math.floor(tile.x),
-            z: Math.floor(tile.z),
-            type: tile.type || 'ground',
-            height: tile.height || 0
-        }));
+        ).map(tile => {
+            const validatedTile = {
+                x: Math.floor(tile.x),
+                z: Math.floor(tile.z),
+                type: tile.type || 'ground',
+                height: tile.height || 0
+            };
+            
+            // Debug individual tile validation
+            if (tile.height > 0) {
+                console.log(`🔧 Validating elevated tile: (${tile.x}, ${tile.z}) height ${tile.height} -> ${validatedTile.height}`);
+            }
+            
+            return validatedTile;
+        });
+        
+        // Debug elevated tiles after validation
+        const elevatedTiles = validatedTiles.filter(tile => tile.height > 0);
+        console.log('🏔️ Found elevated tiles after validation:', elevatedTiles.length);
+        elevatedTiles.forEach(tile => {
+            console.log(`   - Tile at (${tile.x}, ${tile.z}) with height ${tile.height}`);
+        });
+        
+        return validatedTiles;
     }
     
     // Validate coins array
