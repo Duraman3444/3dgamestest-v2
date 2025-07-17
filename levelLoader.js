@@ -56,8 +56,7 @@ export class LevelLoader {
             }
             
             const levelData = await response.json();
-            console.log('🔍 DEBUG: Raw level data loaded:', levelData);
-            console.log('🔍 DEBUG: Portals in raw data:', levelData.portals);
+
             this.levelData = this.validateLevel(levelData);
             this.currentLevel = levelPath;
             
@@ -127,9 +126,7 @@ export class LevelLoader {
         validated.holes = this.validateHoles(levelData.holes || []);
         
         // Add portals if present
-        console.log('Raw portals from level data:', levelData.portals);
         validated.portals = this.validatePortals(levelData.portals || []);
-        console.log('Validated portals:', validated.portals);
         
         // Add level-specific requirements
         validated.requireAllCoins = levelData.requireAllCoins || false;
@@ -269,8 +266,7 @@ export class LevelLoader {
     
     // Validate portals array
     validatePortals(portals) {
-        console.log('Validating portals:', portals);
-        const validatedPortals = portals.filter(portal =>
+        return portals.filter(portal =>
             typeof portal.x === 'number' &&
             typeof portal.z === 'number' &&
             portal.destination &&
@@ -287,8 +283,6 @@ export class LevelLoader {
             },
             type: portal.type || 'default'
         }));
-        console.log('Validated portals result:', validatedPortals);
-        return validatedPortals;
     }
     
     // Validate holes array

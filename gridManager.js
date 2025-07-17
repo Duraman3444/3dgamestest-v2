@@ -2,7 +2,7 @@ import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
 
 export class GridManager {
     constructor(scene, levelLoader = null) {
-        console.log('🔍 DEBUG: GridManager constructor called');
+
         this.scene = scene;
         this.levelLoader = levelLoader;
         this.tileSize = 5;
@@ -513,23 +513,18 @@ export class GridManager {
     }
     
     generateLevel() {
-        console.log('🔍 DEBUG: generateLevel called');
         // Clean up existing level objects before generating new ones
         this.cleanupLevel();
         
         if (this.levelLoader) {
-            console.log('🔍 DEBUG: levelLoader exists, calling generateLevelFromData');
             this.generateLevelFromData();
         } else {
-            console.log('🔍 DEBUG: No levelLoader, calling generateDefaultLevel');
             this.generateDefaultLevel();
         }
     }
     
     generateLevelFromData() {
-        console.log('🔍 DEBUG: generateLevelFromData called');
         const levelData = this.levelLoader.getCurrentLevel();
-        console.log('🔍 DEBUG: Level data from loader:', levelData);
         
         // Create ground plane
         const planeGeometry = new THREE.PlaneGeometry(levelData.size.width * this.tileSize, levelData.size.height * this.tileSize);
@@ -591,12 +586,8 @@ export class GridManager {
         }
         
         // Generate portals if present
-        console.log('Checking for portals in level data:', levelData.portals);
         if (levelData.portals && levelData.portals.length > 0) {
-            console.log('Portals found, generating...');
             this.generatePortalsFromData(levelData.portals);
-        } else {
-            console.log('No portals found in level data or portals array is empty');
         }
     }
     
@@ -855,8 +846,6 @@ export class GridManager {
     
     // Generate portals from level data
     generatePortalsFromData(portalsData) {
-        console.log(`Generating ${portalsData.length} portals:`, portalsData);
-        
         portalsData.forEach(portalData => {
             const worldPos = this.levelLoader.gridToWorld(portalData.x, portalData.z, this.tileSize);
             
@@ -880,8 +869,6 @@ export class GridManager {
                 type: portalData.type || 'default',
                 destination: portalData.destination
             });
-            
-            console.log(`Portal created at grid (${portalData.x}, ${portalData.z}) -> world (${worldPos.x}, ${(portalData.y || 1) + 1.5}, ${worldPos.z})`);
         });
     }
     
