@@ -21,29 +21,77 @@ export class GridManager {
         // Grid properties
         this.gridOffset = { x: 0, z: 0 };
         
-        // Materials
-        this.groundMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
-        this.obstacleMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
-        this.collectibleMaterial = new THREE.MeshLambertMaterial({ 
-            color: 0xFFD700,
-            emissive: 0x444400
-        });
-        this.keyMaterial = new THREE.MeshLambertMaterial({
-            color: 0x00ffff,
-            emissive: 0x004444
-        });
-        this.exitMaterial = new THREE.MeshLambertMaterial({
-            color: 0x00ff00,
-            emissive: 0x004400
-        });
-        // Pacman-specific materials
-        this.wallMaterial = new THREE.MeshLambertMaterial({ color: 0x0000ff });
-        this.ghostMaterials = {
-            red: new THREE.MeshLambertMaterial({ color: 0xff0000 }),
-            blue: new THREE.MeshLambertMaterial({ color: 0x0000ff }),
-            green: new THREE.MeshLambertMaterial({ color: 0x00ff00 }),
-            pink: new THREE.MeshLambertMaterial({ color: 0xff69b4 })
-        };
+        // Check if we're in Pacman mode to apply neon theme
+        const isPacmanMode = this.levelType === 'pacman';
+        
+        // Materials - Apply neon theme for Pacman mode
+        if (isPacmanMode) {
+            // Neon 80s/Tron theme for Pacman
+            this.groundMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x000022, // Very dark blue, almost black
+                emissive: 0x000011 // Subtle blue glow
+            });
+            this.obstacleMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+            this.collectibleMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0xFFFF00, // Bright yellow
+                emissive: 0x888800 // Strong yellow glow
+            });
+            this.keyMaterial = new THREE.MeshLambertMaterial({
+                color: 0x00ffff,
+                emissive: 0x004444
+            });
+            this.exitMaterial = new THREE.MeshLambertMaterial({
+                color: 0x00ff00,
+                emissive: 0x008800 // Bright green glow
+            });
+            // Neon Pacman-specific materials
+            this.wallMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x00FFFF, // Bright cyan
+                emissive: 0x006666 // Cyan glow
+            });
+            this.ghostMaterials = {
+                red: new THREE.MeshLambertMaterial({ 
+                    color: 0xFF0040, // Bright neon red
+                    emissive: 0x440011 // Red glow
+                }),
+                blue: new THREE.MeshLambertMaterial({ 
+                    color: 0x0080FF, // Bright neon blue
+                    emissive: 0x002244 // Blue glow
+                }),
+                green: new THREE.MeshLambertMaterial({ 
+                    color: 0x40FF00, // Bright neon green
+                    emissive: 0x114400 // Green glow
+                }),
+                pink: new THREE.MeshLambertMaterial({ 
+                    color: 0xFF0080, // Bright neon pink
+                    emissive: 0x440022 // Pink glow
+                })
+            };
+        } else {
+            // Normal theme for regular levels
+            this.groundMaterial = new THREE.MeshLambertMaterial({ color: 0x228B22 });
+            this.obstacleMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+            this.collectibleMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0xFFD700,
+                emissive: 0x444400
+            });
+            this.keyMaterial = new THREE.MeshLambertMaterial({
+                color: 0x00ffff,
+                emissive: 0x004444
+            });
+            this.exitMaterial = new THREE.MeshLambertMaterial({
+                color: 0x00ff00,
+                emissive: 0x004400
+            });
+            // Normal Pacman-specific materials
+            this.wallMaterial = new THREE.MeshLambertMaterial({ color: 0x0000ff });
+            this.ghostMaterials = {
+                red: new THREE.MeshLambertMaterial({ color: 0xff0000 }),
+                blue: new THREE.MeshLambertMaterial({ color: 0x0000ff }),
+                green: new THREE.MeshLambertMaterial({ color: 0x00ff00 }),
+                pink: new THREE.MeshLambertMaterial({ color: 0xff69b4 })
+            };
+        }
         
         this.generateLevel();
     }
@@ -389,6 +437,28 @@ export class GridManager {
             const time = performance.now() * 0.001;
             const scale = 1 + Math.sin(time * 2) * 0.05;
             this.exitObject.mesh.scale.set(scale, scale, scale);
+        }
+        
+        // Neon pulsing effect for walls in Pacman mode
+        if (this.levelType === 'pacman' && this.walls.length > 0) {
+            const time = performance.now() * 0.001;
+            const pulseIntensity = 0.5 + Math.sin(time * 3) * 0.3; // Pulsing between 0.2 and 0.8
+            
+            this.walls.forEach(wall => {
+                if (wall.mesh && wall.mesh.material) {
+                    // Create pulsing neon effect
+                    const baseCyan = 0x00FFFF;
+                    const baseEmissive = 0x006666;
+                    
+                    // Modify emissive color for pulsing effect
+                    const emissiveIntensity = Math.floor(baseEmissive * pulseIntensity);
+                    wall.mesh.material.emissive.setHex(emissiveIntensity);
+                    
+                    // Subtle scale pulsing
+                    const scaleMultiplier = 1 + Math.sin(time * 2.5) * 0.02;
+                    wall.mesh.scale.set(scaleMultiplier, scaleMultiplier, scaleMultiplier);
+                }
+            });
         }
         
         // Update ghosts (Pacman mode)

@@ -303,7 +303,14 @@ class Game {
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(window.devicePixelRatio);
-        this.renderer.setClearColor(0x87CEEB); // Sky blue background
+        
+        // Set background color based on game mode
+        if (this.gameMode === 'pacman') {
+            this.renderer.setClearColor(0x000000); // Black background for neon theme
+        } else {
+            this.renderer.setClearColor(0x87CEEB); // Sky blue background for normal mode
+        }
+        
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     }
@@ -316,23 +323,63 @@ class Game {
     }
     
     setupLighting() {
-        // Ambient light
-        const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+        // Ambient light for general illumination
+        const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
         this.scene.add(ambientLight);
         
-        // Directional light (sun)
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-        directionalLight.position.set(50, 100, 50);
-        directionalLight.castShadow = true;
-        directionalLight.shadow.mapSize.width = 2048;
-        directionalLight.shadow.mapSize.height = 2048;
-        directionalLight.shadow.camera.near = 0.5;
-        directionalLight.shadow.camera.far = 500;
-        directionalLight.shadow.camera.left = -100;
-        directionalLight.shadow.camera.right = 100;
-        directionalLight.shadow.camera.top = 100;
-        directionalLight.shadow.camera.bottom = -100;
-        this.scene.add(directionalLight);
+        if (this.gameMode === 'pacman') {
+            // Enhanced lighting for neon 80s/Tron theme
+            
+            // Dim the ambient light for more dramatic effect
+            ambientLight.intensity = 0.2;
+            ambientLight.color = new THREE.Color(0x001122); // Dark blue ambient
+            
+            // Add colored neon-style lights
+            const neonLight1 = new THREE.DirectionalLight(0x00FFFF, 0.8); // Cyan light
+            neonLight1.position.set(10, 10, 10);
+            neonLight1.castShadow = true;
+            neonLight1.shadow.mapSize.width = 2048;
+            neonLight1.shadow.mapSize.height = 2048;
+            this.scene.add(neonLight1);
+            
+            const neonLight2 = new THREE.DirectionalLight(0xFF00FF, 0.6); // Magenta light
+            neonLight2.position.set(-10, 10, -10);
+            neonLight2.castShadow = true;
+            neonLight2.shadow.mapSize.width = 2048;
+            neonLight2.shadow.mapSize.height = 2048;
+            this.scene.add(neonLight2);
+            
+            // Add point lights for extra glow effect
+            const pointLight1 = new THREE.PointLight(0xFFFF00, 2, 30); // Yellow point light
+            pointLight1.position.set(0, 5, 0);
+            this.scene.add(pointLight1);
+            
+            const pointLight2 = new THREE.PointLight(0x00FF00, 1.5, 25); // Green point light
+            pointLight2.position.set(0, 8, 0);
+            this.scene.add(pointLight2);
+            
+        } else {
+            // Standard lighting for normal mode
+            
+            // Directional light (sun)
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(10, 10, 5);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            directionalLight.shadow.camera.near = 0.1;
+            directionalLight.shadow.camera.far = 100;
+            directionalLight.shadow.camera.left = -50;
+            directionalLight.shadow.camera.right = 50;
+            directionalLight.shadow.camera.top = 50;
+            directionalLight.shadow.camera.bottom = -50;
+            this.scene.add(directionalLight);
+            
+            // Point light for additional illumination
+            const pointLight = new THREE.PointLight(0xffffff, 1, 50);
+            pointLight.position.set(0, 10, 0);
+            this.scene.add(pointLight);
+        }
     }
     
     async setupSystems() {
@@ -765,7 +812,5 @@ class Game {
     }
 }
 
-// Initialize the game when the page loads
-window.addEventListener('load', () => {
-    window.game = new Game();
-}); 
+// Initialize the game
+window.game = new Game(); 

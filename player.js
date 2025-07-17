@@ -47,32 +47,45 @@ export class Player {
         // Create a properly scaled sphere geometry for the player
         const geometry = new THREE.SphereGeometry(1, 32, 32);
         
-        // Create a colorful striped material
-        const canvas = document.createElement('canvas');
-        canvas.width = 256;
-        canvas.height = 256;
-        const context = canvas.getContext('2d');
+        // Check if we're in Pacman mode (via global game reference)
+        const isPacmanMode = window.game && window.game.gameMode === 'pacman';
         
-        // Create striped pattern
-        const stripeHeight = 32;
-        const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7'];
+        let material;
         
-        for (let i = 0; i < canvas.height; i += stripeHeight) {
-            const colorIndex = Math.floor(i / stripeHeight) % colors.length;
-            context.fillStyle = colors[colorIndex];
-            context.fillRect(0, i, canvas.width, stripeHeight);
+        if (isPacmanMode) {
+            // Neon 80s/Tron theme for Pacman mode
+            material = new THREE.MeshLambertMaterial({ 
+                color: 0xFFFF00, // Bright yellow like classic Pacman
+                emissive: 0x888800 // Strong yellow glow
+            });
+        } else {
+            // Create a colorful striped material for normal mode
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const context = canvas.getContext('2d');
+            
+            // Create striped pattern
+            const stripeHeight = 32;
+            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7'];
+            
+            for (let i = 0; i < canvas.height; i += stripeHeight) {
+                const colorIndex = Math.floor(i / stripeHeight) % colors.length;
+                context.fillStyle = colors[colorIndex];
+                context.fillRect(0, i, canvas.width, stripeHeight);
+            }
+            
+            // Create texture from canvas
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(4, 2);
+            
+            material = new THREE.MeshLambertMaterial({ 
+                map: texture,
+                transparent: false
+            });
         }
-        
-        // Create texture from canvas
-        const texture = new THREE.CanvasTexture(canvas);
-        texture.wrapS = THREE.RepeatWrapping;
-        texture.wrapT = THREE.RepeatWrapping;
-        texture.repeat.set(4, 2);
-        
-        const material = new THREE.MeshLambertMaterial({ 
-            map: texture,
-            transparent: false
-        });
         
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.copy(this.position);
