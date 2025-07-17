@@ -306,11 +306,6 @@ export class CollisionSystem {
             // Vertical bounce - launch upward
             this.player.velocity.y = pad.force;
             this.player.isOnGround = false;
-        } else if (pad.type === 'circular') {
-            // Circular bounce - special launch to hidden world
-            this.player.velocity.y = pad.force;
-            this.player.isOnGround = false;
-            console.log('🌈 Circular bounce pad activated! Launching to hidden world!');
         } else if (pad.type === 'horizontal') {
             // Horizontal bounce - launch in direction
             const force = pad.force;

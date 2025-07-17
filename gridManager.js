@@ -239,23 +239,6 @@ export class GridManager {
                 color: 0x000000,
                 emissive: 0x000000
             });
-            
-            // Rainbow materials for hidden world
-            this.rainbowMaterials = [
-                new THREE.MeshLambertMaterial({ color: 0xff0000, emissive: 0x330000 }), // Red
-                new THREE.MeshLambertMaterial({ color: 0xff7f00, emissive: 0x332200 }), // Orange
-                new THREE.MeshLambertMaterial({ color: 0xffff00, emissive: 0x333300 }), // Yellow
-                new THREE.MeshLambertMaterial({ color: 0x00ff00, emissive: 0x003300 }), // Green
-                new THREE.MeshLambertMaterial({ color: 0x0000ff, emissive: 0x000033 }), // Blue
-                new THREE.MeshLambertMaterial({ color: 0x4b0082, emissive: 0x110022 }), // Indigo
-                new THREE.MeshLambertMaterial({ color: 0x9400d3, emissive: 0x220033 })  // Violet
-            ];
-            
-            // Special circular bounce pad material
-            this.circularBouncePadMaterial = new THREE.MeshLambertMaterial({
-                color: 0xffffff,
-                emissive: 0x666666
-            });
         }
         
         this.generateLevel();
@@ -471,15 +454,7 @@ export class GridManager {
         // Create visual tile if it has height (elevated platform)
         if (height > 0) {
             const tileGeometry = new THREE.BoxGeometry(this.tileSize, height, this.tileSize);
-            
-            // Use rainbow materials for hidden world (height 15+)
-            let tileMaterial = this.groundMaterial;
-            if (height >= 15 && this.rainbowMaterials) {
-                const rainbowIndex = (x + z) % this.rainbowMaterials.length;
-                tileMaterial = this.rainbowMaterials[rainbowIndex];
-            }
-            
-            const tileMesh = new THREE.Mesh(tileGeometry, tileMaterial);
+            const tileMesh = new THREE.Mesh(tileGeometry, this.groundMaterial);
             tileMesh.position.set(worldPos.x, height / 2, worldPos.z);
             tileMesh.castShadow = true;
             tileMesh.receiveShadow = true;
@@ -618,20 +593,15 @@ export class GridManager {
         bouncePadsData.forEach(padData => {
             const worldPos = this.levelLoader.gridToWorld(padData.x, padData.z, this.tileSize);
             
-            // Create bounce pad geometry - cylinder for vertical, box for horizontal, special for circular
+            // Create bounce pad geometry - cylinder for vertical, box for horizontal
             let geometry;
-            let material = this.bouncePadMaterial;
-            
             if (padData.type === 'vertical') {
                 geometry = new THREE.CylinderGeometry(1, 1, 0.5, 8);
-            } else if (padData.type === 'circular') {
-                geometry = new THREE.CylinderGeometry(2, 2, 0.3, 16); // Larger, flatter, more circular
-                material = this.circularBouncePadMaterial;
             } else {
                 geometry = new THREE.BoxGeometry(2, 0.5, 2);
             }
             
-            const pad = new THREE.Mesh(geometry, material);
+            const pad = new THREE.Mesh(geometry, this.bouncePadMaterial);
             pad.position.set(worldPos.x, padData.y || 0.5, worldPos.z);
             pad.castShadow = true;
             pad.receiveShadow = true;
