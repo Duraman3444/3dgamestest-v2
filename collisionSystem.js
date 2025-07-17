@@ -296,7 +296,7 @@ export class CollisionSystem {
         }
         
         // Visual feedback - make pad flash
-        if (pad.mesh.material) {
+        if (pad.mesh && pad.mesh.material && pad.mesh.material.color && pad.mesh.material.emissive) {
             const originalColor = pad.mesh.material.color.getHex();
             const originalEmissive = pad.mesh.material.emissive.getHex();
             

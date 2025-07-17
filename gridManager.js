@@ -448,15 +448,36 @@ export class GridManager {
         });
     }
     
-    createTile(x, z) {
-        const worldX = (x - this.gridSize / 2) * this.tileSize;
-        const worldZ = (z - this.gridSize / 2) * this.tileSize;
+    createTile(x, z, height = 0) {
+        const worldPos = this.levelLoader.gridToWorld(x, z, this.tileSize);
+        
+        // Create visual tile if it has height (elevated platform)
+        if (height > 0) {
+            const tileGeometry = new THREE.BoxGeometry(this.tileSize, height, this.tileSize);
+            const tileMesh = new THREE.Mesh(tileGeometry, this.groundMaterial);
+            tileMesh.position.set(worldPos.x, height / 2, worldPos.z);
+            tileMesh.castShadow = true;
+            tileMesh.receiveShadow = true;
+            
+            this.scene.add(tileMesh);
+            
+            return {
+                x: x,
+                z: z,
+                worldX: worldPos.x,
+                worldZ: worldPos.z,
+                occupied: false,
+                type: 'ground',
+                height: height,
+                mesh: tileMesh
+            };
+        }
         
         return {
             x: x,
             z: z,
-            worldX: worldX,
-            worldZ: worldZ,
+            worldX: worldPos.x,
+            worldZ: worldPos.z,
             occupied: false,
             type: 'ground',
             height: 0
@@ -570,7 +591,7 @@ export class GridManager {
     // Generate bounce pads from level data
     generateBouncePadsFromData(bouncePadsData) {
         bouncePadsData.forEach(padData => {
-            const worldPos = this.gridToWorld(padData.x, padData.z);
+            const worldPos = this.levelLoader.gridToWorld(padData.x, padData.z, this.tileSize);
             
             // Create bounce pad geometry - cylinder for vertical, box for horizontal
             let geometry;
@@ -601,7 +622,7 @@ export class GridManager {
     // Generate spikes from level data
     generateSpikesFromData(spikesData) {
         spikesData.forEach(spikeData => {
-            const worldPos = this.gridToWorld(spikeData.x, spikeData.z);
+            const worldPos = this.levelLoader.gridToWorld(spikeData.x, spikeData.z, this.tileSize);
             
             // Create spike geometry - cone
             const geometry = new THREE.ConeGeometry(0.5, spikeData.height || 1.5, 4);
@@ -624,7 +645,7 @@ export class GridManager {
     // Generate holes from level data
     generateHolesFromData(holesData) {
         holesData.forEach(holeData => {
-            const worldPos = this.gridToWorld(holeData.x, holeData.z);
+            const worldPos = this.levelLoader.gridToWorld(holeData.x, holeData.z, this.tileSize);
             
             // Create hole geometry - dark plane below ground level
             const geometry = new THREE.PlaneGeometry(
