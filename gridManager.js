@@ -40,12 +40,12 @@ export class GridManager {
                 obstacleEmissive: 0x001155,
                 accent: 0x00FFFF
             },
-            2: { // PS2 Purple/Magenta
-                ground: 0x330066,
-                groundEmissive: 0x220033,
-                obstacle: 0x6600CC,
-                obstacleEmissive: 0x330055,
-                accent: 0xFF00FF
+            2: { // PS2 Bright Cyan/Teal - Much more visible
+                ground: 0x00AAAA,
+                groundEmissive: 0x006666,
+                obstacle: 0x00FFFF,
+                obstacleEmissive: 0x008888,
+                accent: 0x00FFFF
             },
             3: { // PS2 Green
                 ground: 0x003300,

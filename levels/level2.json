@@ -150,7 +150,37 @@
     {"x": 0, "z": 18, "type": "ground", "height": 1},
     {"x": 1, "z": 18, "type": "ground", "height": 1},
     {"x": 0, "z": 19, "type": "ground", "height": 1},
-    {"x": 1, "z": 19, "type": "ground", "height": 1}
+    {"x": 1, "z": 19, "type": "ground", "height": 1},
+
+    {"x": 4, "z": 6, "type": "ground", "height": 7},
+    {"x": 5, "z": 6, "type": "ground", "height": 7},
+    {"x": 4, "z": 7, "type": "ground", "height": 7},
+    {"x": 5, "z": 7, "type": "ground", "height": 7},
+    
+    {"x": 15, "z": 9, "type": "ground", "height": 8},
+    {"x": 16, "z": 9, "type": "ground", "height": 8},
+    {"x": 15, "z": 10, "type": "ground", "height": 8},
+    {"x": 16, "z": 10, "type": "ground", "height": 8},
+    
+    {"x": 8, "z": 1, "type": "ground", "height": 9},
+    {"x": 9, "z": 1, "type": "ground", "height": 9},
+    {"x": 8, "z": 2, "type": "ground", "height": 9},
+    {"x": 9, "z": 2, "type": "ground", "height": 9},
+    
+    {"x": 1, "z": 12, "type": "ground", "height": 8},
+    {"x": 2, "z": 12, "type": "ground", "height": 8},
+    {"x": 1, "z": 13, "type": "ground", "height": 8},
+    {"x": 2, "z": 13, "type": "ground", "height": 8},
+    
+    {"x": 18, "z": 5, "type": "ground", "height": 7},
+    {"x": 19, "z": 5, "type": "ground", "height": 7},
+    {"x": 18, "z": 6, "type": "ground", "height": 7},
+    {"x": 19, "z": 6, "type": "ground", "height": 7},
+    
+    {"x": 11, "z": 17, "type": "ground", "height": 9},
+    {"x": 12, "z": 17, "type": "ground", "height": 9},
+    {"x": 11, "z": 18, "type": "ground", "height": 9},
+    {"x": 12, "z": 18, "type": "ground", "height": 9}
   ],
   "coins": [
     {"x": 2, "z": 1},
@@ -162,7 +192,6 @@
     {"x": 9, "z": 16},
     {"x": 16, "z": 3},
     {"x": 19, "z": 8},
-    {"x": 6, "z": 19},
     {"x": 14, "z": 19},
     {"x": 1, "z": 6},
     {"x": 11, "z": 2},
@@ -172,7 +201,13 @@
     {"x": 10, "z": 10},
     {"x": 3, "z": 3},
     {"x": 18, "z": 2},
-    {"x": 12, "z": 15}
+    {"x": 12, "z": 15},
+    {"x": 5, "z": 7},
+    {"x": 16, "z": 9},
+    {"x": 8, "z": 2},
+    {"x": 2, "z": 12},
+    {"x": 19, "z": 6},
+    {"x": 12, "z": 18}
   ],
   "bouncePads": [
     {"x": 4, "z": 3, "type": "vertical", "force": 18},
@@ -194,7 +229,13 @@
     {"x": 0, "z": 8, "type": "vertical", "force": 12},
     {"x": 13, "z": 11, "type": "horizontal", "direction": "backward", "force": 15},
     {"x": 7, "z": 1, "type": "vertical", "force": 20},
-    {"x": 19, "z": 17, "type": "vertical", "force": 45}
+    {"x": 19, "z": 17, "type": "vertical", "force": 45},
+    {"x": 3, "z": 5, "type": "vertical", "force": 50},
+    {"x": 14, "z": 8, "type": "vertical", "force": 55},
+    {"x": 6, "z": 0, "type": "vertical", "force": 60},
+    {"x": 0, "z": 11, "type": "vertical", "force": 52},
+    {"x": 17, "z": 4, "type": "vertical", "force": 48},
+    {"x": 10, "z": 16, "type": "vertical", "force": 58}
   ],
   "key": {
     "x": 6,
