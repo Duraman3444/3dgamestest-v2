@@ -1,4 +1,4 @@
-export class SinglePlayerMenu {
+export class PacmanMenu {
     constructor(onStartGame, onBackToMain) {
         this.onStartGame = onStartGame;
         this.onBackToMain = onBackToMain;
@@ -13,29 +13,106 @@ export class SinglePlayerMenu {
         this.levelSelectButtons = [];
         this.levelSelectIndex = 0;
         
-        // Available levels with their details
+        // Available pacman levels with their details
         this.availableLevels = [
-            { id: 1, name: "Level 1 - Getting Started", file: "level1.json" },
-            { id: 2, name: "Level 2 - The Maze", file: "level2.json" },
-            { id: 3, name: "Level 3 - The Challenge", file: "level3.json" },
-            { id: 4, name: "Level 4 - Full Speed Challenge", file: "level4.json" },
-            { id: 5, name: "Pacman Mode - Maze Adventure", file: "pacman.json" }
+            { id: 1, name: "Pacman Level 1 - Training Maze", file: "pacman1.json" },
+            { id: 2, name: "Pacman Level 2 - Classic Maze", file: "pacman2.json" },
+            { id: 3, name: "Pacman Level 3 - Challenge Maze", file: "pacman3.json" },
+            { id: 4, name: "Pacman Level 4 - Speed Maze", file: "pacman4.json" },
+            { id: 5, name: "Pacman Level 5 - Final Maze", file: "pacman5.json" }
         ];
         
         this.createMenu();
     }
     
+    // Check if all regular levels are completed
+    areAllLevelsCompleted() {
+        const progress = this.getProgress();
+        const requiredLevels = [1, 2, 3, 4]; // Regular levels that must be completed
+        
+        return requiredLevels.every(level => progress.completedLevels.includes(level));
+    }
+    
+    // Get progress from localStorage
+    getProgress() {
+        try {
+            const saved = localStorage.getItem('gameProgress');
+            if (saved) {
+                return JSON.parse(saved);
+            }
+        } catch (error) {
+            console.error('Error loading progress:', error);
+        }
+        
+        return {
+            completedLevels: [],
+            pacmanLevelsUnlocked: false,
+            completedPacmanLevels: []
+        };
+    }
+    
+    // Save progress to localStorage
+    saveProgress(progress) {
+        try {
+            localStorage.setItem('gameProgress', JSON.stringify(progress));
+        } catch (error) {
+            console.error('Error saving progress:', error);
+        }
+    }
+    
+    // Unlock pacman mode (bypass function)
+    unlockPacmanMode() {
+        try {
+            const progress = {
+                completedLevels: [1, 2, 3, 4], // Mark all regular levels as completed
+                pacmanLevelsUnlocked: true,
+                completedPacmanLevels: []
+            };
+            
+            localStorage.setItem('gameProgress', JSON.stringify(progress));
+            console.log('Pacman mode unlocked via bypass button!');
+            
+            // Refresh the menu to show unlocked state
+            this.refreshMenu();
+        } catch (error) {
+            console.error('Error unlocking pacman mode:', error);
+        }
+    }
+    
+    // Refresh the menu interface
+    refreshMenu() {
+        // Clear the main menu container
+        this.mainMenuContainer.innerHTML = '';
+        this.menuButtons = [];
+        
+        // Recreate the level select interface now that it's unlocked
+        this.createLevelSelectInterface();
+    }
+    
+    // Check if a pacman level is unlocked
+    isPacmanLevelUnlocked(levelId) {
+        const allLevelsCompleted = this.areAllLevelsCompleted();
+        if (!allLevelsCompleted) return false;
+        
+        const progress = this.getProgress();
+        // Level 1 is unlocked if all regular levels are completed
+        if (levelId === 1) return true;
+        
+        // Other levels are unlocked if previous pacman level is completed
+        return progress.completedPacmanLevels.includes(levelId - 1);
+    }
+    
     createMenu() {
         // Create menu container
         this.menuElement = document.createElement('div');
-        this.menuElement.id = 'singlePlayerMenu';
+        this.menuElement.id = 'pacmanMenu';
         this.menuElement.style.cssText = `
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #0a0a0a 100%);
             display: none;
             flex-direction: column;
             align-items: center;
@@ -46,9 +123,9 @@ export class SinglePlayerMenu {
         
         // Create title
         const title = document.createElement('h1');
-        title.textContent = 'SINGLE PLAYER';
+        title.textContent = 'PACMAN MODE';
         title.style.cssText = `
-            color: #00ffff;
+            color: #ffff00;
             font-size: 48px;
             font-weight: bold;
             margin-bottom: 20px;
@@ -61,9 +138,9 @@ export class SinglePlayerMenu {
         
         // Create subtitle
         const subtitle = document.createElement('h2');
-        subtitle.textContent = 'PS2 THEMED ADVENTURE';
+        subtitle.textContent = 'NEON MAZE ADVENTURE';
         subtitle.style.cssText = `
-            color: #ffff00;
+            color: #00ffff;
             font-size: 20px;
             font-weight: bold;
             margin-bottom: 30px;
@@ -83,112 +160,52 @@ export class SinglePlayerMenu {
             width: 100%;
         `;
         
-        // Create options container
-        const optionsContainer = document.createElement('div');
-        optionsContainer.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            align-items: center;
-            margin-bottom: 30px;
-        `;
+        // Check if pacman mode is unlocked
+        const allLevelsCompleted = this.areAllLevelsCompleted();
         
-        // Level selection
-        const levelContainer = document.createElement('div');
-        levelContainer.style.cssText = `
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            color: #ffffff;
-            font-size: 18px;
-            font-family: 'Courier New', monospace;
-        `;
-        
-        const levelLabel = document.createElement('span');
-        levelLabel.textContent = 'SELECTED LEVEL:';
-        levelLabel.style.cssText = `
-            color: #00ffff;
-            font-weight: bold;
-            text-shadow: 1px 1px 0px #000000;
-        `;
-        
-        const levelDisplay = document.createElement('span');
-        levelDisplay.id = 'levelDisplay';
-        levelDisplay.textContent = this.availableLevels[0].name;
-        levelDisplay.style.cssText = `
-            color: #ffff00;
-            font-weight: bold;
-            text-shadow: 1px 1px 0px #000000;
-            min-width: 300px;
-            text-align: center;
-            font-size: 16px;
-        `;
-        
-        levelContainer.appendChild(levelLabel);
-        levelContainer.appendChild(levelDisplay);
-        
-        // Difficulty selection
-        const difficultyContainer = document.createElement('div');
-        difficultyContainer.style.cssText = `
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            color: #ffffff;
-            font-size: 18px;
-            font-family: 'Courier New', monospace;
-        `;
-        
-        const difficultyLabel = document.createElement('span');
-        difficultyLabel.textContent = 'DIFFICULTY:';
-        difficultyLabel.style.cssText = `
-            color: #00ffff;
-            font-weight: bold;
-            text-shadow: 1px 1px 0px #000000;
-        `;
-        
-        const difficultyDisplay = document.createElement('span');
-        difficultyDisplay.id = 'difficultyDisplay';
-        difficultyDisplay.textContent = 'NORMAL';
-        difficultyDisplay.style.cssText = `
-            color: #ffff00;
-            font-weight: bold;
-            text-shadow: 1px 1px 0px #000000;
-            min-width: 80px;
-            text-align: center;
-        `;
-        
-        difficultyContainer.appendChild(difficultyLabel);
-        difficultyContainer.appendChild(difficultyDisplay);
-        
-        optionsContainer.appendChild(levelContainer);
-        optionsContainer.appendChild(difficultyContainer);
-        
-        // Create menu buttons container
-        const buttonsContainer = document.createElement('div');
-        buttonsContainer.style.cssText = `
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            align-items: center;
-        `;
-        
-        // Create menu buttons
-        const buttons = [
-            { text: 'Level Select', action: () => this.showLevelSelect() },
-            { text: 'Change Difficulty', action: () => this.changeDifficulty() },
-            { text: 'Start Game', action: () => this.startGame() },
-            { text: 'Back to Main Menu', action: () => this.backToMain() }
-        ];
-        
-        this.menuButtons = [];
-        buttons.forEach((button, index) => {
-            const buttonElement = this.createButton(button.text, button.action, index);
-            this.menuButtons.push(buttonElement);
-            buttonsContainer.appendChild(buttonElement);
-        });
-        
-        this.mainMenuContainer.appendChild(optionsContainer);
-        this.mainMenuContainer.appendChild(buttonsContainer);
+        if (!allLevelsCompleted) {
+            // Show locked message
+            const lockedMessage = document.createElement('div');
+            lockedMessage.textContent = 'PACMAN MODE LOCKED';
+            lockedMessage.style.cssText = `
+                color: #ff0000;
+                font-size: 32px;
+                font-weight: bold;
+                margin-bottom: 20px;
+                text-shadow: 2px 2px 0px #000000;
+                text-align: center;
+                letter-spacing: 4px;
+                text-transform: uppercase;
+                font-family: 'Courier New', monospace;
+            `;
+            
+            const unlockMessage = document.createElement('div');
+            unlockMessage.textContent = 'Complete all 4 regular levels to unlock Pacman Mode!';
+            unlockMessage.style.cssText = `
+                color: #ffffff;
+                font-size: 18px;
+                font-weight: bold;
+                margin-bottom: 30px;
+                text-shadow: 1px 1px 0px #000000;
+                text-align: center;
+                font-family: 'Courier New', monospace;
+            `;
+            
+            this.mainMenuContainer.appendChild(lockedMessage);
+            this.mainMenuContainer.appendChild(unlockMessage);
+            
+            // Create unlock bypass button (for testing)
+            const unlockButton = this.createTinyButton('Unlock Pacman Mode Now', () => this.unlockPacmanMode(), 0);
+            this.mainMenuContainer.appendChild(unlockButton);
+            
+            // Create back button
+            const backButton = this.createButton('Back to Main Menu', () => this.backToMain(), 1);
+            this.menuButtons.push(backButton);
+            this.mainMenuContainer.appendChild(backButton);
+        } else {
+            // Show level select options
+            this.createLevelSelectInterface();
+        }
         
         // Create level select container
         this.levelSelectContainer = document.createElement('div');
@@ -203,9 +220,9 @@ export class SinglePlayerMenu {
         
         // Create level select title
         const levelSelectTitle = document.createElement('h2');
-        levelSelectTitle.textContent = 'SELECT LEVEL';
+        levelSelectTitle.textContent = 'SELECT PACMAN LEVEL';
         levelSelectTitle.style.cssText = `
-            color: #00ffff;
+            color: #ffff00;
             font-size: 32px;
             font-weight: bold;
             margin-bottom: 30px;
@@ -271,7 +288,7 @@ export class SinglePlayerMenu {
         
         // Create version info
         const versionInfo = document.createElement('div');
-        versionInfo.textContent = 'PS2 SINGLE PLAYER v1.0';
+        versionInfo.textContent = 'PACMAN MODE v1.0';
         versionInfo.style.cssText = `
             position: absolute;
             bottom: 20px;
@@ -297,12 +314,121 @@ export class SinglePlayerMenu {
         this.updateLevelInfo();
     }
     
+    createLevelSelectInterface() {
+        // Create options container
+        const optionsContainer = document.createElement('div');
+        optionsContainer.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 30px;
+        `;
+        
+        // Level selection
+        const levelContainer = document.createElement('div');
+        levelContainer.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            color: #ffffff;
+            font-size: 18px;
+            font-family: 'Courier New', monospace;
+        `;
+        
+        const levelLabel = document.createElement('span');
+        levelLabel.textContent = 'SELECTED LEVEL:';
+        levelLabel.style.cssText = `
+            color: #00ffff;
+            font-weight: bold;
+            text-shadow: 1px 1px 0px #000000;
+        `;
+        
+        const levelDisplay = document.createElement('span');
+        levelDisplay.id = 'pacmanLevelDisplay';
+        levelDisplay.textContent = this.availableLevels[0].name;
+        levelDisplay.style.cssText = `
+            color: #ffff00;
+            font-weight: bold;
+            text-shadow: 1px 1px 0px #000000;
+            min-width: 300px;
+            text-align: center;
+            font-size: 16px;
+        `;
+        
+        levelContainer.appendChild(levelLabel);
+        levelContainer.appendChild(levelDisplay);
+        
+        // Difficulty selection
+        const difficultyContainer = document.createElement('div');
+        difficultyContainer.style.cssText = `
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            color: #ffffff;
+            font-size: 18px;
+            font-family: 'Courier New', monospace;
+        `;
+        
+        const difficultyLabel = document.createElement('span');
+        difficultyLabel.textContent = 'DIFFICULTY:';
+        difficultyLabel.style.cssText = `
+            color: #00ffff;
+            font-weight: bold;
+            text-shadow: 1px 1px 0px #000000;
+        `;
+        
+        const difficultyDisplay = document.createElement('span');
+        difficultyDisplay.id = 'pacmanDifficultyDisplay';
+        difficultyDisplay.textContent = 'NORMAL';
+        difficultyDisplay.style.cssText = `
+            color: #ffff00;
+            font-weight: bold;
+            text-shadow: 1px 1px 0px #000000;
+            min-width: 80px;
+            text-align: center;
+        `;
+        
+        difficultyContainer.appendChild(difficultyLabel);
+        difficultyContainer.appendChild(difficultyDisplay);
+        
+        optionsContainer.appendChild(levelContainer);
+        optionsContainer.appendChild(difficultyContainer);
+        
+        // Create menu buttons container
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.style.cssText = `
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            align-items: center;
+        `;
+        
+        // Create menu buttons
+        const buttons = [
+            { text: 'Level Select', action: () => this.showLevelSelect() },
+            { text: 'Change Difficulty', action: () => this.changeDifficulty() },
+            { text: 'Start Game', action: () => this.startGame() },
+            { text: 'Back to Main Menu', action: () => this.backToMain() }
+        ];
+        
+        this.menuButtons = [];
+        buttons.forEach((button, index) => {
+            const buttonElement = this.createButton(button.text, button.action, index);
+            this.menuButtons.push(buttonElement);
+            buttonsContainer.appendChild(buttonElement);
+        });
+        
+        this.mainMenuContainer.appendChild(optionsContainer);
+        this.mainMenuContainer.appendChild(buttonsContainer);
+    }
+    
     createButton(text, onClick, index) {
         const button = document.createElement('button');
         button.textContent = text;
         button.style.cssText = `
-            background: linear-gradient(135deg, #003366 0%, #0066cc 100%);
-            border: 3px solid #00ffff;
+            background: linear-gradient(135deg, #333300 0%, #666600 100%);
+            border: 3px solid #ffff00;
             color: #ffffff;
             padding: 12px 30px;
             font-size: 16px;
@@ -332,16 +458,58 @@ export class SinglePlayerMenu {
         return button;
     }
     
+    createTinyButton(text, onClick, index) {
+        const button = document.createElement('button');
+        button.textContent = text;
+        button.style.cssText = `
+            background: linear-gradient(135deg, #ff6600 0%, #ff9900 100%);
+            border: 2px solid #ffff00;
+            color: #ffffff;
+            padding: 6px 12px;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 0px;
+            transition: all 0.2s ease;
+            min-width: 140px;
+            text-align: center;
+            user-select: none;
+            font-family: 'Courier New', monospace;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 1px 1px 0px #000000;
+            box-shadow: 2px 2px 0px #000000;
+            margin: 10px 0;
+            opacity: 0.8;
+        `;
+        
+        button.addEventListener('mouseenter', () => {
+            button.style.opacity = '1';
+            button.style.transform = 'translateY(-1px)';
+        });
+        
+        button.addEventListener('mouseleave', () => {
+            button.style.opacity = '0.8';
+            button.style.transform = 'translateY(0)';
+        });
+        
+        button.addEventListener('click', onClick);
+        
+        return button;
+    }
+    
     createLevelBox(level, index) {
         const levelBox = document.createElement('div');
+        const isUnlocked = this.isPacmanLevelUnlocked(level.id);
+        
         levelBox.style.cssText = `
-            background: linear-gradient(135deg, #003366 0%, #0066cc 100%);
-            border: 4px solid #00ffff;
-            color: #ffffff;
+            background: ${isUnlocked ? 'linear-gradient(135deg, #333300 0%, #666600 100%)' : 'linear-gradient(135deg, #330000 0%, #660000 100%)'};
+            border: 4px solid ${isUnlocked ? '#ffff00' : '#ff0000'};
+            color: ${isUnlocked ? '#ffffff' : '#888888'};
             padding: 20px;
             width: 200px;
             height: 120px;
-            cursor: pointer;
+            cursor: ${isUnlocked ? 'pointer' : 'not-allowed'};
             transition: all 0.3s ease;
             display: flex;
             flex-direction: column;
@@ -352,55 +520,50 @@ export class SinglePlayerMenu {
             text-shadow: 1px 1px 0px #000000;
             box-shadow: 5px 5px 0px #000000;
             position: relative;
+            opacity: ${isUnlocked ? '1' : '0.5'};
         `;
         
         // Level number display
         const levelNumber = document.createElement('div');
-        levelNumber.textContent = level.id;
+        levelNumber.textContent = isUnlocked ? level.id : '🔒';
         levelNumber.style.cssText = `
             font-size: 36px;
             font-weight: bold;
-            color: #ffff00;
+            color: ${isUnlocked ? '#ffff00' : '#ff0000'};
             margin-bottom: 10px;
             text-shadow: 2px 2px 0px #000000;
         `;
         
         // Level name display
         const levelName = document.createElement('div');
-        levelName.textContent = level.name;
+        levelName.textContent = isUnlocked ? level.name : 'LOCKED';
         levelName.style.cssText = `
             font-size: 12px;
             font-weight: bold;
-            color: #00ffff;
+            color: ${isUnlocked ? '#00ffff' : '#ff0000'};
             text-align: center;
             line-height: 1.2;
             text-transform: uppercase;
             letter-spacing: 1px;
         `;
         
-        // Special styling for Pacman level
-        if (level.file === 'pacman.json') {
-            levelBox.style.background = 'linear-gradient(135deg, #1a1a1a 0%, #333333 100%)';
-            levelBox.style.borderColor = '#ffff00';
-            levelNumber.style.color = '#ffff00';
-            levelName.style.color = '#ff00ff';
-        }
-        
         levelBox.appendChild(levelNumber);
         levelBox.appendChild(levelName);
         
-        // Hover effects
-        levelBox.addEventListener('mouseenter', () => {
-            if (this.isInLevelSelect) {
-                this.levelSelectIndex = index;
-                this.updateLevelSelectButtons();
-            }
-        });
-        
-        // Click handler
-        levelBox.addEventListener('click', () => {
-            this.selectLevel(level.id);
-        });
+        if (isUnlocked) {
+            // Hover effects
+            levelBox.addEventListener('mouseenter', () => {
+                if (this.isInLevelSelect) {
+                    this.levelSelectIndex = index;
+                    this.updateLevelSelectButtons();
+                }
+            });
+            
+            // Click handler
+            levelBox.addEventListener('click', () => {
+                this.selectLevel(level.id);
+            });
+        }
         
         return levelBox;
     }
@@ -562,15 +725,15 @@ export class SinglePlayerMenu {
         this.menuButtons.forEach((button, index) => {
             if (index === this.currentOptionIndex) {
                 // Selected style
-                button.style.background = 'linear-gradient(135deg, #ff6600 0%, #ff9900 100%)';
-                button.style.borderColor = '#ffff00';
+                button.style.background = 'linear-gradient(135deg, #ffff00 0%, #ff9900 100%)';
+                button.style.borderColor = '#ff00ff';
                 button.style.color = '#000000';
                 button.style.transform = 'translateY(-2px)';
                 button.style.boxShadow = '5px 5px 0px #000000';
             } else {
                 // Unselected style
-                button.style.background = 'linear-gradient(135deg, #003366 0%, #0066cc 100%)';
-                button.style.borderColor = '#00ffff';
+                button.style.background = 'linear-gradient(135deg, #333300 0%, #666600 100%)';
+                button.style.borderColor = '#ffff00';
                 button.style.color = '#ffffff';
                 button.style.transform = 'translateY(0)';
                 button.style.boxShadow = '3px 3px 0px #000000';
@@ -584,21 +747,23 @@ export class SinglePlayerMenu {
                 // Selected style for level boxes
                 if (index < this.availableLevels.length) {
                     const level = this.availableLevels[index];
-                    if (level.file === 'pacman.json') {
+                    const isUnlocked = this.isPacmanLevelUnlocked(level.id);
+                    
+                    if (isUnlocked) {
                         element.style.background = 'linear-gradient(135deg, #ffff00 0%, #ff9900 100%)';
                         element.style.borderColor = '#ff00ff';
                         element.style.transform = 'translateY(-3px) scale(1.05)';
                         element.style.boxShadow = '7px 7px 0px #000000';
                     } else {
-                        element.style.background = 'linear-gradient(135deg, #ff6600 0%, #ff9900 100%)';
-                        element.style.borderColor = '#ffff00';
+                        element.style.background = 'linear-gradient(135deg, #660000 0%, #990000 100%)';
+                        element.style.borderColor = '#ff0000';
                         element.style.transform = 'translateY(-3px) scale(1.05)';
                         element.style.boxShadow = '7px 7px 0px #000000';
                     }
                 } else {
                     // Back button selected style
-                    element.style.background = 'linear-gradient(135deg, #ff6600 0%, #ff9900 100%)';
-                    element.style.borderColor = '#ffff00';
+                    element.style.background = 'linear-gradient(135deg, #ffff00 0%, #ff9900 100%)';
+                    element.style.borderColor = '#ff00ff';
                     element.style.color = '#000000';
                     element.style.transform = 'translateY(-2px)';
                     element.style.boxShadow = '5px 5px 0px #000000';
@@ -607,21 +772,23 @@ export class SinglePlayerMenu {
                 // Unselected style for level boxes
                 if (index < this.availableLevels.length) {
                     const level = this.availableLevels[index];
-                    if (level.file === 'pacman.json') {
-                        element.style.background = 'linear-gradient(135deg, #1a1a1a 0%, #333333 100%)';
+                    const isUnlocked = this.isPacmanLevelUnlocked(level.id);
+                    
+                    if (isUnlocked) {
+                        element.style.background = 'linear-gradient(135deg, #333300 0%, #666600 100%)';
                         element.style.borderColor = '#ffff00';
                         element.style.transform = 'translateY(0) scale(1)';
                         element.style.boxShadow = '5px 5px 0px #000000';
                     } else {
-                        element.style.background = 'linear-gradient(135deg, #003366 0%, #0066cc 100%)';
-                        element.style.borderColor = '#00ffff';
+                        element.style.background = 'linear-gradient(135deg, #330000 0%, #660000 100%)';
+                        element.style.borderColor = '#ff0000';
                         element.style.transform = 'translateY(0) scale(1)';
                         element.style.boxShadow = '5px 5px 0px #000000';
                     }
                 } else {
                     // Back button unselected style
-                    element.style.background = 'linear-gradient(135deg, #003366 0%, #0066cc 100%)';
-                    element.style.borderColor = '#00ffff';
+                    element.style.background = 'linear-gradient(135deg, #333300 0%, #666600 100%)';
+                    element.style.borderColor = '#ffff00';
                     element.style.color = '#ffffff';
                     element.style.transform = 'translateY(0)';
                     element.style.boxShadow = '3px 3px 0px #000000';
@@ -634,7 +801,10 @@ export class SinglePlayerMenu {
         if (this.isInLevelSelect) {
             if (this.levelSelectIndex < this.availableLevels.length) {
                 // Select a level
-                this.selectLevel(this.availableLevels[this.levelSelectIndex].id);
+                const level = this.availableLevels[this.levelSelectIndex];
+                if (this.isPacmanLevelUnlocked(level.id)) {
+                    this.selectLevel(level.id);
+                }
             } else {
                 // Select back button
                 this.hideLevelSelect();
@@ -675,7 +845,7 @@ export class SinglePlayerMenu {
     }
     
     updateLevelInfo() {
-        const levelDisplay = document.getElementById('levelDisplay');
+        const levelDisplay = document.getElementById('pacmanLevelDisplay');
         
         if (levelDisplay) {
             const selectedLevelData = this.availableLevels.find(level => level.id === this.selectedLevel);
@@ -684,7 +854,7 @@ export class SinglePlayerMenu {
     }
     
     updateDifficultyDisplay() {
-        const difficultyDisplay = document.getElementById('difficultyDisplay');
+        const difficultyDisplay = document.getElementById('pacmanDifficultyDisplay');
         if (difficultyDisplay) {
             difficultyDisplay.textContent = this.selectedDifficulty.toUpperCase();
         }
@@ -693,7 +863,7 @@ export class SinglePlayerMenu {
     startGame() {
         this.hide();
         if (this.onStartGame) {
-            this.onStartGame('normal', this.selectedLevel, this.selectedDifficulty);
+            this.onStartGame('pacman', this.selectedLevel, this.selectedDifficulty);
         }
     }
     

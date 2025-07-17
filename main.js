@@ -8,6 +8,7 @@ import { UIManager } from './UIManager.js';
 import { LevelLoader } from './levelLoader.js';
 import { MainMenu } from './mainMenu.js';
 import { SinglePlayerMenu } from './singlePlayerMenu.js';
+import { PacmanMenu } from './pacmanMenu.js';
 import { GameOverScreen } from './gameOverScreen.js';
 import { SettingsManager } from './settingsManager.js';
 
@@ -24,6 +25,7 @@ class Game {
         this.uiManager = null;
         this.mainMenu = null;
         this.singlePlayerMenu = null;
+        this.pacmanMenu = null;
         this.gameOverScreen = null;
         this.settingsManager = null;
         this.isGameInitialized = false;
@@ -42,8 +44,11 @@ class Game {
         if (mode === 'normal') {
             // Show single player options menu
             this.showSinglePlayerMenu();
+        } else if (mode === 'pacman') {
+            // Show pacman mode menu
+            this.showPacmanMenu();
         } else {
-            // For other modes (like pacman), start directly
+            // For other modes, start directly
             this.startGame(mode);
         }
     }
@@ -51,11 +56,17 @@ class Game {
     showMainMenu() {
         this.mainMenu.show();
         this.singlePlayerMenu.hide();
+        this.pacmanMenu.hide();
     }
     
     showSinglePlayerMenu() {
         this.mainMenu.hide();
         this.singlePlayerMenu.show();
+    }
+    
+    showPacmanMenu() {
+        this.mainMenu.hide();
+        this.pacmanMenu.show();
     }
     
     initializeMenu() {
@@ -72,6 +83,12 @@ class Game {
         
         // Create single player menu
         this.singlePlayerMenu = new SinglePlayerMenu(
+            (mode, level, difficulty) => this.startGame(mode, level, difficulty),
+            () => this.showMainMenu()
+        );
+        
+        // Create pacman menu
+        this.pacmanMenu = new PacmanMenu(
             (mode, level, difficulty) => this.startGame(mode, level, difficulty),
             () => this.showMainMenu()
         );
@@ -651,12 +668,18 @@ class Game {
         
         // Load appropriate level based on game mode
         if (this.gameMode === 'pacman') {
-            // Try to load pacman level, fallback to creating one
+            // Try to load pacman level based on current level, fallback to creating one
+            const pacmanLevelFile = `./levels/pacman${this.currentLevel}.json`;
             try {
-                await this.levelLoader.loadLevel('./levels/pacman.json');
+                await this.levelLoader.loadLevel(pacmanLevelFile);
             } catch (error) {
-                console.warn('Could not load pacman.json, creating default pacman level');
-                this.levelLoader.loadLevelFromData(this.levelLoader.createPacmanLevel());
+                console.warn(`Could not load ${pacmanLevelFile}, trying fallback`);
+                try {
+                    await this.levelLoader.loadLevel('./levels/pacman.json');
+                } catch (fallbackError) {
+                    console.warn('Could not load pacman.json, creating default pacman level');
+                    this.levelLoader.loadLevelFromData(this.levelLoader.createPacmanLevel());
+                }
             }
         } else {
             // Load level based on current level number
@@ -830,6 +853,9 @@ class Game {
     async handleLevelCompletion() {
         console.log('Level completed! Advancing to next level...');
         
+        // Save progress for the completed level
+        this.saveProgress(this.currentLevel);
+        
         // Stop the game loop
         if (this.gameLoop) {
             this.gameLoop.stop();
@@ -856,6 +882,43 @@ class Game {
             // No more levels - show game completion or return to menu
             console.log('All levels completed!');
             this.handleGameOver(); // For now, treat as game over
+        }
+    }
+    
+    // Save level completion progress
+    saveProgress(levelId) {
+        try {
+            const saved = localStorage.getItem('gameProgress');
+            let progress = saved ? JSON.parse(saved) : {
+                completedLevels: [],
+                pacmanLevelsUnlocked: false,
+                completedPacmanLevels: []
+            };
+            
+            if (this.gameMode === 'pacman') {
+                // Save pacman level completion
+                if (!progress.completedPacmanLevels.includes(levelId)) {
+                    progress.completedPacmanLevels.push(levelId);
+                    console.log(`Pacman level ${levelId} completed and saved!`);
+                }
+            } else {
+                // Save regular level completion
+                if (!progress.completedLevels.includes(levelId)) {
+                    progress.completedLevels.push(levelId);
+                    console.log(`Level ${levelId} completed and saved!`);
+                    
+                    // Check if all regular levels are completed
+                    const requiredLevels = [1, 2, 3, 4];
+                    if (requiredLevels.every(level => progress.completedLevels.includes(level))) {
+                        progress.pacmanLevelsUnlocked = true;
+                        console.log('All regular levels completed! Pacman mode unlocked!');
+                    }
+                }
+            }
+            
+            localStorage.setItem('gameProgress', JSON.stringify(progress));
+        } catch (error) {
+            console.error('Error saving progress:', error);
         }
     }
     
