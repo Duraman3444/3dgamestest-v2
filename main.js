@@ -518,6 +518,9 @@ class Game {
         // Start the game loop
         this.gameLoop.start();
         
+        // Start auto-save system
+        this.startAutoSave();
+        
         // Apply initial settings
         if (this.settingsManager) {
             this.settingsManager.applySettings();
@@ -723,6 +726,33 @@ class Game {
             uiManager: this.uiManager,
             levelLoader: this.levelLoader
         });
+
+        // Load existing level progress if available
+        // This ensures that if a player has previously played this level and collected items,
+        // those items remain collected when they restart the level
+        this.loadAndApplyLevelProgress();
+    }
+
+    // Load and apply existing level progress
+    loadAndApplyLevelProgress() {
+        const levelProgress = this.loadPerLevelProgress();
+        if (levelProgress && levelProgress.collectedItems) {
+            console.log(`Loading existing progress for ${this.gameMode} level ${this.currentLevel}`);
+            
+            // Apply the collected items to the current level
+            this.restoreCollectedItemsState(levelProgress.collectedItems);
+            
+            // Update the collision system with the collected items count
+            if (this.collisionSystem) {
+                const collectedCount = levelProgress.collectedItems.collectibles.length;
+                this.collisionSystem.collectiblesCollected = collectedCount;
+                
+                // Update score based on collected items
+                this.collisionSystem.score = (collectedCount * 10) + (levelProgress.collectedItems.key ? 50 : 0);
+            }
+            
+            console.log(`Applied existing progress: ${levelProgress.collectedItems.collectibles.length} collectibles and ${levelProgress.collectedItems.key ? 1 : 0} keys`);
+        }
     }
     
     setupEventListeners() {
@@ -857,6 +887,12 @@ class Game {
         // Save progress for the completed level
         this.saveProgress(this.currentLevel);
         
+        // Clear per-level progress since level is completed
+        this.clearPerLevelProgress();
+        
+        // Clear saved game state since level is completed
+        this.clearSavedGameState();
+        
         // Stop the game loop
         if (this.gameLoop) {
             this.gameLoop.stop();
@@ -882,6 +918,7 @@ class Game {
         } else {
             // No more levels - show game completion or return to menu
             console.log('All levels completed!');
+            this.clearSavedGameState(); // Clear save since game is completed
             this.handleGameOver(); // For now, treat as game over
         }
     }
@@ -923,6 +960,349 @@ class Game {
         }
     }
     
+    // Enhanced save system that tracks collected items per level
+    saveCurrentGameState() {
+        try {
+            if (!this.isGameInitialized || !this.player || !this.collisionSystem || !this.uiManager || !this.gridManager) {
+                console.log('Game not fully initialized, cannot save state');
+                return false;
+            }
+
+            // Get collected items data
+            const collectedItems = this.getCollectedItemsData();
+
+            const gameState = {
+                currentLevel: this.currentLevel,
+                gameMode: this.gameMode,
+                playerPosition: {
+                    x: this.player.position.x,
+                    y: this.player.position.y,
+                    z: this.player.position.z
+                },
+                playerHealth: this.player.health,
+                playerLives: this.player.lives,
+                score: this.collisionSystem.getScore(),
+                collectiblesCollected: this.collisionSystem.collectiblesCollected,
+                gameTime: this.uiManager.gameState.gameTime,
+                collectedItems: collectedItems,
+                timestamp: Date.now()
+            };
+
+            // Save the current game state
+            localStorage.setItem('gameState', JSON.stringify(gameState));
+            
+            // Also save per-level progress for persistence across game sessions
+            this.savePerLevelProgress(collectedItems);
+
+            console.log('Game state saved successfully');
+            return true;
+        } catch (error) {
+            console.error('Error saving game state:', error);
+            return false;
+        }
+    }
+
+    // Get data about which specific items have been collected
+    getCollectedItemsData() {
+        const collectedItems = {
+            collectibles: [],
+            key: null
+        };
+
+        // Get collected collectibles with their grid positions
+        if (this.gridManager && this.gridManager.collectibles) {
+            this.gridManager.collectibles.forEach((collectible, index) => {
+                if (collectible.collected) {
+                    collectedItems.collectibles.push({
+                        index: index,
+                        gridX: collectible.gridX,
+                        gridZ: collectible.gridZ,
+                        position: {
+                            x: collectible.position.x,
+                            y: collectible.position.y,
+                            z: collectible.position.z
+                        }
+                    });
+                }
+            });
+        }
+
+        // Check if key is collected
+        if (this.gridManager && this.gridManager.keyObject && this.gridManager.keyObject.collected) {
+            collectedItems.key = {
+                gridX: this.gridManager.keyObject.gridX,
+                gridZ: this.gridManager.keyObject.gridZ,
+                position: {
+                    x: this.gridManager.keyObject.position.x,
+                    y: this.gridManager.keyObject.position.y,
+                    z: this.gridManager.keyObject.position.z
+                }
+            };
+        }
+
+        return collectedItems;
+    }
+
+    // Save per-level progress for persistence
+    savePerLevelProgress(collectedItems) {
+        try {
+            const progressKey = `levelProgress_${this.gameMode}_${this.currentLevel}`;
+            const levelProgress = {
+                level: this.currentLevel,
+                gameMode: this.gameMode,
+                collectedItems: collectedItems,
+                timestamp: Date.now()
+            };
+
+            localStorage.setItem(progressKey, JSON.stringify(levelProgress));
+            console.log(`Level progress saved for ${this.gameMode} level ${this.currentLevel}`);
+        } catch (error) {
+            console.error('Error saving level progress:', error);
+        }
+    }
+
+    // Load per-level progress
+    loadPerLevelProgress() {
+        try {
+            const progressKey = `levelProgress_${this.gameMode}_${this.currentLevel}`;
+            const savedProgress = localStorage.getItem(progressKey);
+            
+            if (!savedProgress) {
+                return null;
+            }
+
+            return JSON.parse(savedProgress);
+        } catch (error) {
+            console.error('Error loading level progress:', error);
+            return null;
+        }
+    }
+
+    // Clear per-level progress for current level
+    clearPerLevelProgress() {
+        try {
+            const progressKey = `levelProgress_${this.gameMode}_${this.currentLevel}`;
+            localStorage.removeItem(progressKey);
+            console.log(`Cleared level progress for ${this.gameMode} level ${this.currentLevel}`);
+        } catch (error) {
+            console.error('Error clearing level progress:', error);
+        }
+    }
+
+    // Clear all level progress (useful for debugging or reset)
+    clearAllLevelProgress() {
+        try {
+            const keys = Object.keys(localStorage);
+            const progressKeys = keys.filter(key => key.startsWith('levelProgress_'));
+            
+            progressKeys.forEach(key => {
+                localStorage.removeItem(key);
+            });
+            
+            console.log(`Cleared ${progressKeys.length} level progress entries`);
+        } catch (error) {
+            console.error('Error clearing all level progress:', error);
+        }
+    }
+
+    // Load saved game state for continue feature
+    loadSavedGameState() {
+        try {
+            const savedState = localStorage.getItem('gameState');
+            if (!savedState) {
+                console.log('No saved game state found');
+                return null;
+            }
+
+            const gameState = JSON.parse(savedState);
+            
+            // Validate saved state
+            if (!gameState.currentLevel || !gameState.gameMode || !gameState.playerPosition) {
+                console.log('Invalid saved game state');
+                return null;
+            }
+
+            return gameState;
+        } catch (error) {
+            console.error('Error loading game state:', error);
+            return null;
+        }
+    }
+
+    // Check if a saved game state exists
+    hasSavedGameState() {
+        try {
+            const savedState = localStorage.getItem('gameState');
+            return savedState !== null;
+        } catch (error) {
+            console.error('Error checking saved game state:', error);
+            return false;
+        }
+    }
+
+    // Continue from saved game state with proper item restoration
+    async continueFromSavedState() {
+        const savedState = this.loadSavedGameState();
+        if (!savedState) {
+            console.log('No saved state to continue from');
+            return false;
+        }
+
+        try {
+            // Set game mode and level
+            this.gameMode = savedState.gameMode;
+            this.currentLevel = savedState.currentLevel;
+
+            // Clean up any existing UI elements to prevent duplication
+            this.cleanupUIElements();
+
+            // Initialize the game with the saved state
+            await this.startGame(this.gameMode, this.currentLevel);
+
+            // Wait for systems to be ready
+            await new Promise(resolve => setTimeout(resolve, 100));
+
+            // Restore player state
+            if (this.player) {
+                this.player.setPosition(
+                    savedState.playerPosition.x,
+                    savedState.playerPosition.y,
+                    savedState.playerPosition.z
+                );
+                this.player.health = savedState.playerHealth || 100;
+                this.player.lives = savedState.playerLives || 3;
+            }
+
+            // Restore collision system state
+            if (this.collisionSystem) {
+                this.collisionSystem.score = savedState.score || 0;
+                this.collisionSystem.collectiblesCollected = savedState.collectiblesCollected || 0;
+            }
+
+            // Restore UI state
+            if (this.uiManager) {
+                this.uiManager.gameState.gameTime = savedState.gameTime || 0;
+                this.uiManager.gameState.gameStartTime = performance.now() - (savedState.gameTime * 1000);
+            }
+
+            // Note: Collected items state is already restored by loadAndApplyLevelProgress() 
+            // in setupSystems(), so we don't need to restore it again here.
+            // The continue functionality now leverages the per-level progress system.
+
+            console.log('Game continued from saved state successfully');
+            return true;
+        } catch (error) {
+            console.error('Error continuing from saved state:', error);
+            return false;
+        }
+    }
+
+    // Clean up UI elements to prevent duplication
+    cleanupUIElements() {
+        // Remove any existing minimap to prevent duplication
+        const existingMinimap = document.getElementById('minimap');
+        if (existingMinimap) {
+            existingMinimap.remove();
+        }
+
+        // Clean up any other UI elements that might duplicate
+        const existingFPSDisplay = document.getElementById('fps-counter');
+        if (existingFPSDisplay) {
+            existingFPSDisplay.remove();
+        }
+
+        const existingPositionDisplay = document.getElementById('position-display');
+        if (existingPositionDisplay) {
+            existingPositionDisplay.remove();
+        }
+
+        const existingCollectiblesDisplay = document.getElementById('collectibles-counter');
+        if (existingCollectiblesDisplay) {
+            existingCollectiblesDisplay.remove();
+        }
+
+        const existingKeysDisplay = document.getElementById('keys-counter');
+        if (existingKeysDisplay) {
+            existingKeysDisplay.remove();
+        }
+
+        const existingLivesDisplay = document.getElementById('lives-counter');
+        if (existingLivesDisplay) {
+            existingLivesDisplay.remove();
+        }
+
+        const existingGameTimer = document.getElementById('game-timer');
+        if (existingGameTimer) {
+            existingGameTimer.remove();
+        }
+
+        const existingCameraModeDisplay = document.getElementById('camera-mode');
+        if (existingCameraModeDisplay) {
+            existingCameraModeDisplay.remove();
+        }
+    }
+
+    // Restore the state of collected items
+    restoreCollectedItemsState(collectedItems) {
+        if (!this.gridManager) {
+            console.log('GridManager not available, cannot restore collected items');
+            return;
+        }
+
+        // Restore collected collectibles
+        if (collectedItems.collectibles && collectedItems.collectibles.length > 0) {
+            collectedItems.collectibles.forEach(collectedItem => {
+                const collectible = this.gridManager.collectibles[collectedItem.index];
+                if (collectible) {
+                    collectible.collected = true;
+                    collectible.mesh.visible = false;
+                    
+                    // Update tile occupation status if it exists
+                    if (collectible.tile) {
+                        collectible.tile.occupied = false;
+                        collectible.tile.type = 'ground';
+                    }
+                }
+            });
+        }
+
+        // Restore collected key
+        if (collectedItems.key && this.gridManager.keyObject) {
+            this.gridManager.keyObject.collected = true;
+            this.gridManager.keyObject.mesh.visible = false;
+        }
+
+        console.log(`Restored ${collectedItems.collectibles.length} collected items and ${collectedItems.key ? 1 : 0} keys`);
+    }
+
+    // Clear saved game state
+    clearSavedGameState() {
+        try {
+            localStorage.removeItem('gameState');
+            console.log('Saved game state cleared');
+        } catch (error) {
+            console.error('Error clearing saved game state:', error);
+        }
+    }
+
+    // Auto-save game state periodically
+    startAutoSave() {
+        // Save every 10 seconds during gameplay
+        this.autoSaveInterval = setInterval(() => {
+            if (this.isGameInitialized && !this.isPaused) {
+                this.saveCurrentGameState();
+            }
+        }, 10000);
+    }
+
+    // Stop auto-save
+    stopAutoSave() {
+        if (this.autoSaveInterval) {
+            clearInterval(this.autoSaveInterval);
+            this.autoSaveInterval = null;
+        }
+    }
+
     // Level progression methods for pacman mode
     getCurrentLevel() {
         return this.currentLevel;
@@ -1013,6 +1393,9 @@ class Game {
     // Game over screen handlers
     returnToMainMenu() {
         console.log('Returning to main menu');
+        
+        // Stop auto-save system
+        this.stopAutoSave();
         
         // Hide game over screen
         this.gameOverScreen.hide();
