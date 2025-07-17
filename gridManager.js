@@ -752,4 +752,234 @@ export class GridManager {
             }
         }
     }
+    
+    getPlayerPosition() {
+        if (this.player) {
+            return this.player.getPosition();
+        }
+        
+        const player = this.scene.getObjectByName('player');
+        if (player) {
+            return player.position.clone();
+        }
+        
+        return null;
+    }
+    
+    getTileAt(worldX, worldZ) {
+        const gridX = Math.floor((worldX + this.gridSize * this.tileSize / 2) / this.tileSize);
+        const gridZ = Math.floor((worldZ + this.gridSize * this.tileSize / 2) / this.tileSize);
+        
+        if (gridX >= 0 && gridX < this.gridSize && gridZ >= 0 && gridZ < this.gridSize) {
+            const tileKey = `${gridX},${gridZ}`;
+            return this.tiles.get(tileKey);
+        }
+        return null;
+    }
+    
+    getObstacles() {
+        return this.obstacles;
+    }
+    
+    getCollectibles() {
+        return this.collectibles.filter(c => !c.collected);
+    }
+    
+    getKey() {
+        return this.keyObject;
+    }
+    
+    getExit() {
+        return this.exitObject;
+    }
+    
+    getWalls() {
+        return this.walls;
+    }
+    
+    getGhosts() {
+        return this.ghosts;
+    }
+    
+    getGhostPositions() {
+        return this.ghosts.map(ghost => ({
+            x: ghost.gridX,
+            z: ghost.gridZ,
+            worldX: ghost.mesh.position.x,
+            worldZ: ghost.mesh.position.z,
+            color: ghost.color,
+            chaseMode: ghost.chaseMode
+        }));
+    }
+    
+    setPlayer(player) {
+        this.player = player;
+    }
+    
+    getKeyInfo() {
+        const hasKey = this.keyObject !== null;
+        const isCollected = this.keyObject && this.keyObject.collected;
+        
+        return {
+            totalKeys: hasKey ? 1 : 0,
+            collectedKeys: isCollected ? 1 : 0
+        };
+    }
+
+    collectItem(collectible) {
+        if (!collectible.collected) {
+            collectible.collected = true;
+            collectible.mesh.visible = false;
+            if (collectible.tile) {
+                collectible.tile.occupied = false;
+                collectible.tile.type = 'ground';
+            }
+            return true;
+        }
+        return false;
+    }
+    
+    collectKey() {
+        if (this.keyObject && !this.keyObject.collected) {
+            this.keyObject.collected = true;
+            this.keyObject.mesh.visible = false;
+            return true;
+        }
+        return false;
+    }
+    
+    canActivateExit() {
+        if (this.levelType === 'pacman') {
+            const remainingCollectibles = this.collectibles.filter(c => !c.collected);
+            return remainingCollectibles.length === 0;
+        } else {
+            if (this.keyObject && !this.keyObject.collected) {
+                return false;
+            }
+            
+            const remainingCollectibles = this.collectibles.filter(c => !c.collected);
+            return remainingCollectibles.length === 0;
+        }
+    }
+    
+    activateExit() {
+        if (this.exitObject && this.canActivateExit()) {
+            this.exitObject.activated = true;
+            this.exitObject.mesh.material.color.setHex(0x00ff00);
+            this.exitObject.mesh.material.emissive.setHex(0x004400);
+            return true;
+        }
+        return false;
+    }
+    
+    isInBounds(x, z) {
+        const halfSize = (this.gridSize * this.tileSize) / 2;
+        return x >= -halfSize && x <= halfSize && z >= -halfSize && z <= halfSize;
+    }
+    
+    getGroundHeight(x, z) {
+        const tile = this.getTileAt(x, z);
+        return tile ? tile.height : 0;
+    }
+    
+    getSolidObjects() {
+        return this.obstacles.map(obstacle => ({
+            boundingBox: obstacle.boundingBox,
+            position: obstacle.position,
+            type: 'obstacle'
+        })).concat(this.walls.map(wall => ({
+            boundingBox: wall.boundingBox,
+            position: wall.position,
+            type: 'wall'
+        })).concat(this.borderWalls.map(borderWall => ({
+            boundingBox: borderWall.mesh.geometry.boundingBox,
+            position: borderWall.position,
+            type: 'border'
+        }))));
+    }
+    
+    getRemainingCollectibles() {
+        return this.collectibles.filter(c => !c.collected).length;
+    }
+    
+    getCollectiblePositions() {
+        return this.collectibles
+            .filter(c => !c.collected)
+            .map(c => ({
+                x: c.gridX,
+                z: c.gridZ,
+                worldX: c.position.x,
+                worldZ: c.position.z
+            }));
+    }
+    
+    getKeyPosition() {
+        if (this.keyObject && !this.keyObject.collected) {
+            return {
+                x: this.keyObject.gridX,
+                z: this.keyObject.gridZ,
+                worldX: this.keyObject.position.x,
+                worldZ: this.keyObject.position.z
+            };
+        }
+        return null;
+    }
+    
+    getExitPosition() {
+        if (this.exitObject) {
+            return {
+                x: this.exitObject.gridX,
+                z: this.exitObject.gridZ,
+                worldX: this.exitObject.position.x,
+                worldZ: this.exitObject.position.z,
+                activated: this.exitObject.activated
+            };
+        }
+        return null;
+    }
+
+    generateMapBorder(width, height) {
+        const borderHeight = 2;
+        const borderGeometry = new THREE.BoxGeometry(this.tileSize, borderHeight, this.tileSize);
+        const borderMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0x00FFFF,
+            emissive: 0x006666
+        });
+        
+        this.borderWalls = [];
+        
+        for (let x = -1; x <= width; x++) {
+            for (let z = -1; z <= height; z++) {
+                if (x === -1 || x === width || z === -1 || z === height) {
+                    const worldPos = this.levelLoader.gridToWorld(x, z, this.tileSize);
+                    const borderWall = new THREE.Mesh(borderGeometry, borderMaterial.clone());
+                    borderWall.position.set(worldPos.x, borderHeight / 2, worldPos.z);
+                    borderWall.castShadow = true;
+                    borderWall.receiveShadow = true;
+                    
+                    this.scene.add(borderWall);
+                    this.borderWalls.push({
+                        mesh: borderWall,
+                        position: borderWall.position.clone()
+                    });
+                }
+            }
+        }
+    }
+    
+    lerpColor(color1, color2, t) {
+        const r1 = (color1 >> 16) & 0xff;
+        const g1 = (color1 >> 8) & 0xff;
+        const b1 = color1 & 0xff;
+        
+        const r2 = (color2 >> 16) & 0xff;
+        const g2 = (color2 >> 8) & 0xff;
+        const b2 = color2 & 0xff;
+        
+        const r = Math.round(r1 + (r2 - r1) * t);
+        const g = Math.round(g1 + (g2 - g1) * t);
+        const b = Math.round(b1 + (b2 - b1) * t);
+        
+        return (r << 16) | (g << 8) | b;
+    }
 }
