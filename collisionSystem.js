@@ -165,11 +165,12 @@ export class CollisionSystem {
         const dz = playerPosition.z - cylinderPos.z;
         const distance2D = Math.sqrt(dx * dx + dz * dz);
         
-        // Check if player is inside the cylinder (victory condition)
+        // Check if player is inside the cylinder - but don't trigger victory
+        // Victory will be triggered by the exit gate at the top of the cylinder
         if (distance2D < cylinderRadius - this.playerRadius && 
             playerPosition.y >= cylinderBottom && 
             playerPosition.y <= cylinderTop) {
-            this.handleCylinderVictory();
+            // Player is inside cylinder - allow free movement, no victory trigger
             return;
         }
         
@@ -337,9 +338,16 @@ export class CollisionSystem {
                     this.gridManager.activateExit();
                     console.log('Level completed!');
                     
-                    // Trigger level completion callback
-                    if (this.levelCompletionCallback) {
-                        this.levelCompletionCallback();
+                    // Check if this is level 6 (World 1) to show victory menu
+                    const currentLevel = window.game ? window.game.getCurrentLevel() : 1;
+                    if (currentLevel === 6) {
+                        // Level 6 completion - show victory menu
+                        this.handleCylinderVictory();
+                    } else {
+                        // Regular level completion
+                        if (this.levelCompletionCallback) {
+                            this.levelCompletionCallback();
+                        }
                     }
                 } else {
                     console.log('Collect all items and the key first!');

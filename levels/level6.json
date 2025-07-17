@@ -35,9 +35,9 @@
   "bouncePads": [],
   "obstacles": [],
   "exit": {
-    "x": 12,
-    "z": 12,
-    "y": 95,
+    "x": 0,
+    "z": 0,
+    "y": 100,
     "width": 3,
     "height": 6,
     "depth": 3

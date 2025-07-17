@@ -999,13 +999,21 @@ export class GridManager {
         );
         const worldPos = this.levelLoader.gridToWorld(exitData.x, exitData.z, this.tileSize);
         
-        // Get tile height to position exit correctly
-        const tileKey = `${exitData.x},${exitData.z}`;
-        const tile = this.tiles.get(tileKey);
-        const tileHeight = tile ? tile.height : 0;
+        // Use explicit Y coordinate if provided, otherwise calculate from tile height
+        let exitY;
+        if (exitData.y !== undefined) {
+            // Use explicit Y coordinate (for special cases like cylinder top)
+            exitY = exitData.y;
+        } else {
+            // Calculate from tile height (normal case)
+            const tileKey = `${exitData.x},${exitData.z}`;
+            const tile = this.tiles.get(tileKey);
+            const tileHeight = tile ? tile.height : 0;
+            exitY = tileHeight + (exitData.height || 4) / 2;
+        }
         
         const exit = new THREE.Mesh(exitGeometry, this.exitMaterial);
-        exit.position.set(worldPos.x, tileHeight + (exitData.height || 4) / 2, worldPos.z);
+        exit.position.set(worldPos.x, exitY, worldPos.z);
         exit.castShadow = true;
         exit.receiveShadow = true;
         
