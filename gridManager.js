@@ -1679,8 +1679,7 @@ export class GridManager {
         const pillarMaterial = new THREE.MeshLambertMaterial({ 
             color: 0x8B4513, // Brown color
             emissive: 0x2A1A09,
-            emissiveIntensity: 0.2, // More emissive for solid appearance
-            roughness: 0.8 // More rough/solid texture
+            emissiveIntensity: 0.2 // More emissive for solid appearance
         });
         const pillarMesh = new THREE.Mesh(pillarGeometry, pillarMaterial);
         pillarMesh.position.set(center.x, pillarHeight / 2, center.z);
@@ -1816,6 +1815,8 @@ export class GridManager {
         }
         
         // Create a top platform at the end of the staircase - NOW ON TOP OF SOLID TOWER
+        // Remove the solid top platform to allow entry into the cylinder
+        /*
         const topPlatformHeight = steps * heightPerStep + 2; // 2 units above the last step
         const topPlatformGeometry = new THREE.CylinderGeometry(pillarRadius + 1, pillarRadius + 1, 2, 16); // Circular platform slightly wider than solid tower
         const topPlatformMaterial = new THREE.MeshLambertMaterial({
@@ -1829,13 +1830,31 @@ export class GridManager {
         topPlatformMesh.receiveShadow = true;
         
         this.scene.add(topPlatformMesh);
+        */
+        
+        // Instead, create a ring platform around the cylinder opening
+        const ringHeight = steps * heightPerStep + 2;
+        const ringGeometry = new THREE.RingGeometry(pillarRadius + 0.5, pillarRadius + 2, 16);
+        const ringMaterial = new THREE.MeshLambertMaterial({
+            color: 0x228B22, // Green color for the ring platform
+            emissive: 0x004400,
+            emissiveIntensity: 0.2,
+            side: THREE.DoubleSide
+        });
+        const ringMesh = new THREE.Mesh(ringGeometry, ringMaterial);
+        ringMesh.position.set(center.x, ringHeight, center.z);
+        ringMesh.rotation.x = -Math.PI / 2; // Rotate to be horizontal
+        ringMesh.castShadow = true;
+        ringMesh.receiveShadow = true;
+        
+        this.scene.add(ringMesh);
 
         console.log(`✅ Created spiral staircase with ${steps} steps around center (${center.x}, ${center.z})`);
         console.log(`🏗️ Central SOLID pillar: radius ${pillarRadius}, height ${pillarHeight}`);
         console.log(`🪜 Steps: width ${stepWidth}, depth ${stepDepth}, height per step ${heightPerStep}`);
         console.log(`🚀 Added ${steps} bounce pads on every step`);
         console.log(`🪙 Added ${Math.ceil(steps / 3)} collectibles on the staircase steps (every 3rd step)`);
-        console.log(`🟢 Added top platform at height ${topPlatformHeight} on solid tower`);
+        console.log(`🟢 Added ring platform around cylinder opening at height ${ringHeight}`);
     }
 
     lerpColor(color1, color2, t) {

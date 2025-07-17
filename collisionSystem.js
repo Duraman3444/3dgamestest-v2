@@ -25,6 +25,9 @@ export class CollisionSystem {
         
         // Level completion callback
         this.levelCompletionCallback = null;
+
+        // Victory condition for cylinder
+        this.cylinderVictoryTriggered = false;
     }
     
     setPlayer(player) {
@@ -41,6 +44,14 @@ export class CollisionSystem {
     
     setLevelCompletionCallback(callback) {
         this.levelCompletionCallback = callback;
+    }
+    
+    setUIManager(uiManager) {
+        this.uiManager = uiManager;
+    }
+    
+    setVictoryMenu(victoryMenu) {
+        this.victoryMenu = victoryMenu;
     }
     
     update(deltaTime) {
@@ -94,7 +105,10 @@ export class CollisionSystem {
         const obstacles = this.gridManager.getObstacles();
         
         for (let obstacle of obstacles) {
-            if (this.checkBoxCollision(playerBounds, obstacle.boundingBox)) {
+            if (obstacle.type === 'cylinder') {
+                // Special handling for cylinder - check top collision and interior detection
+                this.handleCylinderCollision(obstacle, playerPosition, playerBounds);
+            } else if (this.checkBoxCollision(playerBounds, obstacle.boundingBox)) {
                 // Special handling for stair steps - they should be walkable
                 if (obstacle.type === 'box' && obstacle.height < 2) {
                     // This is likely a stair step (low height box)
@@ -123,7 +137,7 @@ export class CollisionSystem {
                         }
                     }
                 } else {
-                    // Regular obstacle collision (for cylinder and tall obstacles)
+                    // Regular obstacle collision (for tall box obstacles)
                     const response = this.calculateCollisionResponse(playerPosition, obstacle.position);
                     
                     // Apply collision response
@@ -136,6 +150,84 @@ export class CollisionSystem {
                     }
                 }
             }
+        }
+    }
+    
+    handleCylinderCollision(cylinder, playerPosition, playerBounds) {
+        const cylinderPos = cylinder.position;
+        const cylinderRadius = cylinder.radius;
+        const cylinderHeight = cylinder.boundingBox.max.y - cylinder.boundingBox.min.y;
+        const cylinderBottom = cylinderPos.y - cylinderHeight / 2;
+        const cylinderTop = cylinderPos.y + cylinderHeight / 2;
+        
+        // Calculate 2D distance from player to cylinder center (ignore Y)
+        const dx = playerPosition.x - cylinderPos.x;
+        const dz = playerPosition.z - cylinderPos.z;
+        const distance2D = Math.sqrt(dx * dx + dz * dz);
+        
+        // Check if player is inside the cylinder (victory condition)
+        if (distance2D < cylinderRadius - this.playerRadius && 
+            playerPosition.y >= cylinderBottom && 
+            playerPosition.y <= cylinderTop) {
+            this.handleCylinderVictory();
+            return;
+        }
+        
+        // Check for side collision (player hitting cylinder from the side)
+        if (distance2D < cylinderRadius + this.playerRadius && 
+            playerPosition.y >= cylinderBottom && 
+            playerPosition.y <= cylinderTop) {
+            
+            // Push player away from cylinder sides
+            const pushDistance = (cylinderRadius + this.playerRadius) - distance2D + this.collisionTolerance;
+            if (pushDistance > 0) {
+                const pushDirection = new THREE.Vector3(dx, 0, dz).normalize();
+                const pushVector = pushDirection.multiplyScalar(pushDistance);
+                const newPosition = playerPosition.clone().add(pushVector);
+                this.player.setPosition(newPosition.x, newPosition.y, newPosition.z);
+                this.player.velocity.multiplyScalar(0.8);
+            }
+        }
+        
+        // Check for top collision (player landing on cylinder top)
+        if (distance2D < cylinderRadius && 
+            playerPosition.y >= cylinderTop - this.playerRadius && 
+            playerPosition.y <= cylinderTop + this.playerRadius) {
+            
+            // Support player on top of cylinder
+            const supportHeight = cylinderTop + this.playerRadius;
+            if (playerPosition.y < supportHeight) {
+                this.player.setPosition(playerPosition.x, supportHeight, playerPosition.z);
+                this.player.velocity.y = Math.max(0, this.player.velocity.y); // Stop downward movement
+            }
+        }
+    }
+    
+    handleCylinderVictory() {
+        // Only trigger victory once
+        if (this.cylinderVictoryTriggered) return;
+        this.cylinderVictoryTriggered = true;
+        
+        console.log('Player entered cylinder - Victory!');
+        
+        // Stop player movement
+        this.player.velocity.set(0, 0, 0);
+        
+        // Show victory menu instead of just a message
+        if (this.victoryMenu) {
+            this.victoryMenu.show();
+        } else {
+            // Fallback to UI message if victory menu not available
+            if (this.uiManager) {
+                this.uiManager.showMessage('🎉 YOU BEAT WORLD 1! 🎉', 5000);
+            }
+            
+            // Optional: trigger level completion after a delay
+            setTimeout(() => {
+                if (this.levelCompletionCallback) {
+                    this.levelCompletionCallback();
+                }
+            }, 3000);
         }
     }
     
@@ -911,6 +1003,7 @@ export class CollisionSystem {
         this.score = 0;
         this.collectiblesCollected = 0;
         this.clearDebugHelpers();
+        this.cylinderVictoryTriggered = false; // Reset victory trigger
     }
     
     // Get current score

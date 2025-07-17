@@ -11,6 +11,7 @@ import { SinglePlayerMenu } from './singlePlayerMenu.js';
 import { PacmanMenu } from './pacmanMenu.js';
 import { GameOverScreen } from './gameOverScreen.js';
 import { SettingsManager } from './settingsManager.js';
+import { VictoryMenu } from './victoryMenu.js';
 
 class Game {
     constructor() {
@@ -98,6 +99,12 @@ class Game {
             () => this.returnToMainMenu(),
             () => this.retryLevel(),
             () => this.quitGame()
+        );
+        
+        // Create victory menu
+        this.victoryMenu = new VictoryMenu(
+            () => this.returnToMainMenu(),
+            () => this.startWorld2()
         );
         
         // Hide the game canvas initially
@@ -713,6 +720,8 @@ class Game {
         this.collisionSystem.setGrid(this.gridManager);
         this.collisionSystem.setGameOverCallback(() => this.handleGameOver());
         this.collisionSystem.setLevelCompletionCallback(() => this.handleLevelCompletion());
+        this.collisionSystem.setUIManager(this.uiManager);
+        this.collisionSystem.setVictoryMenu(this.victoryMenu);
         
         // Setup game loop
         this.gameLoop = new GameLoop(this.renderer, this.scene, this.cameraSystem.camera, {
@@ -921,6 +930,19 @@ class Game {
         } catch (error) {
             console.error('Error saving progress:', error);
         }
+    }
+    
+    // Start World 2 (Level 1) from victory menu
+    async startWorld2() {
+        console.log('Starting World 2...');
+        
+        // Hide the victory menu
+        if (this.victoryMenu) {
+            this.victoryMenu.hide();
+        }
+        
+        // Start level 1 as World 2
+        await this.startGame('normal', 1, this.difficulty || 'normal');
     }
     
     // Level progression methods for pacman mode
