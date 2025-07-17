@@ -787,6 +787,9 @@ class Game {
         this.gridManager = new GridManager(this.scene, this.levelLoader);
         this.player = new Player(this.scene);
         
+        // Set level-specific player speed
+        this.player.speed = this.getPlayerSpeed();
+        
         // Get spawn point from level
         const spawnPoint = this.levelLoader.getSpawnPoint();
         this.player.setSpawnPoint(spawnPoint);
@@ -1491,6 +1494,23 @@ class Game {
                 return levelData.ghosts[0].speed || 11.0;
             }
             return 11.0; // Default speed for non-pacman modes
+        }
+    }
+    
+    // Calculate player speed based on current level for pacman mode
+    getPlayerSpeed() {
+        if (this.gameMode === 'pacman') {
+            // Progressive speed increase for larger levels
+            switch (this.currentLevel) {
+                case 1: return 10;  // Normal speed for training level
+                case 2: return 12;  // Slightly faster for bigger level
+                case 3: return 14;  // Faster for even bigger level
+                case 4: return 16;  // Much faster for large level
+                case 5: return 18;  // Fastest for biggest level
+                default: return 10 + (this.currentLevel - 1) * 2; // Continue progression
+            }
+        } else {
+            return 10; // Default speed for non-pacman modes
         }
     }
     
