@@ -581,6 +581,46 @@ export class PacmanMenu {
         levelBox.appendChild(levelNumber);
         levelBox.appendChild(levelName);
         
+        // Add restart button for completed levels
+        if (isCompleted) {
+            const restartButton = document.createElement('button');
+            restartButton.textContent = 'RESTART';
+            restartButton.style.cssText = `
+                position: absolute;
+                bottom: 8px;
+                right: 8px;
+                background: linear-gradient(135deg, #ff6600 0%, #ff9900 100%);
+                border: 2px solid #ffff00;
+                color: #ffffff;
+                padding: 4px 8px;
+                font-size: 10px;
+                font-weight: bold;
+                font-family: 'Courier New', monospace;
+                border-radius: 4px;
+                cursor: pointer;
+                text-shadow: 1px 1px 0px #000000;
+                transition: all 0.2s ease;
+                z-index: 2;
+            `;
+            
+            restartButton.addEventListener('mouseenter', () => {
+                restartButton.style.background = 'linear-gradient(135deg, #ff0000 0%, #ff4444 100%)';
+                restartButton.style.transform = 'scale(1.1)';
+            });
+            
+            restartButton.addEventListener('mouseleave', () => {
+                restartButton.style.background = 'linear-gradient(135deg, #ff6600 0%, #ff9900 100%)';
+                restartButton.style.transform = 'scale(1)';
+            });
+            
+            restartButton.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent level selection
+                this.restartLevel(level.id);
+            });
+            
+            levelBox.appendChild(restartButton);
+        }
+        
         if (isUnlocked) {
             // Hover effects
             levelBox.addEventListener('mouseenter', () => {
@@ -907,6 +947,34 @@ export class PacmanMenu {
         this.hide();
         if (this.onStartGame) {
             this.onStartGame('pacman', this.selectedLevel, this.selectedDifficulty);
+        }
+    }
+    
+    // Restart a specific level by clearing its progress
+    restartLevel(levelId) {
+        console.log(`Restarting pacman level ${levelId}...`);
+        
+        // Clear per-level progress for this specific level
+        try {
+            const progressKey = `levelProgress_pacman_${levelId}`;
+            localStorage.removeItem(progressKey);
+            console.log(`Cleared progress for pacman level ${levelId}`);
+        } catch (error) {
+            console.error('Error clearing level progress:', error);
+        }
+        
+        // Clear main game state if it exists
+        try {
+            localStorage.removeItem('gameState');
+            console.log('Cleared main game state');
+        } catch (error) {
+            console.error('Error clearing game state:', error);
+        }
+        
+        // Start the level fresh
+        this.hide();
+        if (this.onStartGame) {
+            this.onStartGame('pacman', levelId, this.selectedDifficulty);
         }
     }
     
