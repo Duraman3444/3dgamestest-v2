@@ -105,7 +105,7 @@ export class UIManager {
         collectiblesElement.id = 'collectibles-counter';
         collectiblesElement.style.cssText = `
             position: absolute;
-            top: 60px;
+            top: 50px;
             left: 10px;
             color: #FFD700;
             font-family: Arial, sans-serif;
@@ -123,7 +123,7 @@ export class UIManager {
         keysElement.id = 'keys-counter';
         keysElement.style.cssText = `
             position: absolute;
-            top: 80px;
+            top: 70px;
             left: 10px;
             color: #00FFFF;
             font-family: Arial, sans-serif;
