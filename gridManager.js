@@ -53,19 +53,27 @@ export class GridManager {
             this.ghostMaterials = {
                 red: new THREE.MeshLambertMaterial({ 
                     color: 0xFF0040, // Bright neon red
-                    emissive: 0x440011 // Red glow
+                    emissive: 0x880022, // Strong red glow - most intimidating
+                    transparent: true,
+                    opacity: 0.95
                 }),
                 blue: new THREE.MeshLambertMaterial({ 
                     color: 0x0080FF, // Bright neon blue
-                    emissive: 0x002244 // Blue glow
+                    emissive: 0x004488, // Medium blue glow - steady and reliable
+                    transparent: true,
+                    opacity: 0.9
                 }),
                 green: new THREE.MeshLambertMaterial({ 
                     color: 0x40FF00, // Bright neon green
-                    emissive: 0x114400 // Green glow
+                    emissive: 0x228800, // Medium green glow - sleek and fast
+                    transparent: true,
+                    opacity: 0.85
                 }),
                 pink: new THREE.MeshLambertMaterial({ 
                     color: 0xFF0080, // Bright neon pink
-                    emissive: 0x440022 // Pink glow
+                    emissive: 0x660044, // Bright pink glow - small but fierce
+                    transparent: true,
+                    opacity: 0.8
                 })
             };
         } else {
@@ -250,11 +258,42 @@ export class GridManager {
     }
     
     generateGhostsFromData(ghostsData) {
-        // Create cylinder geometry for classic Pacman ghost shape
-        // radiusTop, radiusBottom, height, radialSegments
-        const ghostGeometry = new THREE.CylinderGeometry(0.9, 0.9, 1.8, 12);
-        
         ghostsData.forEach(ghostData => {
+            // Create unique geometry and properties for each ghost color
+            let ghostGeometry, ghostScale = 1.0, ghostHeight = 1.0;
+            
+            switch(ghostData.color) {
+                case 'red':
+                    // Red ghost: Traditional cylinder, largest and most intimidating
+                    ghostGeometry = new THREE.CylinderGeometry(1.0, 1.0, 2.0, 12);
+                    ghostScale = 1.0;
+                    ghostHeight = 2.0;
+                    break;
+                case 'blue':
+                    // Blue ghost: Octagonal prism, medium size
+                    ghostGeometry = new THREE.CylinderGeometry(0.85, 0.85, 1.8, 8);
+                    ghostScale = 0.9;
+                    ghostHeight = 1.8;
+                    break;
+                case 'green':
+                    // Green ghost: Hexagonal prism, sleek and fast
+                    ghostGeometry = new THREE.CylinderGeometry(0.8, 0.8, 1.6, 6);
+                    ghostScale = 0.85;
+                    ghostHeight = 1.6;
+                    break;
+                case 'pink':
+                    // Pink ghost: Smooth sphere-cylinder hybrid, smallest but quickest
+                    ghostGeometry = new THREE.CylinderGeometry(0.75, 0.75, 1.5, 16);
+                    ghostScale = 0.8;
+                    ghostHeight = 1.5;
+                    break;
+                default:
+                    // Default fallback
+                    ghostGeometry = new THREE.CylinderGeometry(0.9, 0.9, 1.8, 12);
+                    ghostScale = 1.0;
+                    ghostHeight = 1.8;
+            }
+            
             // For pacman mode, spawn ghosts at top of map instead of their defined position
             let spawnX, spawnZ;
             if (this.levelType === 'pacman') {
@@ -268,7 +307,8 @@ export class GridManager {
             const worldPos = this.levelLoader.gridToWorld(spawnX, spawnZ, this.tileSize);
             const ghostMaterial = this.ghostMaterials[ghostData.color] || this.ghostMaterials.red;
             const ghost = new THREE.Mesh(ghostGeometry, ghostMaterial);
-            ghost.position.set(worldPos.x, ghostData.y || 1, worldPos.z);
+            ghost.position.set(worldPos.x, ghostData.y || ghostHeight/2, worldPos.z);
+            ghost.scale.set(ghostScale, ghostScale, ghostScale);
             ghost.castShadow = true;
             
             this.scene.add(ghost);
@@ -631,6 +671,39 @@ export class GridManager {
                 ];
                 ghost.direction = directions[Math.floor(Math.random() * directions.length)];
                 ghost.lastDirectionChange = currentTime;
+            }
+            
+            // Add unique visual animations for each ghost color
+            const time = currentTime;
+            switch(ghost.color) {
+                case 'red':
+                    // Red ghost: Aggressive pulsing and slight wobble
+                    const redPulse = 1 + Math.sin(time * 4) * 0.15;
+                    const redWobble = Math.sin(time * 2) * 0.05;
+                    ghost.mesh.scale.set(redPulse, redPulse, redPulse);
+                    ghost.mesh.position.x += redWobble;
+                    break;
+                case 'blue':
+                    // Blue ghost: Steady breathing and slight rotation
+                    const bluePulse = 1 + Math.sin(time * 2) * 0.1;
+                    ghost.mesh.scale.set(0.9 * bluePulse, 0.9 * bluePulse, 0.9 * bluePulse);
+                    ghost.mesh.rotation.y += 0.01;
+                    break;
+                case 'green':
+                    // Green ghost: Fast oscillation and vertical bob
+                    const greenPulse = 1 + Math.sin(time * 6) * 0.08;
+                    const greenBob = Math.sin(time * 3) * 0.2;
+                    ghost.mesh.scale.set(0.85 * greenPulse, 0.85 * greenPulse, 0.85 * greenPulse);
+                    ghost.mesh.position.y += greenBob;
+                    break;
+                case 'pink':
+                    // Pink ghost: Smooth wave motion and shimmer
+                    const pinkPulse = 1 + Math.sin(time * 5) * 0.12;
+                    const pinkShimmer = Math.sin(time * 8) * 0.03;
+                    ghost.mesh.scale.set(0.8 * pinkPulse, 0.8 * pinkPulse, 0.8 * pinkPulse);
+                    ghost.mesh.position.x += pinkShimmer;
+                    ghost.mesh.position.z += pinkShimmer;
+                    break;
             }
         });
     }
