@@ -63,6 +63,11 @@ class Game {
     }
     
     showMainMenu() {
+        // Clear any active notifications
+        if (this.uiManager) {
+            this.uiManager.clearNotification();
+        }
+        
         this.mainMenu.show();
         this.singlePlayerMenu.hide();
         this.pacmanMenu.hide();
@@ -1492,6 +1497,11 @@ class Game {
     // Pause screen handler for returning to main menu
     pauseToMainMenu() {
         console.log('Returning to main menu from pause');
+        
+        // Clear any active notifications
+        if (this.uiManager) {
+            this.uiManager.clearNotification();
+        }
         
         // Stop the game loop
         if (this.gameLoop) {

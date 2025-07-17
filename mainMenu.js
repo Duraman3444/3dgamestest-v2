@@ -502,6 +502,11 @@ export class MainMenu {
     
     show() {
         if (this.menuElement) {
+            // Clear any active notifications when showing main menu
+            if (window.game && window.game.uiManager) {
+                window.game.uiManager.clearNotification();
+            }
+            
             this.menuElement.style.display = 'flex';
             this.isVisible = true;
             
