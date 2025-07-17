@@ -30,6 +30,9 @@ export class CollisionSystem {
         this.spikeImmunity = false;
         this.spikeImmunityDuration = 4000; // 4 seconds in milliseconds
         this.spikeImmunityStartTime = 0;
+        
+        // Level completion notification
+        this.readyToLeaveNotificationShown = false;
     }
     
     setPlayer(player) {
@@ -46,6 +49,14 @@ export class CollisionSystem {
     
     setLevelCompletionCallback(callback) {
         this.levelCompletionCallback = callback;
+    }
+    
+    // Reset collision system state for new level
+    resetForNewLevel() {
+        this.readyToLeaveNotificationShown = false;
+        this.spikeImmunity = false;
+        this.spikeImmunityStartTime = 0;
+        console.log('Collision system reset for new level');
     }
     
     update(deltaTime) {
@@ -83,6 +94,9 @@ export class CollisionSystem {
         
         // Check collision with portals
         this.checkPortalCollisions();
+        
+        // Check if player is ready to leave level (only in regular mode)
+        this.checkReadyToLeaveNotification();
         
         // Check world boundaries
         this.checkWorldBoundaries();
@@ -478,6 +492,30 @@ export class CollisionSystem {
         
         // Fallback to original spawn point if no safe alternative found
         return originalSpawn;
+    }
+    
+    // Check if player is ready to leave level and show notification
+    checkReadyToLeaveNotification() {
+        // Only show notification in regular mode, not in battle or pacman mode
+        if (this.gridManager.levelType === 'pacman' || 
+            (window.game && window.game.gameMode === 'battle')) {
+            return;
+        }
+        
+        // Check if all items are collected and notification hasn't been shown
+        if (!this.readyToLeaveNotificationShown && this.gridManager.canActivateExit()) {
+            this.readyToLeaveNotificationShown = true;
+            
+            // Show notification via UI Manager
+            if (window.game && window.game.uiManager) {
+                const levelData = this.gridManager.levelLoader.getCurrentLevel();
+                const levelName = levelData.name || 'Level';
+                const message = `🎉 All collectibles and keys found!<br>You are ready to leave ${levelName}!<br>Find and enter the exit to continue.`;
+                
+                window.game.uiManager.showNotification(message, 'success', 6000);
+                console.log('Ready to leave level notification shown');
+            }
+        }
     }
     
     // Check collision with holes

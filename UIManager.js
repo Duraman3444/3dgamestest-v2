@@ -27,6 +27,15 @@ export class UIManager {
             showInstructions: true
         };
         
+        // Notification system
+        this.notification = {
+            isActive: false,
+            message: '',
+            type: 'info', // 'info', 'success', 'warning', 'error'
+            duration: 5000, // 5 seconds
+            startTime: 0
+        };
+        
         this.init();
     }
     
@@ -56,6 +65,7 @@ export class UIManager {
         this.createCameraModeDisplay();
         this.createMinimap();
         this.createPauseMenu();
+        this.createNotificationSystem();
     }
     
     createFPSCounter() {
@@ -251,6 +261,48 @@ export class UIManager {
         this.elements.pauseMenu = pauseMenu;
     }
     
+    createNotificationSystem() {
+        const notificationElement = document.createElement('div');
+        notificationElement.id = 'notification-system';
+        notificationElement.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            font-family: Arial, sans-serif;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 20px 30px;
+            border-radius: 10px;
+            border: 2px solid #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+            z-index: 1001;
+            display: none;
+            text-align: center;
+            max-width: 400px;
+            animation: fadeIn 0.3s ease-in-out;
+        `;
+        
+        // Add CSS animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+                to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            }
+            @keyframes fadeOut {
+                from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                to { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        document.body.appendChild(notificationElement);
+        this.elements.notificationElement = notificationElement;
+    }
+    
     setupEventListeners() {
         // Keyboard shortcuts for UI
         document.addEventListener('keydown', (event) => {
@@ -321,6 +373,7 @@ export class UIManager {
         // Update UI elements
         this.updateUIElements();
         this.updateMinimap();
+        this.updateNotifications();
     }
     
     // Validate position object
@@ -665,6 +718,54 @@ export class UIManager {
                 }
             }, 300);
         }, duration);
+    }
+    
+    // Show notification
+    showNotification(message, type = 'info', duration = 5000) {
+        this.notification.isActive = true;
+        this.notification.message = message;
+        this.notification.type = type;
+        this.notification.duration = duration;
+        this.notification.startTime = Date.now();
+        
+        if (this.elements.notificationElement) {
+            this.elements.notificationElement.innerHTML = message;
+            this.elements.notificationElement.style.display = 'block';
+            
+            // Update colors based on type
+            const colors = {
+                info: '#ffd700',
+                success: '#00ff00',
+                warning: '#ff8800',
+                error: '#ff0000'
+            };
+            
+            this.elements.notificationElement.style.borderColor = colors[type] || colors.info;
+            this.elements.notificationElement.style.boxShadow = `0 0 20px ${colors[type]}50`;
+        }
+    }
+    
+    // Hide notification
+    hideNotification() {
+        this.notification.isActive = false;
+        
+        if (this.elements.notificationElement) {
+            this.elements.notificationElement.style.animation = 'fadeOut 0.3s ease-in-out';
+            setTimeout(() => {
+                this.elements.notificationElement.style.display = 'none';
+                this.elements.notificationElement.style.animation = 'fadeIn 0.3s ease-in-out';
+            }, 300);
+        }
+    }
+    
+    // Update notifications
+    updateNotifications() {
+        if (this.notification.isActive) {
+            const elapsed = Date.now() - this.notification.startTime;
+            if (elapsed >= this.notification.duration) {
+                this.hideNotification();
+            }
+        }
     }
     
     destroy() {

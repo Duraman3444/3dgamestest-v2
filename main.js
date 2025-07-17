@@ -790,6 +790,9 @@ class Game {
         this.collisionSystem.setGameOverCallback(() => this.handleGameOver());
         this.collisionSystem.setLevelCompletionCallback(() => this.handleLevelCompletion());
         
+        // Reset collision system state for new level
+        this.collisionSystem.resetForNewLevel();
+        
         // Initialize battle system if in battle mode
         if (this.gameMode === 'battle') {
             this.battleSystem = new BattleSystem(this.scene, this.player);
