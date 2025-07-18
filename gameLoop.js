@@ -71,6 +71,16 @@ export class GameLoop {
             this.systems.cameraSystem.update(deltaTime);
         }
         
+        // Update skybox manager
+        if (window.game && window.game.skyboxManager) {
+            window.game.skyboxManager.update(deltaTime);
+        }
+        
+        // Update graphics enhancer
+        if (window.game && window.game.graphicsEnhancer) {
+            window.game.graphicsEnhancer.update(deltaTime);
+        }
+        
         // Update grid manager
         if (this.systems.gridManager) {
             this.systems.gridManager.update(deltaTime);

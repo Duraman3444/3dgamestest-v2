@@ -39,14 +39,16 @@ export class MainMenu {
         title.textContent = 'BALL BLITZ';
         title.style.cssText = `
             color: #00ffff;
-            font-size: 64px;
-            font-weight: bold;
+            font-size: 72px;
+            font-weight: 900;
             margin-bottom: 30px;
-            text-shadow: 3px 3px 0px #ff00ff, 6px 6px 0px #000000;
+            text-shadow: 4px 4px 0px #ff00ff, 8px 8px 0px #000000, 0px 0px 20px rgba(0, 255, 255, 0.5);
             text-align: center;
-            letter-spacing: 8px;
+            letter-spacing: 10px;
             text-transform: uppercase;
-            font-family: 'Courier New', monospace;
+            font-family: "Segoe UI", 'Impact', 'Arial Black', sans-serif;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
         `;
         
         // Create subtitle
@@ -54,14 +56,16 @@ export class MainMenu {
         subtitle.textContent = 'ARCADE EDITION';
         subtitle.style.cssText = `
             color: #ffff00;
-            font-size: 24px;
-            font-weight: bold;
+            font-size: 28px;
+            font-weight: 700;
             margin-bottom: 50px;
-            text-shadow: 2px 2px 0px #000000;
+            text-shadow: 3px 3px 0px #000000, 0px 0px 10px rgba(255, 255, 0, 0.5);
             text-align: center;
-            letter-spacing: 4px;
+            letter-spacing: 6px;
             text-transform: uppercase;
-            font-family: 'Courier New', monospace;
+            font-family: "Segoe UI", 'Arial Black', sans-serif;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
         `;
         
         // Create menu buttons container
@@ -470,9 +474,191 @@ export class MainMenu {
     startLocalMultiplayer() {
         console.log('🥊 Starting Local Multiplayer Battle Arena!');
         
-        // Start the game in battle mode
+        // Show player count selection
+        this.showPlayerCountSelection();
+    }
+    
+    showPlayerCountSelection() {
+        const countDialog = document.createElement('div');
+        countDialog.id = 'player-count-dialog';
+        countDialog.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            font-family: 'Courier New', monospace;
+            color: white;
+        `;
+        
+        countDialog.innerHTML = `
+            <div style="text-align: center; max-width: 600px; padding: 40px; background: rgba(0,0,0,0.3); border-radius: 20px; backdrop-filter: blur(10px);">
+                <h1 style="font-size: 48px; margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+                    🥊 SUMO BATTLE ARENA
+                </h1>
+                
+                <h2 style="margin-bottom: 30px; font-size: 24px; color: #FFD700;">
+                    Select Number of Players
+                </h2>
+                
+                <div style="display: flex; gap: 20px; justify-content: center; margin-bottom: 30px; flex-wrap: wrap;">
+                    <button id="player-count-2" style="
+                        padding: 20px 30px;
+                        font-size: 24px;
+                        background: linear-gradient(45deg, #4CAF50, #45a049);
+                        color: white;
+                        border: none;
+                        border-radius: 15px;
+                        cursor: pointer;
+                        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                        transition: all 0.3s;
+                        font-family: 'Courier New', monospace;
+                        width: 120px;
+                        height: 120px;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                    ">
+                        <div style="font-size: 36px; margin-bottom: 5px;">2</div>
+                        <div style="font-size: 14px;">Players</div>
+                    </button>
+                    
+                    <button id="player-count-3" style="
+                        padding: 20px 30px;
+                        font-size: 24px;
+                        background: linear-gradient(45deg, #2196F3, #1976D2);
+                        color: white;
+                        border: none;
+                        border-radius: 15px;
+                        cursor: pointer;
+                        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                        transition: all 0.3s;
+                        font-family: 'Courier New', monospace;
+                        width: 120px;
+                        height: 120px;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                    ">
+                        <div style="font-size: 36px; margin-bottom: 5px;">3</div>
+                        <div style="font-size: 14px;">Players</div>
+                    </button>
+                    
+                    <button id="player-count-4" style="
+                        padding: 20px 30px;
+                        font-size: 24px;
+                        background: linear-gradient(45deg, #FF9800, #F57C00);
+                        color: white;
+                        border: none;
+                        border-radius: 15px;
+                        cursor: pointer;
+                        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                        transition: all 0.3s;
+                        font-family: 'Courier New', monospace;
+                        width: 120px;
+                        height: 120px;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                    ">
+                        <div style="font-size: 36px; margin-bottom: 5px;">4</div>
+                        <div style="font-size: 14px;">Players</div>
+                    </button>
+                </div>
+                
+                <div style="margin-bottom: 30px; font-size: 16px; color: #ccc; text-align: center;">
+                    <p style="margin-bottom: 10px;">🎮 <strong>Control Schemes:</strong></p>
+                    <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; font-size: 14px;">
+                        <div style="background: rgba(0,255,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid #00FF00;">
+                            <div style="color: #00FF00; font-weight: bold;">Player 1</div>
+                            <div>WASD</div>
+                        </div>
+                        <div style="background: rgba(255,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid #FF0000;">
+                            <div style="color: #FF0000; font-weight: bold;">Player 2</div>
+                            <div>Arrow Keys</div>
+                        </div>
+                        <div style="background: rgba(0,0,255,0.2); padding: 10px; border-radius: 8px; border: 1px solid #0000FF;">
+                            <div style="color: #0000FF; font-weight: bold;">Player 3</div>
+                            <div>IJKL</div>
+                        </div>
+                        <div style="background: rgba(255,255,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid #FFFF00;">
+                            <div style="color: #FFFF00; font-weight: bold;">Player 4</div>
+                            <div>TFGH</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="back-from-count-btn" style="
+                    padding: 15px 30px;
+                    font-size: 18px;
+                    background: linear-gradient(45deg, #f44336, #d32f2f);
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                    transition: all 0.3s;
+                    font-family: 'Courier New', monospace;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                    width: 200px;
+                ">← Back</button>
+            </div>
+        `;
+        
+        document.body.appendChild(countDialog);
+        
+        // Add hover effects
+        const buttons = countDialog.querySelectorAll('button');
+        buttons.forEach(button => {
+            button.addEventListener('mouseenter', () => {
+                button.style.transform = 'translateY(-2px) scale(1.05)';
+                button.style.boxShadow = '0 6px 20px rgba(0,0,0,0.4)';
+            });
+            
+            button.addEventListener('mouseleave', () => {
+                button.style.transform = 'translateY(0) scale(1)';
+                button.style.boxShadow = '0 4px 15px rgba(0,0,0,0.3)';
+            });
+        });
+        
+        // Add event listeners for player count selection
+        document.getElementById('player-count-2').addEventListener('click', () => {
+            document.body.removeChild(countDialog);
+            this.startLocalMultiplayerBattle(2);
+        });
+        
+        document.getElementById('player-count-3').addEventListener('click', () => {
+            document.body.removeChild(countDialog);
+            this.startLocalMultiplayerBattle(3);
+        });
+        
+        document.getElementById('player-count-4').addEventListener('click', () => {
+            document.body.removeChild(countDialog);
+            this.startLocalMultiplayerBattle(4);
+        });
+        
+        document.getElementById('back-from-count-btn').addEventListener('click', () => {
+            document.body.removeChild(countDialog);
+            this.showMultiplayerTypeSelection();
+        });
+    }
+    
+    startLocalMultiplayerBattle(playerCount) {
+        console.log(`🥊 Starting ${playerCount}-Player Local Multiplayer Battle!`);
+        
+        // Start the game in local multiplayer battle mode
         if (this.onStartGame) {
-            this.onStartGame('local_multiplayer');
+            this.onStartGame('local_multiplayer', { playerCount });
         }
     }
     

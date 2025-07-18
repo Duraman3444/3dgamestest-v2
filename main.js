@@ -17,6 +17,8 @@ import { BattleUI } from './battleUI.js';
 import { MultiplayerManager } from './multiplayerManager.js';
 import { MultiplayerGameModes } from './multiplayerGameModes.js';
 import { LocalMultiplayerBattle } from './localMultiplayerBattle.js';
+import { SkyboxManager } from './skyboxManager.js';
+import { GraphicsEnhancer } from './graphicsEnhancer.js';
 
 class Game {
     constructor() {
@@ -40,6 +42,8 @@ class Game {
         this.multiplayerManager = null;
         this.multiplayerGameModes = null;
         this.localMultiplayerBattle = null;
+        this.skyboxManager = null;
+        this.graphicsEnhancer = null;
         this.isGameInitialized = false;
         this.isPaused = false;
         this.pauseOverlay = null;
@@ -74,7 +78,7 @@ class Game {
             // Show pacman mode menu
             this.showPacmanMenu();
         } else if (mode === 'battle') {
-            // Show battle mode menu
+            // Show battle mode menu (now for bot battles)
             this.showBattleMenu();
         } else {
             // For other modes, start directly
@@ -135,7 +139,7 @@ class Game {
         
         // Create battle menu
         this.battleMenu = new BattleMenu(
-            (mode, level, difficulty) => this.startGame('battle', level, difficulty),
+            (mode, level, difficulty) => this.startGame(mode, level, difficulty),
             () => this.showMainMenu()
         );
         
@@ -588,16 +592,33 @@ class Game {
                 case 'low':
                     this.renderer.setPixelRatio(0.5);
                     this.renderer.shadowMap.enabled = false;
+                    this.renderer.antialias = false;
+                    this.renderer.toneMappingExposure = 1.0;
                     break;
                 case 'medium':
                     this.renderer.setPixelRatio(1);
                     this.renderer.shadowMap.enabled = true;
+                    this.renderer.shadowMap.type = THREE.PCFShadowMap;
+                    this.renderer.antialias = true;
+                    this.renderer.toneMappingExposure = 1.1;
                     break;
                 case 'high':
-                    this.renderer.setPixelRatio(window.devicePixelRatio);
+                    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
                     this.renderer.shadowMap.enabled = true;
+                    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                    this.renderer.antialias = true;
+                    this.renderer.toneMappingExposure = 1.2;
+                    break;
+                case 'ultra':
+                    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+                    this.renderer.shadowMap.enabled = true;
+                    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                    this.renderer.antialias = true;
+                    this.renderer.toneMappingExposure = 1.3;
+                    this.renderer.outputColorSpace = THREE.SRGBColorSpace;
                     break;
             }
+            console.log(`🎨 Graphics quality set to: ${quality}`);
         }
     }
     
@@ -674,8 +695,9 @@ class Game {
                 this.isGameInitialized = true;
             }
             
-            // Start local multiplayer battle
-            this.startLocalMultiplayerBattle();
+            // Start local multiplayer battle with player count
+            const playerCount = level || 2; // level parameter contains player count
+            this.startLocalMultiplayerBattle(playerCount);
             return; // Exit early since battle handles its own game loop
         } else {
             this.isMultiplayerMode = false;
@@ -805,8 +827,8 @@ class Game {
                  });
     }
     
-    startLocalMultiplayerBattle() {
-        console.log('🥊 Initializing Local Multiplayer Battle Arena...');
+    startLocalMultiplayerBattle(playerCount = 2) {
+        console.log(`🥊 Initializing ${playerCount}-Player Local Multiplayer Battle Arena...`);
         
         // Hide the main menu
         if (this.mainMenu) {
@@ -819,6 +841,9 @@ class Game {
         // Create the local multiplayer battle system
         this.localMultiplayerBattle = new LocalMultiplayerBattle(this.scene, this.cameraSystem.camera, this.renderer);
         
+        // Set the player count
+        this.localMultiplayerBattle.setPlayerCount(playerCount);
+        
         // Set up callbacks
         this.localMultiplayerBattle.onBackToMenu = () => {
             console.log('🥊 Returning to main menu from local multiplayer battle');
@@ -827,8 +852,8 @@ class Game {
             this.showMainMenu();
         };
         
-        // Start the battle
-        this.localMultiplayerBattle.startBattle();
+        // Initialize and start the battle
+        this.localMultiplayerBattle.initialize();
     }
     
     clearGameState() {
@@ -920,69 +945,99 @@ class Game {
     setupRenderer() {
         this.renderer = new THREE.WebGLRenderer({ 
             canvas: this.canvas,
-            antialias: true 
+            antialias: true,
+            powerPreference: "high-performance",
+            stencil: false,
+            depth: true
         });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap at 2x for performance
         
-        // Set background color based on game mode - slightly brighter
+        // Enhanced visual settings
+        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.2;
+        
+        // Set background color based on game mode - enhanced with gradients
         if (this.gameMode === 'pacman') {
-            this.renderer.setClearColor(0x111122); // Dark blue-grey background for neon theme
+            this.renderer.setClearColor(0x0a0a1a); // Darker for better neon contrast
         } else {
             this.renderer.setClearColor(0x87CEEB); // Sky blue background for normal mode
         }
         
+        // Enhanced shadow settings
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.renderer.shadowMap.autoUpdate = true;
+        
+        // Enable additional rendering features
+        this.renderer.useLegacyLights = false;
+        
+        console.log('🎨 Enhanced renderer initialized with high-quality settings');
     }
+
     
     setupScene() {
         this.scene = new THREE.Scene();
         
-        // Add fog for depth - reduced intensity for better visibility
-        this.scene.fog = new THREE.Fog(0x87CEEB, 80, 300);
+        // Fog will be set by skybox manager
+        // this.scene.fog = new THREE.Fog(0x87CEEB, 80, 300);
     }
     
     setupLighting() {
-        // Ambient light for general illumination - significantly brighter
+        // Enhanced ambient light with better color space
         const ambientLight = new THREE.AmbientLight(0x404040, 1.2);
         this.scene.add(ambientLight);
         
         if (this.gameMode === 'pacman') {
-            // Enhanced lighting for neon 80s/Tron theme - much brighter
-            
-            // Increase ambient light for better visibility while maintaining atmosphere
+            // Ultra-enhanced neon lighting for Pacman mode
             ambientLight.intensity = 0.8;
-            ambientLight.color = new THREE.Color(0x223344); // Brighter blue ambient
+            ambientLight.color = new THREE.Color(0x223344);
             
-            // Add colored neon-style lights - increased intensity
-            const neonLight1 = new THREE.DirectionalLight(0x00FFFF, 1.5); // Cyan light - brighter
+            // High-quality neon directional lights
+            const neonLight1 = new THREE.DirectionalLight(0x00FFFF, 1.5);
             neonLight1.position.set(10, 10, 10);
             neonLight1.castShadow = true;
-            neonLight1.shadow.mapSize.width = 2048;
-            neonLight1.shadow.mapSize.height = 2048;
+            neonLight1.shadow.mapSize.width = 4096;
+            neonLight1.shadow.mapSize.height = 4096;
+            neonLight1.shadow.camera.near = 0.1;
+            neonLight1.shadow.camera.far = 100;
+            neonLight1.shadow.bias = -0.0001;
+            neonLight1.shadow.normalBias = 0.02;
             this.scene.add(neonLight1);
             
-            const neonLight2 = new THREE.DirectionalLight(0xFF00FF, 1.2); // Magenta light - brighter
+            const neonLight2 = new THREE.DirectionalLight(0xFF00FF, 1.2);
             neonLight2.position.set(-10, 10, -10);
             neonLight2.castShadow = true;
-            neonLight2.shadow.mapSize.width = 2048;
-            neonLight2.shadow.mapSize.height = 2048;
+            neonLight2.shadow.mapSize.width = 4096;
+            neonLight2.shadow.mapSize.height = 4096;
+            neonLight2.shadow.camera.near = 0.1;
+            neonLight2.shadow.camera.far = 100;
+            neonLight2.shadow.bias = -0.0001;
+            neonLight2.shadow.normalBias = 0.02;
             this.scene.add(neonLight2);
             
-            // Add point lights for extra glow effect - increased intensity
-            const pointLight1 = new THREE.PointLight(0xFFFF00, 3, 35); // Yellow point light - brighter
+            // Enhanced point lights with better falloff
+            const pointLight1 = new THREE.PointLight(0xFFFF00, 3, 35, 2);
             pointLight1.position.set(0, 5, 0);
+            pointLight1.castShadow = true;
+            pointLight1.shadow.mapSize.width = 2048;
+            pointLight1.shadow.mapSize.height = 2048;
             this.scene.add(pointLight1);
             
-            const pointLight2 = new THREE.PointLight(0x00FF00, 2.5, 30); // Green point light - brighter
+            const pointLight2 = new THREE.PointLight(0x00FF00, 2.5, 30, 2);
             pointLight2.position.set(0, 8, 0);
+            pointLight2.castShadow = true;
+            pointLight2.shadow.mapSize.width = 2048;
+            pointLight2.shadow.mapSize.height = 2048;
             this.scene.add(pointLight2);
             
-        } else if (this.gameMode === 'normal') {
-            // PS2 theme lighting for single player mode - much brighter
+            // Add hemisphere light for better neon ambience
+            const hemiLight = new THREE.HemisphereLight(0x00ffff, 0xff00ff, 0.3);
+            this.scene.add(hemiLight);
             
-            // PS2-style lighting colors based on current level
+        } else if (this.gameMode === 'normal') {
+            // Ultra-enhanced PS2 lighting with improved shadows
             const ps2LightThemes = {
                 1: { primary: 0x0099FF, secondary: 0x00CCFF }, // Blue
                 2: { primary: 0xFF0099, secondary: 0xFF33CC }, // Magenta
@@ -999,55 +1054,85 @@ class Game {
             const lightThemeIndex = ((this.currentLevel - 1) % 10) + 1;
             const lightTheme = ps2LightThemes[lightThemeIndex];
             
-            // Adjust ambient light for PS2 theme - much brighter
             ambientLight.intensity = 0.9;
-            ambientLight.color = new THREE.Color(0x444466); // Brighter blue-purple ambient
+            ambientLight.color = new THREE.Color(0x444466);
             
-            // PS2-style directional lights - increased intensity
+            // Enhanced PS2 directional lights with better shadows
             const ps2Light1 = new THREE.DirectionalLight(lightTheme.primary, 1.3);
             ps2Light1.position.set(10, 10, 10);
             ps2Light1.castShadow = true;
-            ps2Light1.shadow.mapSize.width = 2048;
-            ps2Light1.shadow.mapSize.height = 2048;
+            ps2Light1.shadow.mapSize.width = 4096;
+            ps2Light1.shadow.mapSize.height = 4096;
+            ps2Light1.shadow.camera.near = 0.1;
+            ps2Light1.shadow.camera.far = 100;
+            ps2Light1.shadow.bias = -0.0001;
+            ps2Light1.shadow.normalBias = 0.02;
             this.scene.add(ps2Light1);
             
             const ps2Light2 = new THREE.DirectionalLight(lightTheme.secondary, 1.0);
             ps2Light2.position.set(-10, 10, -10);
             ps2Light2.castShadow = true;
-            ps2Light2.shadow.mapSize.width = 2048;
-            ps2Light2.shadow.mapSize.height = 2048;
+            ps2Light2.shadow.mapSize.width = 4096;
+            ps2Light2.shadow.mapSize.height = 4096;
+            ps2Light2.shadow.camera.near = 0.1;
+            ps2Light2.shadow.camera.far = 100;
+            ps2Light2.shadow.bias = -0.0001;
+            ps2Light2.shadow.normalBias = 0.02;
             this.scene.add(ps2Light2);
             
-            // PS2-style point lights for glow effect - increased intensity
-            const ps2PointLight = new THREE.PointLight(lightTheme.primary, 2.5, 35);
+            // Enhanced PS2 point lights with improved falloff
+            const ps2PointLight = new THREE.PointLight(lightTheme.primary, 2.5, 35, 2);
             ps2PointLight.position.set(0, 6, 0);
+            ps2PointLight.castShadow = true;
+            ps2PointLight.shadow.mapSize.width = 2048;
+            ps2PointLight.shadow.mapSize.height = 2048;
             this.scene.add(ps2PointLight);
             
-        } else {
-            // Standard lighting for normal mode - much brighter
+            // Add hemisphere light for better PS2 ambience
+            const hemiLight = new THREE.HemisphereLight(lightTheme.primary, lightTheme.secondary, 0.2);
+            this.scene.add(hemiLight);
             
-            // Directional light (sun) - increased intensity
+        } else {
+            // Ultra-enhanced standard lighting
             const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
             directionalLight.position.set(10, 10, 5);
             directionalLight.castShadow = true;
-            directionalLight.shadow.mapSize.width = 2048;
-            directionalLight.shadow.mapSize.height = 2048;
+            directionalLight.shadow.mapSize.width = 4096;
+            directionalLight.shadow.mapSize.height = 4096;
             directionalLight.shadow.camera.near = 0.1;
             directionalLight.shadow.camera.far = 100;
             directionalLight.shadow.camera.left = -50;
             directionalLight.shadow.camera.right = 50;
             directionalLight.shadow.camera.top = 50;
             directionalLight.shadow.camera.bottom = -50;
+            directionalLight.shadow.bias = -0.0001;
+            directionalLight.shadow.normalBias = 0.02;
             this.scene.add(directionalLight);
             
-            // Point light for additional illumination - increased intensity
-            const pointLight = new THREE.PointLight(0xffffff, 2, 60);
+            // Enhanced point light with better falloff
+            const pointLight = new THREE.PointLight(0xffffff, 2, 60, 2);
             pointLight.position.set(0, 10, 0);
+            pointLight.castShadow = true;
+            pointLight.shadow.mapSize.width = 2048;
+            pointLight.shadow.mapSize.height = 2048;
             this.scene.add(pointLight);
+            
+            // Add hemisphere light for better overall illumination
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.3);
+            this.scene.add(hemiLight);
         }
+        
+        console.log('🌟 Ultra-enhanced lighting setup complete with 4K shadows and improved falloff');
     }
     
     async setupSystems() {
+        // Initialize skybox manager and graphics enhancer now that scene is created
+        this.skyboxManager = new SkyboxManager(this.scene, this.renderer);
+        console.log('🌅 Skybox manager initialized');
+        
+        this.graphicsEnhancer = new GraphicsEnhancer(this.scene, this.renderer);
+        console.log('✨ Graphics enhancer initialized');
+        
         // Initialize level loader and load a level
         this.levelLoader = new LevelLoader();
         
@@ -1090,6 +1175,21 @@ class Game {
         // Set level-specific player speed
         this.player.speed = this.getPlayerSpeed();
         
+        // Set appropriate skybox theme
+        if (this.skyboxManager) {
+            const skyboxTheme = this.skyboxManager.getThemeForLevel(this.gameMode, this.currentLevel);
+            this.skyboxManager.setSkyboxTheme(skyboxTheme);
+        }
+        
+        // Enhance graphics and materials
+        if (this.graphicsEnhancer) {
+            this.graphicsEnhancer.createEnvironmentMap(this.gameMode);
+            // Delay material enhancement to allow all objects to be created
+            setTimeout(() => {
+                this.graphicsEnhancer.enhanceSceneMaterials(this.gameMode);
+            }, 100);
+        }
+        
         // Get spawn point from level
         const spawnPoint = this.levelLoader.getSpawnPoint();
         this.player.setSpawnPoint(spawnPoint);
@@ -1115,6 +1215,9 @@ class Game {
         if (this.gameMode === 'battle') {
             this.battleSystem = new BattleSystem(this.scene, this.player);
             this.battleUI = new BattleUI();
+            
+            // Connect battle system and UI
+            this.battleSystem.setBattleUI(this.battleUI);
             
             // Setup battle system callbacks
             this.battleSystem.setVictoryCallback(() => this.handleBattleVictory());
@@ -1195,22 +1298,26 @@ class Game {
             }
         });
         
-        // Handle O key for pause functionality - use capture phase for higher priority
+        // Handle O key for pause functionality and ESC key for main menu - use capture phase for highest priority
         document.addEventListener('keydown', (event) => {
-            if ((event.key === 'o' || event.key === 'O') && this.isGameInitialized) {
+            // Handle O key for pause functionality
+            if (event.key === 'o' || event.key === 'O') {
                 event.preventDefault();
                 event.stopPropagation(); // Prevent other listeners from handling this
                 
-                // Check if any menus are visible and prevent pause
-                const menuVisible = this.mainMenu.isVisible || 
-                                  this.singlePlayerMenu.isVisible || 
-                                  this.pacmanMenu.isVisible || 
-                                  this.battleMenu.isVisible ||
-                                  this.gameOverScreen.isVisible;
-                
-                // Only handle pause if no menus are visible and game is active
-                if (!menuVisible) {
-                    this.togglePause();
+                // Check if game is initialized and active
+                if (this.isGameInitialized) {
+                    // Check if any menus are visible and prevent pause
+                    const menuVisible = this.mainMenu.isVisible || 
+                                      this.singlePlayerMenu.isVisible || 
+                                      this.pacmanMenu.isVisible || 
+                                      this.battleMenu.isVisible ||
+                                      this.gameOverScreen.isVisible;
+                    
+                    // Only handle pause if no menus are visible and game is active
+                    if (!menuVisible) {
+                        this.togglePause();
+                    }
                 }
             }
             
@@ -1241,7 +1348,7 @@ class Game {
                     this.toggleMainMenu();
                 }
             }
-        }, true); // Use capture phase for higher priority
+        }, true); // Use capture phase for highest priority
     }
     
     toggleMainMenu() {

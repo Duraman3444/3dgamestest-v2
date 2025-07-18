@@ -50,8 +50,8 @@ export class Player {
     }
     
     createPlayerMesh() {
-        // Create a properly scaled sphere geometry for the player
-        const geometry = new THREE.SphereGeometry(1, 32, 32);
+        // Create high-quality sphere geometry for the player
+        const geometry = new THREE.SphereGeometry(1, 64, 64);
         
         // Check game mode and level for theming
         const isPacmanMode = window.game && window.game.gameMode === 'pacman';
@@ -61,13 +61,19 @@ export class Player {
         let material;
         
         if (isPacmanMode) {
-            // Neon 80s/Tron theme for Pacman mode
-            material = new THREE.MeshLambertMaterial({ 
-                color: 0xFFFF00, // Bright yellow like classic Pacman
-                emissive: 0x888800 // Strong yellow glow
+            // Ultra-enhanced neon material for Pacman mode with modern PBR
+            material = new THREE.MeshStandardMaterial({ 
+                color: 0xFFFF00,
+                emissive: 0x888800,
+                emissiveIntensity: 0.4,
+                metalness: 0.1,
+                roughness: 0.2,
+                envMapIntensity: 1.0,
+                transparent: true,
+                opacity: 0.95
             });
         } else if (isNormalMode) {
-            // PS2 theme for single player mode - player color changes per level
+            // Enhanced PS2 materials with modern PBR lighting response
             const ps2PlayerColors = {
                 1: 0x00FFFF, // Cyan
                 2: 0xFF00FF, // Magenta
@@ -81,41 +87,66 @@ export class Player {
                 10: 0x9999FF // Light Purple
             };
             
-            // Get player color for current level (cycle through colors)
             const colorIndex = ((currentLevel - 1) % 10) + 1;
             const playerColor = ps2PlayerColors[colorIndex];
             
-            material = new THREE.MeshLambertMaterial({ 
+            material = new THREE.MeshStandardMaterial({ 
                 color: playerColor,
                 emissive: playerColor,
-                emissiveIntensity: 0.2
+                emissiveIntensity: 0.3,
+                metalness: 0.2,
+                roughness: 0.3,
+                envMapIntensity: 1.0,
+                transparent: true,
+                opacity: 0.95
             });
         } else {
-            // Create a colorful striped material for fallback mode
+            // Enhanced procedural material with better quality
             const canvas = document.createElement('canvas');
-            canvas.width = 256;
-            canvas.height = 256;
+            canvas.width = 512;
+            canvas.height = 512;
             const context = canvas.getContext('2d');
             
-            // Create striped pattern
-            const stripeHeight = 32;
-            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7'];
+            // Enable high-quality rendering
+            context.imageSmoothingEnabled = true;
+            context.imageSmoothingQuality = 'high';
             
-            for (let i = 0; i < canvas.height; i += stripeHeight) {
-                const colorIndex = Math.floor(i / stripeHeight) % colors.length;
-                context.fillStyle = colors[colorIndex];
-                context.fillRect(0, i, canvas.width, stripeHeight);
-            }
+            // Create enhanced gradient pattern
+            const gradient = context.createLinearGradient(0, 0, 512, 512);
+            gradient.addColorStop(0, '#ff6b6b');
+            gradient.addColorStop(0.2, '#4ecdc4');
+            gradient.addColorStop(0.4, '#45b7d1');
+            gradient.addColorStop(0.6, '#f9ca24');
+            gradient.addColorStop(0.8, '#f0932b');
+            gradient.addColorStop(1, '#eb4d4b');
             
-            // Create texture from canvas
+            context.fillStyle = gradient;
+            context.fillRect(0, 0, 512, 512);
+            
+            // Add metallic overlay
+            const metallic = context.createRadialGradient(256, 256, 0, 256, 256, 256);
+            metallic.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+            metallic.addColorStop(0.5, 'rgba(255, 255, 255, 0.4)');
+            metallic.addColorStop(1, 'rgba(255, 255, 255, 0.1)');
+            
+            context.fillStyle = metallic;
+            context.fillRect(0, 0, 512, 512);
+            
+            // Create enhanced texture
             const texture = new THREE.CanvasTexture(canvas);
             texture.wrapS = THREE.RepeatWrapping;
             texture.wrapT = THREE.RepeatWrapping;
-            texture.repeat.set(4, 2);
+            texture.repeat.set(2, 2);
+            texture.generateMipmaps = true;
+            texture.minFilter = THREE.LinearMipmapLinearFilter;
+            texture.magFilter = THREE.LinearFilter;
             
-            material = new THREE.MeshLambertMaterial({ 
+            material = new THREE.MeshPhongMaterial({ 
                 map: texture,
-                transparent: false
+                shininess: 100,
+                specular: 0xFFFFFF,
+                transparent: true,
+                opacity: 0.95
             });
         }
         
@@ -123,7 +154,7 @@ export class Player {
         this.mesh.position.copy(this.position);
         this.mesh.castShadow = true;
         this.mesh.receiveShadow = true;
-        this.mesh.name = 'player'; // Add name for ghost AI to find player
+        this.mesh.name = 'player';
         
         // Add to scene
         this.scene.add(this.mesh);
@@ -135,6 +166,8 @@ export class Player {
         
         // Track rotation for rolling
         this.rollRotation = new THREE.Vector3(0, 0, 0);
+        
+        console.log('🎨 Enhanced player mesh created with high-quality materials');
     }
     
     setupInputHandlers() {

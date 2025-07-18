@@ -38,14 +38,16 @@ export class GameOverScreen {
         title.textContent = 'GAME OVER';
         title.style.cssText = `
             color: #00ffff;
-            font-size: 72px;
+            font-size: 84px;
             margin-bottom: 20px;
-            text-shadow: 3px 3px 0px #ff00ff, 6px 6px 0px #000000;
+            text-shadow: 4px 4px 0px #ff00ff, 8px 8px 0px #000000, 0px 0px 20px rgba(0, 255, 255, 0.6);
             text-align: center;
-            font-weight: bold;
-            letter-spacing: 8px;
+            font-weight: 900;
+            letter-spacing: 10px;
             text-transform: uppercase;
-            font-family: 'Courier New', monospace;
+            font-family: "Segoe UI", 'Impact', 'Arial Black', sans-serif;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
         `;
         
         // Create subtitle
@@ -53,14 +55,16 @@ export class GameOverScreen {
         subtitle.textContent = 'You ran out of lives!';
         subtitle.style.cssText = `
             color: #ffff00;
-            font-size: 24px;
+            font-size: 28px;
             margin-bottom: 60px;
-            text-shadow: 2px 2px 0px #000000;
+            text-shadow: 3px 3px 0px #000000, 0px 0px 10px rgba(255, 255, 0, 0.5);
             text-align: center;
-            font-weight: bold;
-            letter-spacing: 4px;
+            font-weight: 700;
+            letter-spacing: 6px;
             text-transform: uppercase;
-            font-family: 'Courier New', monospace;
+            font-family: "Segoe UI", 'Arial Black', sans-serif;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
         `;
         
         // Create options container

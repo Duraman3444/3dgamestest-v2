@@ -1005,10 +1005,11 @@ export class ArenaManager {
         }
         
         // Clear fog
-        this.scene.fog = null;
-        
-        // Reset background
-        this.scene.background = null;
+        if (this.scene) {
+            this.scene.fog = null;
+            // Reset background
+            this.scene.background = null;
+        }
         
         this.currentArena = null;
     }
