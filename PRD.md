@@ -3,14 +3,14 @@
 
 ### 📋 Executive Summary
 
-This PRD outlines the development of a comprehensive 3D multiplayer game built with Three.js, designed to demonstrate AI-accelerated learning and development capabilities. The project serves as a vehicle for proving rapid technology acquisition and production-quality software delivery in unfamiliar domains.
+This PRD outlines the development of a comprehensive 3D local multiplayer game built with Three.js, designed to demonstrate AI-accelerated learning and development capabilities. The project serves as a vehicle for proving rapid technology acquisition and production-quality software delivery in unfamiliar domains.
 
 ### 🎯 Project Objectives
 
-**Primary Goal**: Demonstrate AI-augmented development capabilities by building a polished multiplayer game in technologies never used before.
+**Primary Goal**: Demonstrate AI-augmented development capabilities by building a polished local multiplayer game in technologies never used before.
 
 **Success Criteria**:
-- Fully functional multiplayer game with real-time interaction
+- Fully functional local multiplayer game with multiple players on same device
 - Production-quality performance and user experience
 - Comprehensive documentation of AI-assisted learning process
 - Development velocity exceeding traditional methods
@@ -23,10 +23,10 @@ This PRD outlines the development of a comprehensive 3D multiplayer game built w
    - Use Three.js-compatible audio solutions
    - Implement spatial audio for 3D positioning
 
-2. **Multiplayer Infrastructure**
-   - Real-time networking with Socket.io
-   - Player synchronization and state management
-   - Connection handling (join/leave/reconnect)
+2. **Local Multiplayer Infrastructure**
+   - Local multi-player support on same device
+   - Player input management for multiple controllers
+   - Split-screen or shared-screen gameplay
 
 3. **Core Game Loop**
    - Smooth 60+ FPS gameplay
@@ -37,7 +37,6 @@ This PRD outlines the development of a comprehensive 3D multiplayer game built w
 1. **Level System Enhancement**
 2. **Battle Mode Redesign**
 3. **Underworld Mechanics**
-4. **Spectator Mode**
 
 #### **P2 - Medium Priority (Could Have)**
 1. **Infinite Mode**
@@ -78,18 +77,11 @@ This PRD outlines the development of a comprehensive 3D multiplayer game built w
 - **Progression**: Increasing difficulty with score multipliers
 - **Persistence**: Save progress and high scores
 
-### 🏟️ Multiplayer Modes
+### 🏟️ Local Multiplayer Modes
 
-#### **Race Mode**
-- **Objective**: First player to reach goal wins
-- **Features**:
-  - Live progress tracking
-  - Checkpoint markers
-  - Real-time position synchronization
-  - Power-ups and speed boosts
-
-#### **Battle Mode - Sumo Wrestling Style**
+#### **Local Battle Mode - Sumo Wrestling Style**
 - **Inspiration**: "Bumper Balls" from Mario Party
+- **Players**: 2-4 players on same device
 - **Arena Design**:
   - Circular/square floating platform
   - No walls - fall-off elimination
@@ -102,7 +94,13 @@ This PRD outlines the development of a comprehensive 3D multiplayer game built w
   - Accumulating damage increases knockback
   - Momentum-based collision effects
 
-- **AI Opponents** (Pre-multiplayer):
+- **Controls**:
+  - Player 1: WASD + mouse
+  - Player 2: Arrow keys + numpad
+  - Player 3: IJKL + UO keys
+  - Player 4: Gamepad support (if available)
+
+- **AI Opponents** (For single player battle):
   - Patrol and chase behaviors
   - Random burst attacks
   - Edge-avoidance algorithms
@@ -113,18 +111,6 @@ This PRD outlines the development of a comprehensive 3D multiplayer game built w
   - Damage percentage display (Smash Bros style)
   - Round winner announcements
   - Match victory celebrations
-
-#### **Spectator Mode**
-- **Access**: Join after player limit or manual selection
-- **Controls**:
-  - Arrow keys/mouse for free camera movement
-  - Number keys (1,2,3,4) to follow specific players
-  - Zoom and pan controls
-- **Features**:
-  - Live HUD elements (timer, scores, progress)
-  - No physics interaction
-  - Seamless mode switching
-  - Post-round lobby options
 
 ### 📊 Progression & Scoring
 
@@ -138,11 +124,12 @@ This PRD outlines the development of a comprehensive 3D multiplayer game built w
   - Full Run (Levels 1-5)
   - Classic Mode
   - Individual Level Records
+  - Local Battle Tournament Winners
 - **Data Tracked**:
   - Final score
   - Completion time
   - Three-initial player identification
-- **Persistence**: Local storage with optional cloud sync
+- **Persistence**: Local storage only
 
 ---
 
@@ -157,19 +144,18 @@ This PRD outlines the development of a comprehensive 3D multiplayer game built w
   - Background music with seamless looping
 - **No External Assets**: Generate audio using oscillators and audio nodes
 
-### **Networking Architecture (P0)**
-- **Server**: Node.js with Socket.io
-- **Client**: Three.js with Socket.io client
+### **Local Multiplayer Architecture (P0)**
+- **Input Management**: Handle multiple input devices simultaneously
+- **Player Management**: Track 2-4 local players
 - **Features**:
-  - Real-time position synchronization
-  - State management for multiplayer games
-  - Room-based matchmaking
-  - Latency optimization and prediction
+  - Shared screen gameplay
+  - Local player state management
+  - Split controls for different players
+  - Turn-based or simultaneous gameplay
 
 ### **Performance Requirements (P0)**
 - **Frame Rate**: Consistent 60+ FPS
-- **Multiplayer Latency**: <50ms response time
-- **Scalability**: Support 2-4 concurrent players
+- **Local Multiplayer**: Smooth gameplay with 2-4 players
 - **Memory Usage**: Efficient resource management
 
 ### **Graphics & Rendering (P1)**
@@ -190,18 +176,18 @@ This PRD outlines the development of a comprehensive 3D multiplayer game built w
 
 - **Day 3-5**: Core development phase
   - Single-player mechanics implementation
-  - Multiplayer infrastructure setup
+  - Local multiplayer infrastructure setup
   - Basic level system and progression
 
 - **Day 6-7**: Polish and testing phase
   - Performance optimization
-  - Stress testing with multiple players
+  - Local multiplayer testing
   - Documentation and demo preparation
 
 ### **Week 2: Advanced Features & Polish**
 - **Day 8-10**: Advanced game modes
   - Battle mode redesign
-  - Spectator mode implementation
+  - Local multiplayer refinement
   - Underworld mechanics
 
 - **Day 11-12**: Procedural systems
@@ -227,9 +213,13 @@ This PRD outlines the development of a comprehensive 3D multiplayer game built w
 - **UI Design**: Clean, game-focused interface
 
 ### **Controls & Interaction**
-- **Movement**: WASD + mouse look
+- **Single Player**: WASD + mouse look
+- **Local Multiplayer**: 
+  - Player 1: WASD + mouse
+  - Player 2: Arrow keys + numpad
+  - Player 3: IJKL + UO keys
+  - Player 4: Gamepad support
 - **Camera**: Multiple view modes (FPS, third-person, isometric)
-- **Multiplayer**: Support for 4 different control schemes
 - **Accessibility**: Keyboard navigation and clear visual feedback
 
 ### **Audio Design**
@@ -242,8 +232,7 @@ This PRD outlines the development of a comprehensive 3D multiplayer game built w
 ## 📊 Success Metrics
 
 ### **Technical Metrics**
-- **Performance**: 60+ FPS with 4 concurrent players
-- **Latency**: <50ms multiplayer response time
+- **Performance**: 60+ FPS with 4 concurrent local players
 - **Stability**: <1% crash rate during gameplay
 - **Compatibility**: 95%+ browser compatibility
 
@@ -251,7 +240,7 @@ This PRD outlines the development of a comprehensive 3D multiplayer game built w
 - **Engagement**: Average session length >10 minutes
 - **Retention**: 70%+ players complete tutorial
 - **Satisfaction**: Positive feedback on controls and gameplay
-- **Multiplayer Usage**: 60%+ of sessions include multiplayer
+- **Local Multiplayer Usage**: 40%+ of sessions include local multiplayer
 
 ### **Development Metrics**
 - **Velocity**: Feature completion ahead of traditional timelines
@@ -265,13 +254,11 @@ This PRD outlines the development of a comprehensive 3D multiplayer game built w
 
 ### **Technology Stack**
 - **Frontend**: Three.js + ES6 modules
-- **Backend**: Node.js + Socket.io
 - **No External Assets**: All content generated programmatically
 - **Browser Support**: Modern browsers with WebGL support
 
 ### **Performance Constraints**
 - **Memory**: Efficient resource management
-- **Network**: Optimized data transmission
 - **CPU**: Smooth gameplay on mid-range devices
 - **GPU**: Balanced graphics quality and performance
 
@@ -286,12 +273,12 @@ This PRD outlines the development of a comprehensive 3D multiplayer game built w
 ## 📋 Acceptance Criteria
 
 ### **Core Functionality**
-- [ ] Multiplayer support with real-time synchronization
+- [ ] Local multiplayer support with 2-4 players
 - [ ] Audio system without external file dependencies
 - [ ] All 7 levels implemented with unique mechanics
 - [ ] Underworld system functional from Level 4+
 - [ ] Battle mode with sumo wrestling mechanics
-- [ ] Spectator mode with free camera controls
+- [ ] Multiple input schemes for local multiplayer
 
 ### **Advanced Features**
 - [ ] Infinite mode with procedural generation
@@ -311,10 +298,10 @@ This PRD outlines the development of a comprehensive 3D multiplayer game built w
 
 ## 🎯 Post-Launch Roadmap
 
-### **Phase 1: Community Features**
-- Global leaderboards with cloud sync
-- Level sharing and user-generated content
-- Tournament mode for competitive play
+### **Phase 1: Enhanced Local Play**
+- Enhanced local tournament modes
+- More battle arenas and game modes
+- Advanced AI opponents with difficulty scaling
 
 ### **Phase 2: Advanced Gameplay**
 - VR support for immersive experience
@@ -323,12 +310,12 @@ This PRD outlines the development of a comprehensive 3D multiplayer game built w
 
 ### **Phase 3: Platform Expansion**
 - Steam/Desktop distribution
-- Console adaptation
-- Cross-platform play
+- Console adaptation with gamepad support
+- Enhanced graphics and effects
 
 ---
 
-**Document Version**: 1.0  
+**Document Version**: 2.0  
 **Last Updated**: Current development cycle  
 **Next Review**: After Phase 1 completion  
-**Status**: Active development - priority features in progress 
+**Status**: Active development - focus on local multiplayer features 

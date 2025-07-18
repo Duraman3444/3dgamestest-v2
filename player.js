@@ -366,10 +366,22 @@ export class Player {
         this.velocity.x = this.direction.x * this.speed;
         this.velocity.z = this.direction.z * this.speed;
         
+        // Play footstep sound occasionally when moving
+        if (this.direction.length() > 0 && Math.random() < 0.05) { // 5% chance per frame
+            if (window.game && window.game.audioManager) {
+                window.game.audioManager.playFootstepSound();
+            }
+        }
+        
         // Handle jumping
         if (this.canJump && this.isOnGround) {
             this.velocity.y = this.jumpHeight;
             this.isOnGround = false;
+            
+            // Play jump sound effect
+            if (window.game && window.game.audioManager) {
+                window.game.audioManager.playJumpSound();
+            }
         }
         
         // Apply gravity

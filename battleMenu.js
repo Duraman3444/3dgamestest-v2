@@ -206,11 +206,19 @@ export class BattleMenu {
         
         // Start battle button
         this.startButton.addEventListener('click', () => {
+            // Play click sound
+            if (window.game && window.game.audioManager) {
+                window.game.audioManager.playMenuClickSound();
+            }
             this.startBattle();
         });
         
         // Back button
         this.backButton.addEventListener('click', () => {
+            // Play back sound
+            if (window.game && window.game.audioManager) {
+                window.game.audioManager.playMenuBackSound();
+            }
             this.hide();
             this.onBackToMain();
         });

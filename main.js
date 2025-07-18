@@ -14,11 +14,14 @@ import { GameOverScreen } from './gameOverScreen.js';
 import { SettingsManager } from './settingsManager.js';
 import { BattleSystem } from './battleSystem.js';
 import { BattleUI } from './battleUI.js';
-import { MultiplayerManager } from './multiplayerManager.js';
-import { MultiplayerGameModes } from './multiplayerGameModes.js';
+
 import { LocalMultiplayerBattle } from './localMultiplayerBattle.js';
 import { SkyboxManager } from './skyboxManager.js';
 import { GraphicsEnhancer } from './graphicsEnhancer.js';
+import { AudioManager } from './audioManager.js';
+import { LeaderboardManager } from './leaderboardManager.js';
+import { LeaderboardUI } from './leaderboardUI.js';
+import { ScoreEntry } from './scoreEntry.js';
 
 class Game {
     constructor() {
@@ -39,11 +42,13 @@ class Game {
         this.settingsManager = null;
         this.battleSystem = null;
         this.battleUI = null;
-        this.multiplayerManager = null;
-        this.multiplayerGameModes = null;
         this.localMultiplayerBattle = null;
         this.skyboxManager = null;
         this.graphicsEnhancer = null;
+        this.audioManager = null;
+        this.leaderboardManager = null;
+        this.leaderboardUI = null;
+        this.scoreEntry = null;
         this.isGameInitialized = false;
         this.areSystemsInitialized = false;
         this.isPaused = false;
@@ -228,6 +233,110 @@ class Game {
         
         // Set global game reference for settings
         window.game = this;
+        
+        // Initialize audio manager
+        this.audioManager = new AudioManager();
+        
+        // Try to initialize audio immediately if possible
+        setTimeout(() => {
+            if (this.audioManager && !this.audioManager.isInitialized) {
+                this.audioManager.manualInitialize();
+            }
+        }, 1000);
+        
+        console.log('🎵 AudioManager initialized');
+        
+        // Initialize leaderboard system
+        this.leaderboardManager = new LeaderboardManager();
+        this.leaderboardUI = new LeaderboardUI(this.leaderboardManager);
+        this.scoreEntry = new ScoreEntry(this.leaderboardManager);
+        
+        console.log('🏆 Leaderboard system initialized');
+    }
+    
+    // Check for high score and show entry screen if qualified
+    async checkForHighScore() {
+        if (!this.leaderboardManager || !this.scoreEntry || !this.collisionSystem) {
+            return;
+        }
+        
+        const currentScore = this.collisionSystem.getScore();
+        const gameStartTime = this.uiManager ? this.uiManager.gameState.gameStartTime : Date.now();
+        const completionTime = (Date.now() - gameStartTime) / 1000; // Convert to seconds
+        
+        let category = null;
+        let scoreData = {
+            score: currentScore,
+            completionTime: completionTime,
+            level: this.currentLevel,
+            gameMode: this.gameMode,
+            timestamp: Date.now()
+        };
+        
+        // Determine score category based on game mode and completion status
+        if (this.isClassicMode) {
+            category = 'classicMode';
+            scoreData.wave = this.classicWave;
+        } else if (this.gameMode === 'normal') {
+            // Check if this is a full run completion (level 6 is the last level)
+            if (this.currentLevel === 6) {
+                category = 'fullRun';
+                scoreData.levelsCompleted = 6;
+            } else {
+                category = 'individualLevel';
+                scoreData.level = this.currentLevel;
+            }
+        } else if (this.gameMode === 'pacman') {
+            category = 'individualLevel';
+            scoreData.level = this.currentLevel;
+            scoreData.gameMode = 'pacman';
+        }
+        
+        // Check if score qualifies for leaderboard
+        if (category && this.leaderboardManager.qualifiesForLeaderboard(category, currentScore, scoreData.level, completionTime)) {
+            console.log(`🏆 High score detected! Category: ${category}, Score: ${currentScore}`);
+            
+            // Show score entry screen
+            await this.showScoreEntryScreen(scoreData, category);
+        }
+    }
+    
+    // Show score entry screen and handle completion
+    async showScoreEntryScreen(scoreData, category) {
+        return new Promise((resolve) => {
+            // Hide game UI temporarily
+            this.canvas.style.display = 'none';
+            const gameUI = document.getElementById('ui');
+            if (gameUI) gameUI.style.display = 'none';
+            
+            // Show score entry screen
+            this.scoreEntry.show(scoreData, category, 
+                (finalScoreData, isNewRecord, rank) => {
+                    console.log(`🏆 Score submitted: ${finalScoreData.initials} - Rank: ${rank}`);
+                    
+                    // Show brief success message
+                    if (isNewRecord) {
+                        console.log('🎉 NEW RECORD!');
+                    }
+                    
+                    // Restore game UI
+                    this.canvas.style.display = 'block';
+                    if (gameUI) gameUI.style.display = 'block';
+                    
+                    resolve();
+                }, 
+                () => {
+                    // Score entry cancelled
+                    console.log('Score entry cancelled');
+                    
+                    // Restore game UI
+                    this.canvas.style.display = 'block';
+                    if (gameUI) gameUI.style.display = 'block';
+                    
+                    resolve();
+                }
+            );
+        });
     }
     
     createPauseOverlay() {
@@ -462,6 +571,11 @@ class Game {
                 this.pauseOverlay = null;
             }
             
+            // Play resume sound
+            if (this.audioManager) {
+                this.audioManager.playResumeSound();
+            }
+            
             // Enable player controls
             if (this.player) {
                 this.player.enableControls();
@@ -484,6 +598,11 @@ class Game {
         } else {
             // Pause game
             this.isPaused = true;
+            
+            // Play pause sound
+            if (this.audioManager) {
+                this.audioManager.playPauseSound();
+            }
             
             // Disable player controls
             if (this.player) {
@@ -578,15 +697,24 @@ class Game {
         // Apply audio settings
         switch (key) {
             case 'masterVolume':
-                // Apply master volume (would need audio system)
+                // Apply master volume to audio manager
+                if (this.audioManager) {
+                    this.audioManager.setMasterVolume(value / 100);
+                }
                 console.log(`Master volume set to ${value}%`);
                 break;
             case 'musicVolume':
-                // Apply music volume
+                // Apply music volume to audio manager
+                if (this.audioManager) {
+                    this.audioManager.setMusicVolume(value / 100);
+                }
                 console.log(`Music volume set to ${value}%`);
                 break;
             case 'sfxVolume':
-                // Apply SFX volume
+                // Apply SFX volume to audio manager
+                if (this.audioManager) {
+                    this.audioManager.setSFXVolume(value / 100);
+                }
                 console.log(`SFX volume set to ${value}%`);
                 break;
         }
@@ -742,25 +870,23 @@ class Game {
     async startGame(mode = 'normal', level = 1, difficulty = 'normal') {
         console.log(`🎮 Starting game with mode: ${mode}, level: ${level}, difficulty: ${difficulty}`);
         
+        // Force cleanup of existing systems to ensure clean level switching
+        this.cleanupSystems();
+        this.areSystemsInitialized = false;
+        
         this.gameMode = mode; // Store game mode
         this.difficulty = difficulty; // Store difficulty
+        
+        // Set audio profile for the game mode
+        if (this.audioManager) {
+            this.audioManager.setGameMode(mode);
+        }
         
         // Reset pacman timer state
         this.stopPacmanTimer();
         
         // Handle multiplayer mode
-        if (mode === 'multiplayer') {
-            console.log('🌐 Multiplayer mode detected, setting up multiplayer...');
-            this.isMultiplayerMode = true;
-            this.multiplayerData = level; // level parameter contains multiplayer data
-            this.currentLevel = 1; // Start with level 1 for multiplayer
-            
-            // Initialize multiplayer manager if not already done
-            if (!this.multiplayerManager) {
-                this.multiplayerManager = this.multiplayerData.multiplayerManager;
-                this.setupMultiplayerHandlers();
-            }
-        } else if (mode === 'local_multiplayer') {
+        if (mode === 'local_multiplayer') {
             console.log('🥊 Local multiplayer mode detected, setting up battle arena...');
             this.isMultiplayerMode = false;
             this.multiplayerData = null;
@@ -860,8 +986,19 @@ class Game {
             // Set starting level (for single player mode and pacman mode with level selection)
             if ((mode === 'normal' || mode === 'pacman') && level && mode !== 'multiplayer') {
                 this.currentLevel = level;
+                console.log(`🎯 Level explicitly set to: ${level}`);
             } else if (mode !== 'multiplayer') {
                 this.currentLevel = 1; // Default to level 1 for other modes
+            }
+        }
+        
+        // Clear any saved game state that might conflict with the new level selection
+        if (this.currentLevel && this.currentLevel !== 1) {
+            try {
+                localStorage.removeItem('gameState');
+                console.log('🗑️ Cleared saved game state to prevent level conflicts');
+            } catch (error) {
+                console.warn('Error clearing saved game state:', error);
             }
         }
         
@@ -909,6 +1046,11 @@ class Game {
         // Start the game loop only if initialization was successful
         if (this.gameLoop) {
             this.gameLoop.start();
+            
+            // Play level start sound
+            if (this.audioManager) {
+                this.audioManager.playLevelStartSound();
+            }
         } else {
             console.error('Game loop not initialized');
             this.showErrorAndReturnToMenu('Game loop failed to initialize. Please try again.');
@@ -926,70 +1068,7 @@ class Game {
         }
     }
     
-    setupMultiplayerHandlers() {
-        if (!this.multiplayerManager) return;
-        
-        // Set scene reference for creating other player meshes
-        this.multiplayerManager.setScene(this.scene);
-        
-        // Initialize multiplayer game modes
-        this.multiplayerGameModes = new MultiplayerGameModes(this.scene, this.multiplayerManager);
-        
-        // Set initial mode from multiplayer data
-        if (this.multiplayerData?.gameState?.mode) {
-            this.multiplayerGameModes.setMode(this.multiplayerData.gameState.mode);
-        }
-        
-        // Handle player movement updates
-        this.multiplayerManager.onPlayerMoved = (data) => {
-            // Other players' movement is handled automatically by the multiplayer manager
-            console.log(`Player ${data.playerId} moved to:`, data.position);
-        };
-        
-        // Handle player actions
-        this.multiplayerManager.onPlayerAction = (data) => {
-            console.log(`Player ${data.playerId} performed action:`, data.action);
-            // Handle specific actions like shooting, collecting items, etc.
-        };
-        
-        // Handle player damage/death
-        this.multiplayerManager.onPlayerDamage = (data) => {
-            console.log(`Player ${data.playerId} health changed:`, data.health);
-            // Update UI for other players' health if needed
-        };
-        
-        // Handle game state updates
-        this.multiplayerManager.onGameStateUpdate = (data) => {
-            console.log('Game state updated:', data);
-            // Sync any global game state changes
-        };
-        
-        // Handle game mode changes
-        this.multiplayerManager.socket.on('gameModeChanged', (data) => {
-            console.log(`Game mode changed to: ${data.mode}`);
-            if (this.multiplayerGameModes) {
-                this.multiplayerGameModes.setMode(data.mode);
-            }
-        });
-        
-        // Handle race winner
-        this.multiplayerManager.socket.on('raceWinner', (data) => {
-            console.log(`Race winner: ${data.winner.name}`);
-            this.showMultiplayerResult(`🏁 Race Winner: ${data.winner.name}!`, `Time: ${(data.completionTime / 1000).toFixed(2)}s`);
-        });
-        
-        // Handle battle round winner
-        this.multiplayerManager.socket.on('battleRoundWinner', (data) => {
-            console.log(`Battle round winner: ${data.winner.name}`);
-            this.showMultiplayerResult(`⚔️ Round ${data.round} Winner: ${data.winner.name}!`, `Wins: ${data.roundWins}/${data.maxRounds}`);
-        });
-        
-        // Handle battle match winner
-        this.multiplayerManager.socket.on('battleMatchWinner', (data) => {
-            console.log(`Battle match winner: ${data.winner.name}`);
-            this.showMultiplayerResult(`🏆 Match Winner: ${data.winner.name}!`, 'Game Complete!');
-                 });
-    }
+
     
     startLocalMultiplayerBattle(playerCount = 2) {
         console.log(`🥊 Initializing ${playerCount}-Player Local Multiplayer Battle Arena...`);
@@ -1096,38 +1175,7 @@ class Game {
         console.log('🧹 Game state cleared');
     }
     
-    showMultiplayerResult(title, subtitle) {
-        const resultDiv = document.createElement('div');
-        resultDiv.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 40px 60px;
-            border-radius: 15px;
-            font-family: Arial, sans-serif;
-            text-align: center;
-            z-index: 500;
-            border: 2px solid #FFD700;
-            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
-        `;
-        
-        resultDiv.innerHTML = `
-            <h1 style="margin: 0 0 20px 0; font-size: 32px; color: #FFD700;">${title}</h1>
-            <p style="margin: 0; font-size: 20px; color: #fff;">${subtitle}</p>
-        `;
-        
-        document.body.appendChild(resultDiv);
-        
-        // Remove after 5 seconds
-        setTimeout(() => {
-            if (document.body.contains(resultDiv)) {
-                document.body.removeChild(resultDiv);
-            }
-        }, 5000);
-    }
+
     
     async init() {
         this.setupRenderer();
@@ -1320,14 +1368,11 @@ class Game {
     }
     
     async setupSystems() {
-        // Prevent duplicate initialization
-        if (this.areSystemsInitialized) {
-            console.log('🔄 Systems already initialized, skipping setup');
-            return;
-        }
-        
         // Clean up existing systems before creating new ones
         this.cleanupSystems();
+        
+        // Reset the systems initialized flag to ensure proper reinitialization
+        this.areSystemsInitialized = false;
         
         // Initialize skybox manager and graphics enhancer now that scene is created
         this.skyboxManager = new SkyboxManager(this.scene, this.renderer);
@@ -1358,6 +1403,7 @@ class Game {
         } else {
             // Load level based on current level number
             const levelFile = `./levels/level${this.currentLevel}.json`;
+            console.log(`🎯 Loading level file: ${levelFile} (currentLevel: ${this.currentLevel})`);
             try {
                 await this.levelLoader.loadLevel(levelFile);
             } catch (error) {
@@ -1744,6 +1790,9 @@ class Game {
         if (this.isClassicMode) {
             console.log(`Classic Mode Wave ${this.classicWave} completed!`);
             
+            // Check for classic mode high score
+            await this.checkForHighScore();
+            
             // Increase wave counter
             this.classicWave++;
             
@@ -1798,6 +1847,9 @@ class Game {
             this.clearSavedGameState();
         }
         
+        // Check for high score before advancing
+        await this.checkForHighScore();
+        
         // Stop the game loop
         if (this.gameLoop) {
             this.gameLoop.stop();
@@ -1829,11 +1881,16 @@ class Game {
     }
     
     // Handle battle victory
-    handleBattleVictory() {
+    async handleBattleVictory() {
         console.log('Battle victory!');
         if (this.battleSystem && this.battleUI) {
             const currentConfig = this.battleSystem.levelConfigs[this.battleSystem.currentLevel];
             const isLastLevel = this.battleSystem.currentLevel >= this.battleSystem.maxLevel;
+            
+            // Check for battle tournament high score if it's the last level
+            if (isLastLevel) {
+                await this.checkForBattleHighScore();
+            }
             
             this.battleUI.showVictoryScreen(currentConfig, isLastLevel);
             
@@ -1843,6 +1900,37 @@ class Game {
                     this.battleSystem.startBattle(this.battleSystem.currentLevel + 1);
                 }, 6000);
             }
+        }
+    }
+    
+    // Check for battle tournament high score
+    async checkForBattleHighScore() {
+        if (!this.leaderboardManager || !this.scoreEntry || !this.battleSystem) {
+            return;
+        }
+        
+        // Calculate battle score based on levels completed and time taken
+        const levelsCompleted = this.battleSystem.currentLevel;
+        const battleStartTime = this.battleSystem.battleStartTime || Date.now();
+        const completionTime = (Date.now() - battleStartTime) / 1000;
+        const baseScore = levelsCompleted * 1000; // 1000 points per level
+        const timeBonus = Math.max(0, 300 - completionTime); // Bonus for faster completion
+        const totalScore = Math.floor(baseScore + timeBonus);
+        
+        const scoreData = {
+            score: totalScore,
+            completionTime: completionTime,
+            levelsCompleted: levelsCompleted,
+            gameMode: 'battle',
+            timestamp: Date.now()
+        };
+        
+        // Check if score qualifies for battle tournament leaderboard
+        if (this.leaderboardManager.qualifiesForLeaderboard('battleTournament', totalScore, null, completionTime)) {
+            console.log(`🏆 Battle tournament high score detected! Score: ${totalScore}`);
+            
+            // Show score entry screen
+            await this.showScoreEntryScreen(scoreData, 'battleTournament');
         }
     }
     
@@ -2370,14 +2458,11 @@ class Game {
             this.battleUI.cleanup();
         }
         
-        // Clean up multiplayer manager UI
-        if (this.multiplayerManager) {
-            this.multiplayerManager.cleanup();
-        }
+
         
-        // Clean up multiplayer game modes UI
-        if (this.multiplayerGameModes) {
-            this.multiplayerGameModes.cleanup();
+        // Clean up audio manager
+        if (this.audioManager) {
+            this.audioManager.destroy();
         }
         
         // Remove any remaining game UI elements by comprehensive ID patterns

@@ -401,6 +401,11 @@ export class CollisionSystem {
                     this.score += 50; // Key gives more points
                     console.log('Key collected!');
                     this.createCollectionEffect(key.position);
+                    
+                    // Play key pickup sound effect
+                    if (window.game && window.game.audioManager) {
+                        window.game.audioManager.playKeyPickupSound();
+                    }
                 }
             }
         }
@@ -418,22 +423,20 @@ export class CollisionSystem {
                     this.gridManager.activateExit();
                     console.log('Level completed!');
                     
-                    // Check if this is multiplayer race mode
-                    if (window.game && window.game.isMultiplayerMode && window.game.multiplayerGameModes && 
-                        window.game.multiplayerGameModes.currentMode === 'race') {
-                        // Race mode completion
-                        window.game.multiplayerGameModes.onRaceComplete();
+                    // Play level completion sound effect
+                    if (window.game && window.game.audioManager) {
+                        window.game.audioManager.playLevelCompleteSound();
+                    }
+                    
+                    // Check if this is level 6 (World 1) to show victory menu
+                    const currentLevel = window.game ? window.game.getCurrentLevel() : 1;
+                    if (currentLevel === 6) {
+                        // Level 6 completion - show victory menu
+                        this.handleCylinderVictory();
                     } else {
-                        // Check if this is level 6 (World 1) to show victory menu
-                        const currentLevel = window.game ? window.game.getCurrentLevel() : 1;
-                        if (currentLevel === 6) {
-                            // Level 6 completion - show victory menu
-                            this.handleCylinderVictory();
-                        } else {
-                            // Regular level completion
-                            if (this.levelCompletionCallback) {
-                                this.levelCompletionCallback();
-                            }
+                        // Regular level completion
+                        if (this.levelCompletionCallback) {
+                            this.levelCompletionCallback();
                         }
                     }
                 } else {
@@ -485,6 +488,11 @@ export class CollisionSystem {
         // Lose a life first
         const remainingLives = this.player.loseLife();
         console.log(`Player lost a life! Remaining lives: ${remainingLives}`);
+        
+        // Play death sound effect
+        if (window.game && window.game.audioManager) {
+            window.game.audioManager.playDeathSound();
+        }
         
         // Activate ghost immunity to prevent rapid-fire kills
         this.ghostImmunity = true;
@@ -556,6 +564,11 @@ export class CollisionSystem {
     // Handle bounce pad collision
     handleBouncePadCollision(pad) {
         console.log(`Bounce pad activated: ${pad.type}!`);
+        
+        // Play bounce sound effect
+        if (window.game && window.game.audioManager) {
+            window.game.audioManager.playJumpSound();
+        }
         
         if (pad.type === 'vertical') {
             // Vertical bounce - launch upward
@@ -633,6 +646,11 @@ export class CollisionSystem {
         
         // Kill the player - lose a life
         const remainingLives = this.player.loseLife();
+        
+        // Play death sound effect
+        if (window.game && window.game.audioManager) {
+            window.game.audioManager.playDeathSound();
+        }
         
         // Reset player to spawn position (using safe spawn point)
         const levelData = this.gridManager.levelLoader.getCurrentLevel();
@@ -838,6 +856,11 @@ export class CollisionSystem {
         const destWorld = this.gridManager.levelLoader.gridToWorld(portal.destination.x, portal.destination.z, tileSize);
         const destY = portal.destination.y ?? 1;
         console.log(`Teleporting via ${portal.type || 'portal'} to (grid ${portal.destination.x}, ${portal.destination.z}) => world (${destWorld.x.toFixed(2)}, ${destY}, ${destWorld.z.toFixed(2)})`);
+        
+        // Play teleportation sound effect
+        if (window.game && window.game.audioManager) {
+            window.game.audioManager.playTeleportSound();
+        }
         
         this.player.setPosition(destWorld.x, destY, destWorld.z);
         this.player.velocity.set(0, 0, 0);
@@ -1109,9 +1132,13 @@ export class CollisionSystem {
         // Simple effect - could be expanded with particles, sound, etc.
         console.log(`Collected item at position: ${position.x}, ${position.y}, ${position.z}`);
         
+        // Play collection sound effect
+        if (window.game && window.game.audioManager) {
+            window.game.audioManager.playCollectSound();
+        }
+        
         // You could add visual effects here, like:
         // - Particle systems
-        // - Sound effects
         // - Score popup animations
     }
     

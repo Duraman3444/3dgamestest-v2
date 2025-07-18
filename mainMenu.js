@@ -1,4 +1,4 @@
-import { MultiplayerMenu } from './multiplayerMenu.js';
+
 import { LocalMultiplayerBattle } from './localMultiplayerBattle.js';
 
 export class MainMenu {
@@ -10,7 +10,7 @@ export class MainMenu {
         this.currentOptionIndex = 0;
         this.menuButtons = [];
         this.keyboardListener = null;
-        this.multiplayerMenu = null;
+
         
         this.createMenu();
     }
@@ -83,6 +83,7 @@ export class MainMenu {
             { text: 'Single Player', action: () => this.startSinglePlayer() },
             { text: 'Pacman Mode', action: () => this.startPacmanMode() },
             { text: 'Battle Mode', action: () => this.startBattleMode() },
+            { text: 'Leaderboards', action: () => this.showLeaderboards() },
             { text: 'Multiplayer', action: () => this.showMultiplayerNotice() },
             { text: 'Settings', action: () => this.showSettings() },
             { text: 'Exit Game', action: () => this.exitGame() }
@@ -106,7 +107,7 @@ export class MainMenu {
         controlsInfo.textContent = 'Use ↑↓ arrow keys to navigate, ENTER to select';
         controlsInfo.style.cssText = `
             position: absolute;
-            bottom: 80px;
+            bottom: 120px;
             left: 50%;
             transform: translateX(-50%);
             color: #00ffff;
@@ -115,6 +116,65 @@ export class MainMenu {
             font-family: 'Courier New', monospace;
             text-shadow: 1px 1px 0px #000000;
         `;
+        
+        // Create audio info with status
+        const audioInfo = document.createElement('div');
+        const updateAudioInfo = () => {
+            if (window.game && window.game.audioManager) {
+                const status = window.game.audioManager.getAudioStatus();
+                audioInfo.textContent = `🎵 ${status.message}`;
+                audioInfo.style.color = status.ready ? '#00ff00' : '#ffff00';
+            } else {
+                audioInfo.textContent = '🎵 Audio System Loading...';
+                audioInfo.style.color = '#ffff00';
+            }
+        };
+        
+        updateAudioInfo();
+        
+        // Update audio info every second
+        const audioInfoInterval = setInterval(updateAudioInfo, 1000);
+        
+        // Store interval for cleanup
+        this.audioInfoInterval = audioInfoInterval;
+        
+        audioInfo.style.cssText = `
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ffff00;
+            font-size: 14px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            text-shadow: 1px 1px 0px #000000;
+            animation: pulse 2s infinite;
+            cursor: pointer;
+        `;
+        
+        // Add click handler to manually initialize audio
+        audioInfo.addEventListener('click', async () => {
+            if (window.game && window.game.audioManager) {
+                const success = await window.game.audioManager.manualInitialize();
+                if (success) {
+                    updateAudioInfo();
+                    // Play a test sound
+                    setTimeout(() => {
+                        window.game.audioManager.playMenuClickSound();
+                    }, 500);
+                }
+            }
+        });
+        
+        // Add pulsing animation for audio info
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.6; }
+            }
+        `;
+        document.head.appendChild(style);
         
         // Create version info
         const versionInfo = document.createElement('div');
@@ -147,6 +207,7 @@ export class MainMenu {
         this.menuElement.appendChild(subtitle);
         this.menuElement.appendChild(buttonsContainer);
         this.menuElement.appendChild(controlsInfo);
+        this.menuElement.appendChild(audioInfo);
         this.menuElement.appendChild(versionInfo);
         this.menuElement.appendChild(copyrightInfo);
         
@@ -187,10 +248,21 @@ export class MainMenu {
             if (button.style.display !== 'none') {
                 this.currentOptionIndex = index;
                 this.updateButtonSelection();
+                
+                // Play hover sound
+                if (window.game && window.game.audioManager) {
+                    window.game.audioManager.playMenuHoverSound();
+                }
             }
         });
         
-        button.addEventListener('click', onClick);
+        button.addEventListener('click', () => {
+            // Play click sound
+            if (window.game && window.game.audioManager) {
+                window.game.audioManager.playMenuClickSound();
+            }
+            onClick();
+        });
         
         return button;
     }
@@ -225,6 +297,11 @@ export class MainMenu {
         } while (this.menuButtons[newIndex].style.display === 'none');
         this.currentOptionIndex = newIndex;
         this.updateButtonSelection();
+        
+        // Play navigation sound
+        if (window.game && window.game.audioManager) {
+            window.game.audioManager.playMenuHoverSound();
+        }
     }
     
     navigateDown() {
@@ -234,6 +311,11 @@ export class MainMenu {
         } while (this.menuButtons[newIndex].style.display === 'none');
         this.currentOptionIndex = newIndex;
         this.updateButtonSelection();
+        
+        // Play navigation sound
+        if (window.game && window.game.audioManager) {
+            window.game.audioManager.playMenuHoverSound();
+        }
     }
     
     updateButtonSelection() {
@@ -263,6 +345,10 @@ export class MainMenu {
     
     selectCurrentOption() {
         if (this.menuButtons[this.currentOptionIndex]) {
+            // Play select sound
+            if (window.game && window.game.audioManager) {
+                window.game.audioManager.playMenuClickSound();
+            }
             this.menuButtons[this.currentOptionIndex].click();
         }
     }
@@ -396,22 +482,7 @@ export class MainMenu {
                         width: 300px;
                     ">🎮 Local Multiplayer</button>
                     
-                    <button id="online-multiplayer-btn" style="
-                        padding: 20px 40px;
-                        font-size: 24px;
-                        font-weight: bold;
-                        background: linear-gradient(45deg, #2196F3, #1976D2);
-                        color: white;
-                        border: none;
-                        border-radius: 10px;
-                        cursor: pointer;
-                        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-                        transition: all 0.3s;
-                        font-family: 'Courier New', monospace;
-                        text-transform: uppercase;
-                        letter-spacing: 2px;
-                        width: 300px;
-                    ">🌐 Online Multiplayer</button>
+
                     
                     <button id="back-from-multiplayer-btn" style="
                         padding: 15px 30px;
@@ -433,7 +504,6 @@ export class MainMenu {
                 
                 <div style="margin-top: 30px; font-size: 14px; color: #aaa; text-align: left;">
                     <p><strong>🎮 Local Multiplayer:</strong> Play with friends on the same device using split-screen</p>
-                    <p><strong>🌐 Online Multiplayer:</strong> Play with friends over the internet</p>
                 </div>
             </div>
         `;
@@ -460,10 +530,7 @@ export class MainMenu {
             this.startLocalMultiplayer();
         });
         
-        document.getElementById('online-multiplayer-btn').addEventListener('click', () => {
-            document.body.removeChild(typeDialog);
-            this.startOnlineMultiplayer();
-        });
+
         
         document.getElementById('back-from-multiplayer-btn').addEventListener('click', () => {
             document.body.removeChild(typeDialog);
@@ -662,36 +729,7 @@ export class MainMenu {
         }
     }
     
-    startOnlineMultiplayer() {
-        // Hide main menu
-        this.hide();
-        
-        // Create and show multiplayer menu
-        this.multiplayerMenu = new MultiplayerMenu();
-        
-        // Set up callbacks
-        this.multiplayerMenu.onStartMultiplayerGame = (data) => {
-            this.multiplayerMenu.hide();
-            
-            // Start game with multiplayer data
-            if (this.onStartGame) {
-                // Pass multiplayer manager along with the data
-                const multiplayerData = {
-                    ...data,
-                    multiplayerManager: this.multiplayerMenu.getMultiplayerManager()
-                };
-                this.onStartGame('multiplayer', multiplayerData);
-            }
-        };
-        
-        this.multiplayerMenu.onBackToMain = () => {
-            this.multiplayerMenu.hide();
-            this.show();
-        };
-        
-        // Show multiplayer menu
-        this.multiplayerMenu.show();
-    }
+
     
     showSettings() {
         // Use the global game settings manager if available
@@ -702,6 +740,17 @@ export class MainMenu {
         } else {
             // Fallback to local settings panel if game not available
             this.createSettingsPanel();
+        }
+    }
+    
+    showLeaderboards() {
+        // Use the global game leaderboard UI if available
+        if (window.game && window.game.leaderboardUI) {
+            window.game.leaderboardUI.show('fullRun', () => {
+                // Leaderboards closed - no additional action needed
+            });
+        } else {
+            console.error('Leaderboard system not available');
         }
     }
     
@@ -901,7 +950,22 @@ export class MainMenu {
         if (this.menuElement) {
             this.menuElement.style.display = 'none';
             this.isVisible = false;
+            
+            // Remove keyboard listener
+            if (this.keyboardListener) {
+                document.removeEventListener('keydown', this.keyboardListener);
+                this.keyboardListener = null;
+            }
+            
+            // Clean up audio info interval
+            if (this.audioInfoInterval) {
+                clearInterval(this.audioInfoInterval);
+                this.audioInfoInterval = null;
+            }
         }
+        
+        // Close settings if open
+        this.closeSettings();
     }
     
     destroy() {
@@ -914,5 +978,8 @@ export class MainMenu {
             this.menuElement = null;
         }
         this.closeSettings();
+        if (this.audioInfoInterval) {
+            clearInterval(this.audioInfoInterval);
+        }
     }
 }

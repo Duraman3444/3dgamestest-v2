@@ -349,10 +349,21 @@ export class SinglePlayerMenu {
             if (!this.isInLevelSelect) {
                 this.currentOptionIndex = index;
                 this.updateButtonSelection();
+                
+                // Play hover sound
+                if (window.game && window.game.audioManager) {
+                    window.game.audioManager.playMenuHoverSound();
+                }
             }
         });
         
-        button.addEventListener('click', onClick);
+        button.addEventListener('click', () => {
+            // Play click sound
+            if (window.game && window.game.audioManager) {
+                window.game.audioManager.playMenuClickSound();
+            }
+            onClick();
+        });
         
         return button;
     }
@@ -485,11 +496,20 @@ export class SinglePlayerMenu {
             if (this.isInLevelSelect) {
                 this.levelSelectIndex = index;
                 this.updateLevelSelectButtons();
+                
+                // Play hover sound
+                if (window.game && window.game.audioManager) {
+                    window.game.audioManager.playMenuHoverSound();
+                }
             }
         });
         
         // Click handler
         levelBox.addEventListener('click', () => {
+            // Play click sound
+            if (window.game && window.game.audioManager) {
+                window.game.audioManager.playMenuClickSound();
+            }
             this.selectLevel(level.id);
         });
         
