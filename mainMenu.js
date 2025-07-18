@@ -649,7 +649,7 @@ export class MainMenu {
         
         document.getElementById('back-from-count-btn').addEventListener('click', () => {
             document.body.removeChild(countDialog);
-            this.showMultiplayerTypeSelection();
+            this.showMultiplayerTypeChoice();
         });
     }
     

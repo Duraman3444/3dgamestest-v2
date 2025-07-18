@@ -125,58 +125,70 @@ export class GraphicsEnhancer {
 
     // Enhance existing meshes in the scene
     enhanceSceneMaterials(gameMode = 'normal') {
-        this.scene.traverse((child) => {
-            if (child.isMesh && child.material) {
-                this.enhanceMeshMaterial(child, gameMode);
-            }
-        });
+        try {
+            this.scene.traverse((child) => {
+                if (child.isMesh && child.material) {
+                    this.enhanceMeshMaterial(child, gameMode);
+                }
+            });
+            
+            console.log(`🎨 Enhanced materials for ${gameMode} mode`);
+        } catch (error) {
+            console.warn('Failed to enhance scene materials:', error);
+        }
     }
 
     enhanceMeshMaterial(mesh, gameMode) {
-        if (!mesh.material.color) return;
-        
-        const baseColor = mesh.material.color.getHex();
-        const meshName = mesh.name.toLowerCase();
-        
-        // Determine material type based on mesh name and game mode
-        let materialType = 'plastic';
-        
-        if (meshName.includes('ground') || meshName.includes('platform') || meshName.includes('tile')) {
-            materialType = 'stone';
-        } else if (meshName.includes('metal') || meshName.includes('arena') || meshName.includes('obstacle')) {
-            materialType = 'metal';
-        } else if (meshName.includes('collectible') || meshName.includes('coin') || meshName.includes('pebble')) {
-            materialType = 'gem';
-        } else if (meshName.includes('glow') || meshName.includes('neon') || meshName.includes('light')) {
-            materialType = 'glow';
-        } else if (meshName.includes('ghost') || meshName.includes('hologram')) {
-            materialType = 'hologram';
-        }
-        
-        // Special handling for different game modes
-        if (gameMode === 'pacman') {
-            if (meshName.includes('wall')) {
-                materialType = 'glow';
-            } else if (meshName.includes('ground')) {
+        try {
+            if (!mesh.material || !mesh.material.color) return;
+            
+            const baseColor = mesh.material.color.getHex();
+            const meshName = mesh.name.toLowerCase();
+            
+            // Determine material type based on mesh name and game mode
+            let materialType = 'plastic';
+            
+            if (meshName.includes('ground') || meshName.includes('platform') || meshName.includes('tile')) {
+                materialType = 'stone';
+            } else if (meshName.includes('metal') || meshName.includes('arena') || meshName.includes('obstacle')) {
                 materialType = 'metal';
-            }
-        } else if (gameMode === 'battle') {
-            if (meshName.includes('arena')) {
-                materialType = 'metal';
-            } else if (meshName.includes('hazard')) {
+            } else if (meshName.includes('collectible') || meshName.includes('coin') || meshName.includes('pebble')) {
+                materialType = 'gem';
+            } else if (meshName.includes('glow') || meshName.includes('neon') || meshName.includes('light')) {
                 materialType = 'glow';
+            } else if (meshName.includes('ghost') || meshName.includes('hologram')) {
+                materialType = 'hologram';
+            } else if (meshName.includes('quicksand') || meshName.includes('sand')) {
+                materialType = 'stone'; // Use stone material for sand/mud effects
             }
+            
+            // Special handling for different game modes
+            if (gameMode === 'pacman') {
+                if (meshName.includes('wall')) {
+                    materialType = 'glow';
+                } else if (meshName.includes('ground')) {
+                    materialType = 'metal';
+                }
+            } else if (gameMode === 'battle') {
+                if (meshName.includes('arena')) {
+                    materialType = 'metal';
+                } else if (meshName.includes('hazard')) {
+                    materialType = 'glow';
+                }
+            }
+            
+            // Apply enhanced material
+            const enhancedMaterial = this.createEnhancedMaterial(materialType, baseColor, {
+                castShadow: true,
+                receiveShadow: true
+            });
+            
+            mesh.material = enhancedMaterial;
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+        } catch (error) {
+            console.warn(`Failed to enhance material for mesh ${mesh.name}:`, error);
         }
-        
-        // Apply enhanced material
-        const enhancedMaterial = this.createEnhancedMaterial(materialType, baseColor, {
-            castShadow: true,
-            receiveShadow: true
-        });
-        
-        mesh.material = enhancedMaterial;
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
     }
 
     // Create particle effect for enhanced atmosphere
@@ -236,42 +248,46 @@ export class GraphicsEnhancer {
 
     // Create environment cube map for reflections
     createEnvironmentMap(gameMode = 'normal') {
-        const cubeTextureLoader = new THREE.CubeTextureLoader();
-        
-        // Create procedural environment map based on game mode
-        const size = 512;
-        const canvas = document.createElement('canvas');
-        canvas.width = size;
-        canvas.height = size;
-        const context = canvas.getContext('2d');
-        
-        // Generate gradient based on game mode
-        const gradient = context.createLinearGradient(0, 0, 0, size);
-        
-        switch (gameMode) {
-            case 'pacman':
-                gradient.addColorStop(0, '#000033');
-                gradient.addColorStop(1, '#000000');
-                break;
-            case 'battle':
-                gradient.addColorStop(0, '#87CEEB');
-                gradient.addColorStop(1, '#4682B4');
-                break;
-            default:
-                gradient.addColorStop(0, '#87CEEB');
-                gradient.addColorStop(1, '#191970');
+        try {
+            // Create a simple color-based environment instead of problematic cube texture
+            let envColor;
+            
+            switch (gameMode) {
+                case 'pacman':
+                    envColor = new THREE.Color(0x000033);
+                    break;
+                case 'battle':
+                    envColor = new THREE.Color(0x87CEEB);
+                    break;
+                default:
+                    envColor = new THREE.Color(0x87CEEB);
+            }
+            
+            // Create a simple data texture for environment mapping
+            const size = 64; // Smaller size for better performance
+            const data = new Uint8Array(size * size * 3);
+            
+            for (let i = 0; i < data.length; i += 3) {
+                data[i] = envColor.r * 255;     // Red
+                data[i + 1] = envColor.g * 255; // Green
+                data[i + 2] = envColor.b * 255; // Blue
+            }
+            
+            const texture = new THREE.DataTexture(data, size, size, THREE.RGBFormat);
+            texture.needsUpdate = true;
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            texture.generateMipmaps = false;
+            
+            // Set as scene environment (this is safer than cube textures)
+            this.scene.environment = texture;
+            
+            console.log(`🌍 Environment map created for ${gameMode} mode`);
+        } catch (error) {
+            console.warn('Failed to create environment map:', error);
+            // Fallback: disable environment mapping
+            this.scene.environment = null;
         }
-        
-        context.fillStyle = gradient;
-        context.fillRect(0, 0, size, size);
-        
-        const texture = new THREE.CanvasTexture(canvas);
-        const cubeTexture = new THREE.CubeTexture([texture, texture, texture, texture, texture, texture]);
-        cubeTexture.needsUpdate = true;
-        
-        this.scene.environment = cubeTexture;
-        
-        console.log(`🌍 Environment map created for ${gameMode} mode`);
     }
 
     // Update particle systems

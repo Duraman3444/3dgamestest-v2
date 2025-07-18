@@ -137,8 +137,8 @@ export class Player {
             texture.wrapS = THREE.RepeatWrapping;
             texture.wrapT = THREE.RepeatWrapping;
             texture.repeat.set(2, 2);
-            texture.generateMipmaps = true;
-            texture.minFilter = THREE.LinearMipmapLinearFilter;
+            texture.generateMipmaps = false; // Disable mipmaps for canvas textures
+            texture.minFilter = THREE.LinearFilter;
             texture.magFilter = THREE.LinearFilter;
             
             material = new THREE.MeshPhongMaterial({ 

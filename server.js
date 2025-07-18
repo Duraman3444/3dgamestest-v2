@@ -142,10 +142,12 @@ class GameRoom {
         return colors[index % colors.length];
     }
 
-    updatePlayerPosition(socketId, position) {
+    updatePlayerPosition(socketId, position, rotation = null, velocity = null) {
         const player = this.players.get(socketId);
         if (player) {
             player.position = position;
+            if (rotation) player.rotation = rotation;
+            if (velocity) player.velocity = velocity;
             return true;
         }
         return false;
@@ -258,11 +260,13 @@ io.on('connection', (socket) => {
         const playerInfo = playerData.get(socket.id);
         if (playerInfo) {
             const room = gameRooms.get(playerInfo.roomId);
-            if (room && room.updatePlayerPosition(socket.id, data.position)) {
-                // Broadcast position to other players
+            if (room && room.updatePlayerPosition(socket.id, data.position, data.rotation, data.velocity)) {
+                // Broadcast position and rotation to other players
                 socket.to(playerInfo.roomId).emit('playerMoved', {
                     playerId: socket.id,
-                    position: data.position
+                    position: data.position,
+                    rotation: data.rotation,
+                    velocity: data.velocity
                 });
             }
         }
