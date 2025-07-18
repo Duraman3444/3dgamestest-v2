@@ -52,10 +52,10 @@ export class LocalMultiplayerBattle {
                 lighting: { ambient: 0x440000, directional: 0xFF4500 },
                 particles: { color: 0xFF6600, count: 6 },
                 hazards: [
-                    { type: 'lava_burst', position: { x: 4, z: 4 }, radius: 2, interval: 4, force: 25 },
-                    { type: 'lava_burst', position: { x: -4, z: -4 }, radius: 2, interval: 4, force: 25 },
-                    { type: 'lava_burst', position: { x: 4, z: -4 }, radius: 2, interval: 4, force: 25 },
-                    { type: 'lava_burst', position: { x: -4, z: 4 }, radius: 2, interval: 4, force: 25 },
+                    { type: 'lava_burst', position: { x: 4, z: 4 }, radius: 2, interval: 4, force: 60 },
+                    { type: 'lava_burst', position: { x: -4, z: -4 }, radius: 2, interval: 4, force: 60 },
+                    { type: 'lava_burst', position: { x: 4, z: -4 }, radius: 2, interval: 4, force: 60 },
+                    { type: 'lava_burst', position: { x: -4, z: 4 }, radius: 2, interval: 4, force: 60 },
                     { type: 'ramp', position: { x: 0, z: 8 }, angle: 25, force: 18 },
                     { type: 'ramp', position: { x: 0, z: -8 }, angle: 25, force: 18 }
                 ]
@@ -412,11 +412,11 @@ export class LocalMultiplayerBattle {
                 hazards: [
                     { type: 'ramp', position: { x: -7, z: 0 }, angle: 45, force: 35 },
                     { type: 'ramp', position: { x: 7, z: 0 }, angle: 45, force: 35 },
-                    { type: 'lava_geyser', position: { x: 0, z: 0 }, radius: 2, force: 45, interval: 5, damage: 30 },
+                    { type: 'lava_geyser', position: { x: 0, z: 0 }, radius: 2, force: 80, interval: 5, damage: 30 },
                     { type: 'lava_pool', position: { x: 4, z: 4 }, radius: 2.5, damage: 25 },
                     { type: 'lava_pool', position: { x: -4, z: -4 }, radius: 2.5, damage: 25 },
-                    { type: 'magma_burst', position: { x: 0, z: 6 }, radius: 2, damage: 20, interval: 4 },
-                    { type: 'magma_burst', position: { x: 0, z: -6 }, radius: 2, damage: 20, interval: 4 }
+                    { type: 'magma_burst', position: { x: 0, z: 6 }, radius: 2, damage: 20, interval: 4, force: 50 },
+                    { type: 'magma_burst', position: { x: 0, z: -6 }, radius: 2, damage: 20, interval: 4, force: 50 }
                 ]
             },
             {
@@ -471,14 +471,14 @@ export class LocalMultiplayerBattle {
         
         // Round system
         this.currentRound = 1;
-        this.maxRounds = 5;
-        this.roundWinTarget = Math.ceil(this.maxRounds / 2);
+        this.maxRounds = 7; // Increased to accommodate 4 wins needed
+        this.roundWinTarget = 4; // Need 4 rounds to win the match
         this.roundWinner = null;
         this.matchWinner = null;
         this.roundEndTimer = 0;
         this.roundRestartDelay = 3;
         this.isRoundEnding = false;
-        this.arenaSelectionMode = 'sequential'; // 'sequential' or 'random'
+        this.arenaSelectionMode = 'random'; // Always randomize levels
         
         // Animation loop
         this.animationId = null;
@@ -599,6 +599,9 @@ export class LocalMultiplayerBattle {
         // Initialize canvas settings
         this.initializeCanvas();
         
+        // Callbacks
+        this.onMatchEnd = null;
+        
         console.log('🥊 Local Multiplayer Battle system initialized');
     }
     
@@ -652,6 +655,13 @@ export class LocalMultiplayerBattle {
     setPlayerCount(count) {
         this.activePlayerCount = Math.min(Math.max(count, 2), this.maxPlayers);
         console.log(`👥 Set active players: ${this.activePlayerCount}`);
+        
+        // Log player configurations that will be used
+        console.log(`🎮 Player configurations for ${this.activePlayerCount} players:`);
+        for (let i = 0; i < this.activePlayerCount; i++) {
+            const config = this.playerConfigs[i];
+            console.log(`  Player ${i + 1}: ${config.name} (${config.controls.up}${config.controls.down}${config.controls.left}${config.controls.right}) - Color: #${config.color.toString(16).padStart(6, '0').toUpperCase()}`);
+        }
     }
     
     // Initialize the battle
@@ -666,6 +676,8 @@ export class LocalMultiplayerBattle {
         this.startAnimationLoop();
         
         console.log('🏟️ Local multiplayer battle arena initialized');
+        console.log(`🏆 Tournament Format: First to ${this.roundWinTarget} rounds wins the match!`);
+        console.log(`🎲 Arena Selection: Random (${this.arenaThemes.length} unique arenas available)`);
         return true;
     }
     
@@ -703,9 +715,11 @@ export class LocalMultiplayerBattle {
     selectArenaTheme() {
         if (this.arenaSelectionMode === 'random') {
             this.currentArenaTheme = Math.floor(Math.random() * this.arenaThemes.length);
+            console.log(`🎲 Arena randomly selected from ${this.arenaThemes.length} available themes`);
         } else {
             // Sequential - cycle through themes
             this.currentArenaTheme = (this.currentRound - 1) % this.arenaThemes.length;
+            console.log(`🔄 Arena selected sequentially (theme ${this.currentArenaTheme + 1})`);
         }
         
         const theme = this.arenaThemes[this.currentArenaTheme];
@@ -1127,9 +1141,89 @@ export class LocalMultiplayerBattle {
         for (let i = 0; i < this.activePlayerCount; i++) {
             const config = this.playerConfigs[i];
             
+            // Create visible rotation pattern for each player
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const context = canvas.getContext('2d');
+            
+            // Base color
+            const color = new THREE.Color(config.color);
+            context.fillStyle = `rgb(${color.r * 255}, ${color.g * 255}, ${color.b * 255})`;
+            context.fillRect(0, 0, 256, 256);
+            
+            // Add unique rotation pattern for each player
+            context.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            context.lineWidth = 4;
+            
+            // Different patterns for each player
+            switch (i % 4) {
+                case 0: // Player 1: Grid pattern
+                    for (let j = 0; j < 256; j += 32) {
+                        context.beginPath();
+                        context.moveTo(0, j);
+                        context.lineTo(256, j);
+                        context.stroke();
+                        
+                        context.beginPath();
+                        context.moveTo(j, 0);
+                        context.lineTo(j, 256);
+                        context.stroke();
+                    }
+                    break;
+                case 1: // Player 2: Diagonal stripes
+                    for (let j = -256; j < 512; j += 32) {
+                        context.beginPath();
+                        context.moveTo(j, 0);
+                        context.lineTo(j + 256, 256);
+                        context.stroke();
+                    }
+                    break;
+                case 2: // Player 3: Circles
+                    for (let x = 32; x < 256; x += 64) {
+                        for (let y = 32; y < 256; y += 64) {
+                            context.beginPath();
+                            context.arc(x, y, 16, 0, Math.PI * 2);
+                            context.stroke();
+                        }
+                    }
+                    break;
+                case 3: // Player 4: Diamonds
+                    for (let x = 32; x < 256; x += 64) {
+                        for (let y = 32; y < 256; y += 64) {
+                            context.beginPath();
+                            context.moveTo(x, y - 16);
+                            context.lineTo(x + 16, y);
+                            context.lineTo(x, y + 16);
+                            context.lineTo(x - 16, y);
+                            context.closePath();
+                            context.stroke();
+                        }
+                    }
+                    break;
+            }
+            
+            // Add contrasting dots for all players
+            context.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            for (let x = 16; x < 256; x += 32) {
+                for (let y = 16; y < 256; y += 32) {
+                    context.beginPath();
+                    context.arc(x, y, 3, 0, Math.PI * 2);
+                    context.fill();
+                }
+            }
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.generateMipmaps = false;
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            
             // Create high-quality player ball
             const ballGeometry = new THREE.SphereGeometry(this.ballRadius, 32, 32);
             const ballMaterial = new THREE.MeshPhongMaterial({ 
+                map: texture,
                 color: config.color,
                 transparent: true,
                 opacity: 0.95,
@@ -1197,7 +1291,7 @@ export class LocalMultiplayerBattle {
             player.ball.scale.setScalar(massScale);
         }
         
-        console.log(`👥 Created ${this.activePlayerCount} players with rigidbody physics and damage system`);
+        console.log(`👥 Created ${this.activePlayerCount} players with visible rotation patterns and rigidbody physics`);
     }
     
     // Create enhanced name label for player
@@ -2960,9 +3054,13 @@ export class LocalMultiplayerBattle {
             if (event.code === 'Space') {
                 document.removeEventListener('keydown', returnHandler);
                 document.body.removeChild(resultsDiv);
-                this.cleanup();
-                // Return to main menu
-                window.location.reload();
+                // Call the callback to return to main menu
+                if (this.onMatchEnd) {
+                    this.onMatchEnd();
+                } else {
+                    this.cleanup();
+                    window.location.reload();
+                }
             }
         };
         
@@ -2981,31 +3079,8 @@ export class LocalMultiplayerBattle {
             this.scene.fog = null;
         }
         
-        // Remove HUD elements
-        if (this.hudElement) {
-            document.body.removeChild(this.hudElement);
-            this.hudElement = null;
-        }
-        
-        if (this.playerHUDs) {
-            this.playerHUDs.forEach(hud => {
-                if (hud.parentNode) {
-                    document.body.removeChild(hud);
-                }
-            });
-            this.playerHUDs = null;
-        }
-        
-        if (this.roundHUD) {
-            document.body.removeChild(this.roundHUD);
-            this.roundHUD = null;
-        }
-        
-        if (this.minimap) {
-            document.body.removeChild(this.minimap);
-            this.minimap = null;
-            this.minimapCanvas = null;
-        }
+        // Remove ALL battle-related UI elements
+        this.cleanupAllBattleUI();
         
         // Clear arena objects
         this.clearArenaObjects();
@@ -3030,6 +3105,103 @@ export class LocalMultiplayerBattle {
         this.players = [];
         
         console.log('🧹 Local multiplayer battle tournament with themed arenas cleaned up');
+    }
+    
+    // Clean up all battle UI elements
+    cleanupAllBattleUI() {
+        console.log('🧹 Cleaning up all battle UI elements...');
+        
+        // Remove main HUD elements
+        if (this.hudElement) {
+            if (this.hudElement.parentNode) {
+                document.body.removeChild(this.hudElement);
+            }
+            this.hudElement = null;
+        }
+        
+        // Remove player HUDs
+        if (this.playerHUDs) {
+            this.playerHUDs.forEach(hud => {
+                if (hud && hud.parentNode) {
+                    document.body.removeChild(hud);
+                }
+            });
+            this.playerHUDs = [];
+        }
+        
+        // Remove round HUD
+        if (this.roundHUD) {
+            if (this.roundHUD.parentNode) {
+                document.body.removeChild(this.roundHUD);
+            }
+            this.roundHUD = null;
+        }
+        
+        // Remove minimap
+        if (this.minimap) {
+            if (this.minimap.parentNode) {
+                document.body.removeChild(this.minimap);
+            }
+            this.minimap = null;
+            this.minimapCanvas = null;
+        }
+        
+        // Remove any setup dialogs or overlays
+        const setupDialog = document.getElementById('multiplayer-setup');
+        if (setupDialog) {
+            document.body.removeChild(setupDialog);
+        }
+        
+        const arenaIntro = document.getElementById('arena-intro');
+        if (arenaIntro) {
+            document.body.removeChild(arenaIntro);
+        }
+        
+        const battleCountdown = document.getElementById('battle-countdown');
+        if (battleCountdown) {
+            document.body.removeChild(battleCountdown);
+        }
+        
+        // Remove any elimination messages
+        const eliminationMessages = document.querySelectorAll('[id^="elimination-message"]');
+        eliminationMessages.forEach(msg => {
+            if (msg.parentNode) {
+                document.body.removeChild(msg);
+            }
+        });
+        
+        // Remove any round end messages
+        const roundEndMessages = document.querySelectorAll('[id^="round-end-message"]');
+        roundEndMessages.forEach(msg => {
+            if (msg.parentNode) {
+                document.body.removeChild(msg);
+            }
+        });
+        
+        // Remove any battle-related style elements
+        const battleStyles = document.querySelectorAll('style[data-battle-style]');
+        battleStyles.forEach(style => {
+            if (style.parentNode) {
+                document.head.removeChild(style);
+            }
+        });
+        
+        // Remove any remaining battle UI elements by class or ID pattern
+        const battleElements = document.querySelectorAll('[id*="battle"], [id*="multiplayer"], [class*="battle"], [class*="multiplayer"]');
+        battleElements.forEach(element => {
+            // Only remove elements that are clearly battle-related, not the main menu
+            if (element.id !== 'mainMenu' && element.id !== 'gameCanvas' && 
+                !element.closest('#mainMenu') && element.parentNode) {
+                try {
+                    document.body.removeChild(element);
+                } catch (e) {
+                    // Element might already be removed or not a direct child of body
+                    console.log('Could not remove battle element:', element.id || element.className);
+                }
+            }
+        });
+        
+        console.log('🧹 All battle UI elements cleaned up');
     }
     
     // Create arena hazards based on theme
@@ -4115,18 +4287,18 @@ export class LocalMultiplayerBattle {
             
             const distance = player.ball.position.distanceTo(hazard.position);
             if (distance <= hazard.radius) {
-                // Enhanced dramatic launch effect
-                const launchForce = Math.max(45, hazard.force * 1.8); // Minimum 45 force, or 1.8x hazard force
-                const minLaunchVelocity = 35; // Ensure minimum launch height
+                // Enhanced MEGA dramatic launch effect
+                const launchForce = Math.max(90, hazard.force * 2.5); // Minimum 90 force, or 2.5x hazard force
+                const minLaunchVelocity = 70; // Ensure VERY high minimum launch height
                 
-                // Apply powerful upward launch
+                // Apply SUPER powerful upward launch
                 player.velocity.y = Math.max(player.velocity.y + launchForce, minLaunchVelocity);
                 
                 // Add more dramatic horizontal spread based on distance from center
                 const centerOffset = new THREE.Vector3()
                     .subVectors(player.ball.position, hazard.position)
                     .normalize();
-                const horizontalForce = 8 + (Math.random() * 4); // 8-12 horizontal force
+                const horizontalForce = 15 + (Math.random() * 8); // 15-23 horizontal force
                 
                 player.velocity.x += centerOffset.x * horizontalForce + (Math.random() - 0.5) * 6;
                 player.velocity.z += centerOffset.z * horizontalForce + (Math.random() - 0.5) * 6;

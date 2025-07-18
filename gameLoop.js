@@ -21,7 +21,7 @@ export class GameLoop {
         if (!this.isRunning) {
             this.isRunning = true;
             this.lastTime = performance.now();
-            this.animate();
+            requestAnimationFrame(this.animate);
         }
     }
     

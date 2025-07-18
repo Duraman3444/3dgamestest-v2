@@ -136,26 +136,65 @@ export class BattleSystem {
             this.player.mesh.visible = false;
         }
         
+        // Create visible rotation pattern for player ball
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const context = canvas.getContext('2d');
+        
+        // Green base
+        context.fillStyle = '#00FF00';
+        context.fillRect(0, 0, 256, 256);
+        
+        // Add visible rotation stripes
+        context.strokeStyle = '#FFFFFF';
+        context.lineWidth = 4;
+        
+        // Diagonal stripes for rotation visibility
+        for (let i = -256; i < 512; i += 24) {
+            context.beginPath();
+            context.moveTo(i, 0);
+            context.lineTo(i + 256, 256);
+            context.stroke();
+        }
+        
+        // Add dots for better rotation visibility
+        context.fillStyle = '#FFFF00';
+        for (let x = 16; x < 256; x += 32) {
+            for (let y = 16; y < 256; y += 32) {
+                context.beginPath();
+                context.arc(x, y, 4, 0, Math.PI * 2);
+                context.fill();
+            }
+        }
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.generateMipmaps = false;
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        
         // Create player ball
         const ballGeometry = new THREE.SphereGeometry(this.ballRadius, 16, 16);
-        const ballMaterial = new THREE.MeshLambertMaterial({ color: 0x00FF00 });
+        const ballMaterial = new THREE.MeshLambertMaterial({ 
+            map: texture,
+            color: 0x00FF00 
+        });
         this.playerBall = new THREE.Mesh(ballGeometry, ballMaterial);
         this.playerBall.position.set(0, 2, 0);
         this.playerBall.name = 'player_ball';
         this.scene.add(this.playerBall);
         
-        // Ball physics properties
-        this.playerBall.velocity = new THREE.Vector3(0, 0, 0);
-        this.playerBall.isAlive = true;
-        this.playerBall.mass = 1;
+        // Ball physics properties - using userData to avoid readonly property issues
+        this.playerBall.userData = {
+            velocity: new THREE.Vector3(0, 0, 0),
+            isAlive: true,
+            mass: 1,
+            rollRotation: new THREE.Vector3(0, 0, 0)
+        };
         
-        // Ball rotation tracking
-        this.playerBall.rollRotation = new THREE.Vector3(0, 0, 0);
-        
-        // Ball rotation tracking
-        this.playerBall.rollRotation = new THREE.Vector3(0, 0, 0);
-        
-        console.log('🟢 Player ball created');
+        console.log('🟢 Player ball created with visible rotation pattern');
     }
     
     // Create enemy balls
@@ -169,33 +208,88 @@ export class BattleSystem {
             const x = Math.cos(angle) * radius;
             const z = Math.sin(angle) * radius;
             
+            // Create visible rotation pattern for enemy ball
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const context = canvas.getContext('2d');
+            
+            // Get enemy color
+            const enemyColor = new THREE.Color().setHSL(i / enemyCount, 1, 0.5);
+            context.fillStyle = `rgb(${enemyColor.r * 255}, ${enemyColor.g * 255}, ${enemyColor.b * 255})`;
+            context.fillRect(0, 0, 256, 256);
+            
+            // Add visible rotation pattern - different pattern for each enemy
+            context.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            context.lineWidth = 3;
+            
+            if (i % 2 === 0) {
+                // Horizontal and vertical stripes
+                for (let j = 0; j < 256; j += 32) {
+                    context.beginPath();
+                    context.moveTo(0, j);
+                    context.lineTo(256, j);
+                    context.stroke();
+                    
+                    context.beginPath();
+                    context.moveTo(j, 0);
+                    context.lineTo(j, 256);
+                    context.stroke();
+                }
+            } else {
+                // Diagonal stripes
+                for (let j = -256; j < 512; j += 32) {
+                    context.beginPath();
+                    context.moveTo(j, 0);
+                    context.lineTo(j + 256, 256);
+                    context.stroke();
+                }
+            }
+            
+            // Add contrasting dots
+            context.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            for (let x = 16; x < 256; x += 32) {
+                for (let y = 16; y < 256; y += 32) {
+                    context.beginPath();
+                    context.arc(x, y, 3, 0, Math.PI * 2);
+                    context.fill();
+                }
+            }
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.generateMipmaps = false;
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            
             const ballGeometry = new THREE.SphereGeometry(this.ballRadius, 16, 16);
             const ballMaterial = new THREE.MeshLambertMaterial({ 
-                color: new THREE.Color().setHSL(i / enemyCount, 1, 0.5)
+                map: texture,
+                color: enemyColor
             });
             const enemyBall = new THREE.Mesh(ballGeometry, ballMaterial);
             enemyBall.position.set(x, 2, z);
             enemyBall.name = `enemy_ball_${i}`;
             this.scene.add(enemyBall);
             
-            // Ball physics properties
-            enemyBall.velocity = new THREE.Vector3(0, 0, 0);
-            enemyBall.isAlive = true;
-            enemyBall.mass = 1;
+            // Ball physics properties - using userData to avoid readonly property issues
+            enemyBall.userData = {
+                velocity: new THREE.Vector3(0, 0, 0),
+                isAlive: true,
+                mass: 1,
+                rollRotation: new THREE.Vector3(0, 0, 0),
+                // AI properties
+                aiTarget: this.playerBall,
+                aiSpeed: 0.5 + (level * 0.1),
+                aiTimer: Math.random() * 2
+            };
             enemyBall.id = i;
-            
-            // Ball rotation tracking
-            enemyBall.rollRotation = new THREE.Vector3(0, 0, 0);
-            
-            // Simple AI properties
-            enemyBall.aiTarget = this.playerBall;
-            enemyBall.aiSpeed = 0.5 + (level * 0.1);
-            enemyBall.aiTimer = Math.random() * 2;
             
             this.enemyBalls.push(enemyBall);
         }
         
-        console.log(`🔴 Created ${enemyCount} enemy balls`);
+        console.log(`🔴 Created ${enemyCount} enemy balls with visible rotation patterns`);
         
         // Update UI with enemy count
         if (this.battleUI) {
@@ -277,7 +371,7 @@ export class BattleSystem {
     
     // Update player ball physics
     updatePlayerBall(deltaTime) {
-        if (!this.playerBall.isAlive) return;
+        if (!this.playerBall.userData.isAlive) return;
         
         // Get player input for movement
         const moveForce = new THREE.Vector3(0, 0, 0);
@@ -289,32 +383,32 @@ export class BattleSystem {
         if (this.player.moveRight) moveForce.x += forceStrength;
         
         // Apply movement force
-        this.playerBall.velocity.add(moveForce.multiplyScalar(deltaTime));
+        this.playerBall.userData.velocity.add(moveForce.multiplyScalar(deltaTime));
         
         // Apply gravity
-        this.playerBall.velocity.y += this.gravity * deltaTime;
+        this.playerBall.userData.velocity.y += this.gravity * deltaTime;
         
         // Apply friction
-        this.playerBall.velocity.x *= this.friction;
-        this.playerBall.velocity.z *= this.friction;
+        this.playerBall.userData.velocity.x *= this.friction;
+        this.playerBall.userData.velocity.z *= this.friction;
         
         // Update position
-        this.playerBall.position.add(this.playerBall.velocity.clone().multiplyScalar(deltaTime));
+        this.playerBall.position.add(this.playerBall.userData.velocity.clone().multiplyScalar(deltaTime));
         
         // Ground collision
         if (this.playerBall.position.y <= this.ballRadius) {
             this.playerBall.position.y = this.ballRadius;
-            this.playerBall.velocity.y = 0;
+            this.playerBall.userData.velocity.y = 0;
         }
         
         // Update ball rotation based on movement (rolling physics)
-        if (this.playerBall.velocity.length() > 0.1) {
-            const rollSpeed = this.playerBall.velocity.length() / this.ballRadius;
-            this.playerBall.rollRotation.x += this.playerBall.velocity.z * rollSpeed * deltaTime;
-            this.playerBall.rollRotation.z -= this.playerBall.velocity.x * rollSpeed * deltaTime;
+        if (this.playerBall.userData.velocity.length() > 0.1) {
+            const rollSpeed = this.playerBall.userData.velocity.length() / this.ballRadius;
+            this.playerBall.userData.rollRotation.x += this.playerBall.userData.velocity.z * rollSpeed * deltaTime;
+            this.playerBall.userData.rollRotation.z -= this.playerBall.userData.velocity.x * rollSpeed * deltaTime;
             
-            this.playerBall.rotation.x = this.playerBall.rollRotation.x;
-            this.playerBall.rotation.z = this.playerBall.rollRotation.z;
+            this.playerBall.rotation.x = this.playerBall.userData.rollRotation.x;
+            this.playerBall.rotation.z = this.playerBall.userData.rollRotation.z;
         }
         
         // Keep on arena (soft boundary)
@@ -327,63 +421,63 @@ export class BattleSystem {
                 0,
                 -this.playerBall.position.z
             ).normalize();
-            this.playerBall.velocity.add(pushDirection.multiplyScalar(2));
+            this.playerBall.userData.velocity.add(pushDirection.multiplyScalar(2));
         }
     }
     
     // Update enemy balls with simple AI
     updateEnemyBalls(deltaTime) {
         this.enemyBalls.forEach(enemy => {
-            if (!enemy.isAlive) return;
+            if (!enemy.userData.isAlive) return;
             
             // Simple AI: move towards player
-            enemy.aiTimer += deltaTime;
-            if (enemy.aiTimer >= 0.5) { // Update AI every 0.5 seconds
-                enemy.aiTimer = 0;
+            enemy.userData.aiTimer += deltaTime;
+            if (enemy.userData.aiTimer >= 0.5) { // Update AI every 0.5 seconds
+                enemy.userData.aiTimer = 0;
                 
                 const direction = new THREE.Vector3()
                     .subVectors(this.playerBall.position, enemy.position)
                     .normalize();
                 
-                const force = direction.multiplyScalar(enemy.aiSpeed);
-                enemy.velocity.add(force);
+                const force = direction.multiplyScalar(enemy.userData.aiSpeed);
+                enemy.userData.velocity.add(force);
             }
             
             // Apply gravity
-            enemy.velocity.y += this.gravity * deltaTime;
+            enemy.userData.velocity.y += this.gravity * deltaTime;
             
             // Apply friction
-            enemy.velocity.x *= this.friction;
-            enemy.velocity.z *= this.friction;
+            enemy.userData.velocity.x *= this.friction;
+            enemy.userData.velocity.z *= this.friction;
             
             // Update position
-            enemy.position.add(enemy.velocity.clone().multiplyScalar(deltaTime));
+            enemy.position.add(enemy.userData.velocity.clone().multiplyScalar(deltaTime));
             
             // Ground collision
             if (enemy.position.y <= this.ballRadius) {
                 enemy.position.y = this.ballRadius;
-                enemy.velocity.y = 0;
+                enemy.userData.velocity.y = 0;
             }
             
             // Update ball rotation based on movement (rolling physics)
-            if (enemy.velocity.length() > 0.1) {
-                const rollSpeed = enemy.velocity.length() / this.ballRadius;
-                enemy.rollRotation.x += enemy.velocity.z * rollSpeed * deltaTime;
-                enemy.rollRotation.z -= enemy.velocity.x * rollSpeed * deltaTime;
+            if (enemy.userData.velocity.length() > 0.1) {
+                const rollSpeed = enemy.userData.velocity.length() / this.ballRadius;
+                enemy.userData.rollRotation.x += enemy.userData.velocity.z * rollSpeed * deltaTime;
+                enemy.userData.rollRotation.z -= enemy.userData.velocity.x * rollSpeed * deltaTime;
                 
-                enemy.rotation.x = enemy.rollRotation.x;
-                enemy.rotation.z = enemy.rollRotation.z;
+                enemy.rotation.x = enemy.userData.rollRotation.x;
+                enemy.rotation.z = enemy.userData.rollRotation.z;
             }
         });
     }
     
     // Check ball collisions
     checkCollisions() {
-        if (!this.playerBall.isAlive) return;
+        if (!this.playerBall.userData.isAlive) return;
         
         // Player vs enemies
         this.enemyBalls.forEach(enemy => {
-            if (!enemy.isAlive) return;
+            if (!enemy.userData.isAlive) return;
             
             const distance = this.playerBall.position.distanceTo(enemy.position);
             if (distance < this.ballRadius * 2) {
@@ -397,7 +491,7 @@ export class BattleSystem {
                 const enemy1 = this.enemyBalls[i];
                 const enemy2 = this.enemyBalls[j];
                 
-                if (!enemy1.isAlive || !enemy2.isAlive) continue;
+                if (!enemy1.userData.isAlive || !enemy2.userData.isAlive) continue;
                 
                 const distance = enemy1.position.distanceTo(enemy2.position);
                 if (distance < this.ballRadius * 2) {
@@ -423,14 +517,14 @@ export class BattleSystem {
         
         // Calculate relative velocity
         const relativeVelocity = new THREE.Vector3()
-            .subVectors(ball2.velocity, ball1.velocity);
+            .subVectors(ball2.userData.velocity, ball1.userData.velocity);
         
         // Calculate collision impulse
         const impulse = relativeVelocity.dot(normal) * this.bounceForce;
         
         // Apply impulse
-        ball1.velocity.add(normal.clone().multiplyScalar(impulse));
-        ball2.velocity.sub(normal.clone().multiplyScalar(impulse));
+        ball1.userData.velocity.add(normal.clone().multiplyScalar(impulse));
+        ball2.userData.velocity.sub(normal.clone().multiplyScalar(impulse));
         
         // Create collision effect
         this.createCollisionEffect(ball1.position.clone().lerp(ball2.position, 0.5));
@@ -467,8 +561,8 @@ export class BattleSystem {
     // Check if balls fell off the arena
     checkFallOffs() {
         // Check player
-        if (this.playerBall.isAlive && this.playerBall.position.y < this.fallThreshold) {
-            this.playerBall.isAlive = false;
+        if (this.playerBall.userData.isAlive && this.playerBall.position.y < this.fallThreshold) {
+            this.playerBall.userData.isAlive = false;
             this.playerBall.visible = false;
             this.playersAlive = 0;
             console.log('💀 Player fell off the arena!');
@@ -476,8 +570,8 @@ export class BattleSystem {
         
         // Check enemies
         this.enemyBalls.forEach(enemy => {
-            if (enemy.isAlive && enemy.position.y < this.fallThreshold) {
-                enemy.isAlive = false;
+            if (enemy.userData.isAlive && enemy.position.y < this.fallThreshold) {
+                enemy.userData.isAlive = false;
                 enemy.visible = false;
                 this.enemiesAlive--;
                 console.log(`💀 Enemy ${enemy.id} fell off the arena!`);

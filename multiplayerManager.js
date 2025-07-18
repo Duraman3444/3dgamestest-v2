@@ -296,9 +296,50 @@ export class MultiplayerManager {
     createPlayerMesh(player) {
         if (!this.scene) return;
         
+        // Create visible rotation pattern for multiplayer player
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const context = canvas.getContext('2d');
+        
+        // Base color
+        const color = new THREE.Color(player.color || this.playerColors[0]);
+        context.fillStyle = `rgb(${color.r * 255}, ${color.g * 255}, ${color.b * 255})`;
+        context.fillRect(0, 0, 256, 256);
+        
+        // Add visible rotation pattern - alternating stripes
+        context.strokeStyle = 'rgba(255, 255, 255, 0.7)';
+        context.lineWidth = 3;
+        
+        // Alternating diagonal stripes
+        for (let i = -256; i < 512; i += 24) {
+            context.beginPath();
+            context.moveTo(i, 0);
+            context.lineTo(i + 256, 256);
+            context.stroke();
+        }
+        
+        // Add contrasting dots
+        context.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        for (let x = 16; x < 256; x += 32) {
+            for (let y = 16; y < 256; y += 32) {
+                context.beginPath();
+                context.arc(x, y, 3, 0, Math.PI * 2);
+                context.fill();
+            }
+        }
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.generateMipmaps = false;
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        
         // Create a sphere for other players (matching the main player)
         const geometry = new THREE.SphereGeometry(this.ballRadius, 16, 16);
         const material = new THREE.MeshLambertMaterial({ 
+            map: texture,
             color: player.color || this.playerColors[0],
             transparent: true,
             opacity: 0.8

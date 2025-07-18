@@ -207,13 +207,11 @@ export class GraphicsEnhancer {
                 }
             }
             
-            // Apply enhanced material
-            const enhancedMaterial = this.createEnhancedMaterial(materialType, baseColor, {
-                castShadow: true,
-                receiveShadow: true
-            });
+            // Apply enhanced material (without shadow properties)
+            const enhancedMaterial = this.createEnhancedMaterial(materialType, baseColor);
             
             mesh.material = enhancedMaterial;
+            // Set shadow properties on the mesh, not the material
             mesh.castShadow = true;
             mesh.receiveShadow = true;
         } catch (error) {

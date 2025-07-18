@@ -45,6 +45,7 @@ class Game {
         this.skyboxManager = null;
         this.graphicsEnhancer = null;
         this.isGameInitialized = false;
+        this.areSystemsInitialized = false;
         this.isPaused = false;
         this.pauseOverlay = null;
         
@@ -70,7 +71,7 @@ class Game {
         this.initializeMenu();
     }
     
-    handleMainMenuSelection(mode) {
+    handleMainMenuSelection(mode, level, difficulty) {
         if (mode === 'normal') {
             // Show single player options menu
             this.showSinglePlayerMenu();
@@ -81,8 +82,8 @@ class Game {
             // Show battle mode menu (now for bot battles)
             this.showBattleMenu();
         } else {
-            // For other modes, start directly
-            this.startGame(mode);
+            // For other modes, start directly with proper parameters
+            this.startGame(mode, level, difficulty);
         }
     }
     
@@ -92,10 +93,73 @@ class Game {
             this.uiManager.clearNotification();
         }
         
+        // Reset systems so they can be re-initialized when starting a new game
+        this.resetSystems();
+        
+        // Clean up ALL game mode UI elements
+        this.cleanupAllGameModeUI();
+        
+        // Hide game elements
+        this.canvas.style.display = 'none';
+        const gameUI = document.getElementById('ui');
+        const crosshair = document.getElementById('crosshair');
+        const instructions = document.getElementById('instructions');
+        
+        if (gameUI) gameUI.style.display = 'none';
+        if (crosshair) crosshair.style.display = 'none';
+        if (instructions) instructions.style.display = 'none';
+        
+        // Hide all other menus
+        if (this.singlePlayerMenu) this.singlePlayerMenu.hide();
+        if (this.pacmanMenu) this.pacmanMenu.hide();
+        if (this.battleMenu) this.battleMenu.hide();
+        if (this.gameOverScreen) this.gameOverScreen.hide();
+        
+        // Show main menu
         this.mainMenu.show();
-        this.singlePlayerMenu.hide();
-        this.pacmanMenu.hide();
-        this.battleMenu.hide();
+    }
+    
+    showErrorAndReturnToMenu(errorMessage) {
+        console.error(errorMessage);
+        
+        // Hide game elements
+        this.canvas.style.display = 'none';
+        const gameUI = document.getElementById('ui');
+        const crosshair = document.getElementById('crosshair');
+        const instructions = document.getElementById('instructions');
+        
+        if (gameUI) gameUI.style.display = 'none';
+        if (crosshair) crosshair.style.display = 'none';
+        if (instructions) instructions.style.display = 'none';
+        
+        // Show error message overlay
+        const errorOverlay = document.createElement('div');
+        errorOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            font-family: Arial, sans-serif;
+        `;
+        
+        errorOverlay.innerHTML = `
+            <div style="background: #1a1a1a; padding: 30px; border-radius: 10px; text-align: center; color: #ff6b6b;">
+                <h2 style="margin: 0 0 20px 0;">Game Initialization Error</h2>
+                <p style="margin: 0 0 20px 0;">${errorMessage}</p>
+                <button onclick="this.parentElement.parentElement.remove(); window.game.showMainMenu();" 
+                        style="background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                    Return to Main Menu
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(errorOverlay);
     }
     
     showSinglePlayerMenu() {
@@ -123,7 +187,7 @@ class Game {
         });
         
         // Create main menu
-        this.mainMenu = new MainMenu((mode) => this.handleMainMenuSelection(mode));
+        this.mainMenu = new MainMenu((mode, level, difficulty) => this.handleMainMenuSelection(mode, level, difficulty));
         
         // Create single player menu
         this.singlePlayerMenu = new SinglePlayerMenu(
@@ -720,6 +784,21 @@ class Game {
                 this.isGameInitialized = true;
             }
             
+            // Initialize basic systems needed for local multiplayer
+            if (!this.cameraSystem) {
+                // Create a proper player object with all required methods
+                this.player = {
+                    position: { x: 0, y: 0, z: 0 },
+                    pitch: 0,
+                    yaw: 0,
+                    getPosition: () => ({ x: 0, y: 0, z: 0 }),
+                    getRotation: () => ({ pitch: 0, yaw: 0 }),
+                    enableControls: () => {},
+                    disableControls: () => {}
+                };
+                this.cameraSystem = new CameraSystem(this.player);
+            }
+            
             // Start local multiplayer battle with player count
             const playerCount = level || 2; // level parameter contains player count
             this.startLocalMultiplayerBattle(playerCount);
@@ -746,8 +825,15 @@ class Game {
             
             // Initialize 3D environment if not already done
             if (!this.isGameInitialized) {
-                await this.init();
-                this.isGameInitialized = true;
+                try {
+                    await this.init();
+                    this.isGameInitialized = true;
+                } catch (error) {
+                    console.error('Failed to initialize game for bot battle:', error);
+                    // Show error message and return to main menu
+                    this.showErrorAndReturnToMenu('Failed to initialize the battle system. Please try again or restart the game.');
+                    return;
+                }
             }
             
             // Continue with battle system initialization below
@@ -760,7 +846,12 @@ class Game {
         if (mode === 'pacman_classic') {
             this.isClassicMode = true;
             this.currentLevel = 2; // Always use level 2 for classic mode
-            this.setClassicLives(3); // Reset lives using safe method
+            try {
+                this.setClassicLives(3); // Reset lives using safe method
+            } catch (error) {
+                console.warn('Failed to set classic lives, using default:', error);
+                this.classicLives = 3; // Fallback assignment
+            }
             this.classicWave = 1; // Reset wave counter
             this.classicPlayerSpeed = 12; // Reset speeds
             this.classicEnemySpeed = 8;
@@ -779,8 +870,8 @@ class Game {
             this.uiManager.clearNotification();
         }
         
-        // Clean up UI elements to prevent duplication
-        this.cleanupUIElements();
+        // Clean up ALL UI elements before starting new game
+        this.cleanupAllGameModeUI();
         
         // Show the game canvas
         this.canvas.style.display = 'block';
@@ -796,12 +887,33 @@ class Game {
         
         // Initialize the game if not already done
         if (!this.isGameInitialized) {
-            await this.init();
-            this.isGameInitialized = true;
+            try {
+                await this.init();
+                this.isGameInitialized = true;
+            } catch (error) {
+                console.error('Failed to initialize game:', error);
+                this.showErrorAndReturnToMenu('Failed to initialize the game. Please try again.');
+                return;
+            }
         }
         
-        // Start the game loop
-        this.gameLoop.start();
+        // Setup all game systems
+        try {
+            await this.setupSystems();
+        } catch (error) {
+            console.error('Failed to setup game systems:', error);
+            this.showErrorAndReturnToMenu('Failed to setup game systems. Please try again.');
+            return;
+        }
+        
+        // Start the game loop only if initialization was successful
+        if (this.gameLoop) {
+            this.gameLoop.start();
+        } else {
+            console.error('Game loop not initialized');
+            this.showErrorAndReturnToMenu('Game loop failed to initialize. Please try again.');
+            return;
+        }
         
         // Start auto-save system (but not in pacman modes or multiplayer)
         if (!this.isClassicMode && this.gameMode !== 'pacman' && this.gameMode !== 'pacman_classic' && this.gameMode !== 'multiplayer') {
@@ -881,11 +993,30 @@ class Game {
     
     startLocalMultiplayerBattle(playerCount = 2) {
         console.log(`🥊 Initializing ${playerCount}-Player Local Multiplayer Battle Arena...`);
+        console.log(`🎯 Player count parameter received: ${playerCount}`);
         
-        // Hide the main menu
+        // Hide ALL menu elements
         if (this.mainMenu) {
             this.mainMenu.hide();
         }
+        if (this.singlePlayerMenu) {
+            this.singlePlayerMenu.hide();
+        }
+        if (this.pacmanMenu) {
+            this.pacmanMenu.hide();
+        }
+        if (this.battleMenu) {
+            this.battleMenu.hide();
+        }
+        
+        // Hide any existing UI elements
+        const gameUI = document.getElementById('ui');
+        const crosshair = document.getElementById('crosshair');
+        const instructions = document.getElementById('instructions');
+        
+        if (gameUI) gameUI.style.display = 'none';
+        if (crosshair) crosshair.style.display = 'none';
+        if (instructions) instructions.style.display = 'none';
         
         // Clear any existing game state
         this.clearGameState();
@@ -894,11 +1025,20 @@ class Game {
         this.localMultiplayerBattle = new LocalMultiplayerBattle(this.scene, this.cameraSystem.camera, this.renderer);
         
         // Set the player count
+        console.log(`🎯 Setting player count to: ${playerCount}`);
         this.localMultiplayerBattle.setPlayerCount(playerCount);
         
         // Set up callbacks
         this.localMultiplayerBattle.onBackToMenu = () => {
             console.log('🥊 Returning to main menu from local multiplayer battle');
+            this.localMultiplayerBattle.cleanup();
+            this.localMultiplayerBattle = null;
+            this.showMainMenu();
+        };
+        
+        // Set up cleanup callback for when battle ends
+        this.localMultiplayerBattle.onMatchEnd = () => {
+            console.log('🥊 Match ended, returning to main menu');
             this.localMultiplayerBattle.cleanup();
             this.localMultiplayerBattle = null;
             this.showMainMenu();
@@ -950,6 +1090,9 @@ class Game {
             this.battleUI = null;
         }
         
+        // Reset systems initialization flag
+        this.resetSystems();
+        
         console.log('🧹 Game state cleared');
     }
     
@@ -990,7 +1133,6 @@ class Game {
         this.setupRenderer();
         this.setupScene();
         this.setupLighting();
-        await this.setupSystems();
         this.setupEventListeners();
     }
     
@@ -1178,6 +1320,15 @@ class Game {
     }
     
     async setupSystems() {
+        // Prevent duplicate initialization
+        if (this.areSystemsInitialized) {
+            console.log('🔄 Systems already initialized, skipping setup');
+            return;
+        }
+        
+        // Clean up existing systems before creating new ones
+        this.cleanupSystems();
+        
         // Initialize skybox manager and graphics enhancer now that scene is created
         this.skyboxManager = new SkyboxManager(this.scene, this.renderer);
         console.log('🌅 Skybox manager initialized');
@@ -1221,7 +1372,13 @@ class Game {
         
         // Sync player lives with classic mode lives if in classic mode
         if (this.isClassicMode) {
-            this.player.setLives(this.classicLives);
+            try {
+                this.player.setLives(this.classicLives);
+            } catch (error) {
+                console.warn('Failed to set player lives in classic mode:', error);
+                // Fallback: set lives directly
+                this.player.lives = this.classicLives;
+            }
         }
         
         // Set level-specific player speed
@@ -1235,16 +1392,24 @@ class Game {
         
         // Enhance graphics and materials
         if (this.graphicsEnhancer) {
-            this.graphicsEnhancer.createEnvironmentMap(this.gameMode);
-            // Delay material enhancement to allow all objects to be created
-            setTimeout(() => {
-                this.graphicsEnhancer.enhanceSceneMaterials(this.gameMode);
-                
-                // Create jungle atmosphere effects for level 1
-                if (this.gameMode === 'normal' && this.currentLevel === 1) {
-                    this.createJungleAtmosphereForLevel1();
-                }
-            }, 100);
+            try {
+                this.graphicsEnhancer.createEnvironmentMap(this.gameMode);
+                // Delay material enhancement to allow all objects to be created
+                setTimeout(() => {
+                    try {
+                        this.graphicsEnhancer.enhanceSceneMaterials(this.gameMode);
+                        
+                        // Create jungle atmosphere effects for level 1
+                        if (this.gameMode === 'normal' && this.currentLevel === 1) {
+                            this.createJungleAtmosphereForLevel1();
+                        }
+                    } catch (error) {
+                        console.warn('Failed to enhance scene materials:', error);
+                    }
+                }, 100);
+            } catch (error) {
+                console.warn('Failed to create environment map:', error);
+            }
         }
         
         // Get spawn point from level
@@ -1270,32 +1435,49 @@ class Game {
         
         // Initialize battle system if in battle mode
         if (this.gameMode === 'battle') {
-            this.battleSystem = new BattleSystem(this.scene, this.player);
-            this.battleUI = new BattleUI();
-            
-            // Connect battle system and UI
-            this.battleSystem.setBattleUI(this.battleUI);
-            
-            // Setup battle system callbacks
-            this.battleSystem.setVictoryCallback(() => this.handleBattleVictory());
-            this.battleSystem.setDefeatCallback(() => this.handleBattleDefeat());
-            
-            // Start battle at specified level with bot count if available
-            this.battleSystem.startBattle(this.currentLevel, this.botCount);
+            try {
+                this.battleSystem = new BattleSystem(this.scene, this.player);
+                this.battleUI = new BattleUI();
+                
+                // Connect battle system and UI
+                this.battleSystem.setBattleUI(this.battleUI);
+                
+                // Setup battle system callbacks
+                this.battleSystem.setVictoryCallback(() => this.handleBattleVictory());
+                this.battleSystem.setDefeatCallback(() => this.handleBattleDefeat());
+                
+                // Start battle at specified level with bot count if available
+                this.battleSystem.startBattle(this.currentLevel, this.botCount);
+                
+                console.log('🥊 Battle system initialized successfully');
+            } catch (error) {
+                console.error('Failed to initialize battle system:', error);
+                // Show error message and return to main menu
+                this.showErrorAndReturnToMenu('Failed to start the battle system. Please try again or check your browser console for more details.');
+                return; // Exit early to prevent game loop creation
+            }
         }
 
-        // Setup game loop
-        this.gameLoop = new GameLoop(this.renderer, this.scene, this.cameraSystem.camera, {
-            player: this.player,
-            gridManager: this.gridManager,
-            cameraSystem: this.cameraSystem,
-            collisionSystem: this.collisionSystem,
-            uiManager: this.uiManager,
-            levelLoader: this.levelLoader,
-            battleSystem: this.battleSystem,
-            battleUI: this.battleUI
-        });
-
+        // Setup game loop only if we reach this point successfully
+        try {
+            this.gameLoop = new GameLoop(this.renderer, this.scene, this.cameraSystem.camera, {
+                player: this.player,
+                gridManager: this.gridManager,
+                cameraSystem: this.cameraSystem,
+                collisionSystem: this.collisionSystem,
+                uiManager: this.uiManager,
+                levelLoader: this.levelLoader,
+                battleSystem: this.battleSystem,
+                battleUI: this.battleUI
+            });
+            
+            console.log('🎮 Game loop initialized successfully');
+        } catch (error) {
+            console.error('Failed to initialize game loop:', error);
+            this.showErrorAndReturnToMenu('Failed to initialize the game loop. Please try again.');
+            return;
+        }
+        
         // Load existing level progress if available (skip for battle mode and classic mode)
         if (this.gameMode !== 'battle' && !this.isClassicMode) {
             // This ensures that if a player has previously played this level and collected items,
@@ -1307,6 +1489,20 @@ class Game {
         if (this.gameMode === 'pacman') {
             this.startPacmanTimer();
         }
+        
+        // Start auto-save system (but not in pacman modes or multiplayer)
+        if (!this.isClassicMode && this.gameMode !== 'pacman' && this.gameMode !== 'pacman_classic' && this.gameMode !== 'multiplayer') {
+            this.startAutoSave();
+        }
+        
+        // Apply initial settings
+        if (this.settingsManager) {
+            this.settingsManager.applySettings();
+        }
+        
+        // Mark systems as initialized
+        this.areSystemsInitialized = true;
+        console.log('🎮 Systems initialization complete');
     }
 
     // Load and apply existing level progress
@@ -1432,6 +1628,9 @@ class Game {
             if (this.uiManager) {
                 this.uiManager.clearNotification();
             }
+            
+            // Clean up all game mode UI elements when going to main menu
+            this.cleanupAllGameModeUI();
             
             this.mainMenu.show();
             this.canvas.style.display = 'none';
@@ -1665,7 +1864,7 @@ class Game {
         }
         
         // Clear current systems
-        this.cleanup();
+        this.resetSystems();
         
         // Reinitialize systems with current level (always level 2 for classic)
         await this.setupSystems();
@@ -2031,47 +2230,287 @@ class Game {
 
     // Clean up UI elements to prevent duplication
     cleanupUIElements() {
-        // Remove any existing minimap to prevent duplication
-        const existingMinimap = document.getElementById('minimap');
-        if (existingMinimap) {
-            existingMinimap.remove();
+        console.log('🧹 Cleaning up UI elements...');
+        
+        // Remove any existing UI elements by ID
+        const uiElementIds = [
+            'minimap',
+            'fps-counter',
+            'position-display',
+            'collectibles-counter',
+            'keys-counter',
+            'lives-counter',
+            'game-timer',
+            'camera-mode',
+            'classic-wave-display',
+            'notification-system',
+            'pause-menu',
+            'multiplayer-display'
+        ];
+        
+        uiElementIds.forEach(id => {
+            const element = document.getElementById(id);
+            if (element && element.parentNode) {
+                try {
+                    element.parentNode.removeChild(element);
+                    console.log(`Removed UI element: ${id}`);
+                } catch (e) {
+                    console.warn(`Could not remove UI element ${id}:`, e);
+                }
+            }
+        });
+        
+        // Remove any dynamically created UI elements by class patterns
+        const uiClassPatterns = [
+            '[class*="ui-"]',
+            '[class*="hud-"]',
+            '[class*="game-"]',
+            '[class*="battle-"]',
+            '[class*="multiplayer-"]'
+        ];
+        
+        uiClassPatterns.forEach(pattern => {
+            const elements = document.querySelectorAll(pattern);
+            elements.forEach(element => {
+                // Don't remove the main menu or game canvas
+                if (element.id !== 'mainMenu' && element.id !== 'gameCanvas' && 
+                    !element.closest('#mainMenu') && element.parentNode) {
+                    try {
+                        element.parentNode.removeChild(element);
+                        console.log(`Removed UI element with class pattern: ${pattern}`);
+                    } catch (e) {
+                        console.warn(`Could not remove UI element with pattern ${pattern}:`, e);
+                    }
+                }
+            });
+        });
+        
+        // Destroy UI Manager if it exists
+        if (this.uiManager) {
+            try {
+                this.uiManager.destroy();
+                console.log('UI Manager destroyed');
+            } catch (e) {
+                console.warn('Could not destroy UI Manager:', e);
+            }
         }
-
-        // Clean up any other UI elements that might duplicate
-        const existingFPSDisplay = document.getElementById('fps-counter');
-        if (existingFPSDisplay) {
-            existingFPSDisplay.remove();
+        
+        console.log('🧹 UI elements cleanup complete');
+    }
+    
+    // Reset the systems initialization flag to allow re-initialization
+    resetSystems() {
+        this.areSystemsInitialized = false;
+        console.log('🔄 Systems reset flag cleared - systems can be re-initialized');
+    }
+    
+    cleanupSystems() {
+        // Clean up existing systems to prevent duplicates
+        console.log('🧹 Cleaning up existing systems...');
+        
+        // Clean up grid manager and its objects
+        if (this.gridManager) {
+            this.gridManager.cleanupLevel();
         }
-
-        const existingPositionDisplay = document.getElementById('position-display');
-        if (existingPositionDisplay) {
-            existingPositionDisplay.remove();
+        
+        // Clean up player objects
+        if (this.player && this.player.mesh) {
+            this.scene.remove(this.player.mesh);
+            if (this.player.rotationHelper) {
+                this.scene.remove(this.player.rotationHelper);
+            }
         }
-
-        const existingCollectiblesDisplay = document.getElementById('collectibles-counter');
-        if (existingCollectiblesDisplay) {
-            existingCollectiblesDisplay.remove();
+        
+        // Clean up battle system
+        if (this.battleSystem) {
+            this.battleSystem.cleanup();
         }
-
-        const existingKeysDisplay = document.getElementById('keys-counter');
-        if (existingKeysDisplay) {
-            existingKeysDisplay.remove();
+        
+        // Clean up battle UI
+        if (this.battleUI) {
+            this.battleUI.cleanup();
         }
-
-        const existingLivesDisplay = document.getElementById('lives-counter');
-        if (existingLivesDisplay) {
-            existingLivesDisplay.remove();
+        
+        // Clean up collision system
+        if (this.collisionSystem) {
+            this.collisionSystem.resetForNewLevel();
         }
-
-        const existingGameTimer = document.getElementById('game-timer');
-        if (existingGameTimer) {
-            existingGameTimer.remove();
+        
+        // Clean up game objects from scene
+        if (this.scene) {
+            const objectsToRemove = [];
+            this.scene.traverse((child) => {
+                if (child.isMesh && child.userData.gameObject) {
+                    objectsToRemove.push(child);
+                }
+            });
+            objectsToRemove.forEach(obj => this.scene.remove(obj));
         }
-
-        const existingCameraModeDisplay = document.getElementById('camera-mode');
-        if (existingCameraModeDisplay) {
-            existingCameraModeDisplay.remove();
+        
+        console.log('🧹 System cleanup complete');
+    }
+    
+    cleanupAllGameModeUI() {
+        console.log('🧹 Cleaning up all game mode UI elements...');
+        
+        // First, clean up standard UI elements
+        this.cleanupUIElements();
+        
+        // Clean up local multiplayer battle UI
+        if (this.localMultiplayerBattle) {
+            this.localMultiplayerBattle.cleanupAllBattleUI();
         }
+        
+        // Clean up battle system UI
+        if (this.battleSystem) {
+            this.battleSystem.cleanup();
+        }
+        
+        if (this.battleUI) {
+            this.battleUI.cleanup();
+        }
+        
+        // Clean up multiplayer manager UI
+        if (this.multiplayerManager) {
+            this.multiplayerManager.cleanup();
+        }
+        
+        // Clean up multiplayer game modes UI
+        if (this.multiplayerGameModes) {
+            this.multiplayerGameModes.cleanup();
+        }
+        
+        // Remove any remaining game UI elements by comprehensive ID patterns
+        const gameUIElements = [
+            // Standard UI elements
+            'minimap',
+            'fps-counter',
+            'position-display',
+            'collectibles-counter',
+            'keys-counter',
+            'lives-counter',
+            'game-timer',
+            'camera-mode',
+            'classic-wave-display',
+            'notification-system',
+            'pause-menu',
+            'multiplayer-display',
+            
+            // Battle and multiplayer elements
+            'multiplayer-setup',
+            'arena-intro',
+            'battle-countdown',
+            'multiplayer-hud',
+            'round-hud',
+            'player-count-dialog',
+            'multiplayer-type-dialog',
+            'multiplayer-room-dialog',
+            'multiplayer-lobby',
+            'game-setup-dialog',
+            'waiting-room',
+            'player-list',
+            'game-results',
+            'match-results',
+            'tournament-results',
+            'elimination-message',
+            'round-end-message',
+            'victory-screen',
+            'defeat-screen',
+            'battle-results',
+            'final-results',
+            
+            // Pause and overlay elements
+            'pauseOverlay',
+            'game-over-overlay',
+            'level-complete-overlay',
+            'loading-overlay',
+            'connection-status'
+        ];
+        
+        gameUIElements.forEach(id => {
+            const element = document.getElementById(id);
+            if (element && element.parentNode) {
+                try {
+                    element.parentNode.removeChild(element);
+                    console.log(`Removed game UI element: ${id}`);
+                } catch (e) {
+                    console.warn(`Could not remove game UI element ${id}:`, e);
+                }
+            }
+        });
+        
+        // Remove any player HUD elements (up to 8 players)
+        for (let i = 0; i < 8; i++) {
+            const playerHUD = document.getElementById(`player-hud-${i}`);
+            if (playerHUD && playerHUD.parentNode) {
+                try {
+                    playerHUD.parentNode.removeChild(playerHUD);
+                    console.log(`Removed player HUD: player-hud-${i}`);
+                } catch (e) {
+                    console.warn(`Could not remove player HUD ${i}:`, e);
+                }
+            }
+        }
+        
+        // Remove any notification elements
+        const notifications = document.querySelectorAll('[id*="notification"], [class*="notification"]');
+        notifications.forEach(notification => {
+            if (notification.parentNode && notification.id !== 'mainMenu') {
+                try {
+                    notification.parentNode.removeChild(notification);
+                    console.log('Removed notification element');
+                } catch (e) {
+                    console.warn('Could not remove notification:', e);
+                }
+            }
+        });
+        
+        // Remove any game over or result screens
+        const gameOverElements = document.querySelectorAll('[id*="game-over"], [id*="result"], [id*="victory"], [id*="defeat"], [id*="match-end"], [id*="tournament-end"]');
+        gameOverElements.forEach(element => {
+            if (element.parentNode && element.id !== 'mainMenu') {
+                try {
+                    element.parentNode.removeChild(element);
+                    console.log('Removed game over element');
+                } catch (e) {
+                    console.warn('Could not remove game over element:', e);
+                }
+            }
+        });
+        
+        // Remove any remaining UI elements with battle/multiplayer/game patterns
+        const remainingElements = document.querySelectorAll('[id*="battle"], [id*="multiplayer"], [id*="player-"], [id*="round-"], [id*="arena-"], [id*="game-"], [class*="battle"], [class*="multiplayer"], [class*="player-"], [class*="game-"], [class*="ui-"]');
+        remainingElements.forEach(element => {
+            // Only remove elements that are clearly game-related, not the main menu or canvas
+            if (element.id !== 'mainMenu' && element.id !== 'gameCanvas' && 
+                !element.closest('#mainMenu') && element.parentNode) {
+                try {
+                    element.parentNode.removeChild(element);
+                    console.log(`Removed remaining UI element: ${element.id || element.className}`);
+                } catch (e) {
+                    console.warn('Could not remove remaining UI element:', e);
+                }
+            }
+        });
+        
+        // Remove any battle-related style elements
+        const battleStyles = document.querySelectorAll('style[data-battle-style], style[data-game-style], style[data-ui-style]');
+        battleStyles.forEach(style => {
+            if (style.parentNode) {
+                try {
+                    document.head.removeChild(style);
+                    console.log('Removed battle style element');
+                } catch (e) {
+                    console.warn('Could not remove battle style element:', e);
+                }
+            }
+        });
+        
+        // Clear any remaining event listeners on the document
+        const newDocument = document.cloneNode(true);
+        // Note: We can't actually replace the document, but we can remove specific event listeners
+        
+        console.log('🧹 All game mode UI elements cleanup complete');
     }
 
     // Restore the state of collected items
@@ -2588,8 +3027,8 @@ class Game {
                 this.gridManager.cleanupLevel();
             }
             
-            // Clean up UI elements to prevent duplication
-            this.cleanupUIElements();
+            // Clean up ALL UI elements to prevent duplication
+            this.cleanupAllGameModeUI();
             
             // Clean up existing player objects
             if (this.player) {
@@ -2600,6 +3039,9 @@ class Game {
                     this.scene.remove(this.player.rotationHelper);
                 }
             }
+            
+            // Reset systems flag to allow reinitialization
+            this.resetSystems();
             
             // Reinitialize the game systems with current level
             await this.setupSystems();

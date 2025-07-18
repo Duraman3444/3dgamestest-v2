@@ -61,8 +61,55 @@ export class Player {
         let material;
         
         if (isPacmanMode) {
-            // Ultra-enhanced neon material for Pacman mode with modern PBR
+            // Create visible rotation pattern for Pacman mode
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const context = canvas.getContext('2d');
+            
+            // Yellow base
+            context.fillStyle = '#FFFF00';
+            context.fillRect(0, 0, 512, 512);
+            
+            // Add visible rotation stripes
+            context.strokeStyle = '#FF8800';
+            context.lineWidth = 8;
+            
+            // Horizontal stripes
+            for (let i = 0; i < 512; i += 64) {
+                context.beginPath();
+                context.moveTo(0, i);
+                context.lineTo(512, i);
+                context.stroke();
+            }
+            
+            // Vertical stripes
+            for (let i = 0; i < 512; i += 64) {
+                context.beginPath();
+                context.moveTo(i, 0);
+                context.lineTo(i, 512);
+                context.stroke();
+            }
+            
+            // Add dots for better rotation visibility
+            context.fillStyle = '#FF0000';
+            for (let x = 32; x < 512; x += 64) {
+                for (let y = 32; y < 512; y += 64) {
+                    context.beginPath();
+                    context.arc(x, y, 8, 0, Math.PI * 2);
+                    context.fill();
+                }
+            }
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.generateMipmaps = false;
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            
             material = new THREE.MeshStandardMaterial({ 
+                map: texture,
                 color: 0xFFFF00,
                 emissive: 0x888800,
                 emissiveIntensity: 0.4,
@@ -73,7 +120,7 @@ export class Player {
                 opacity: 0.95
             });
         } else if (isNormalMode) {
-            // Enhanced PS2 materials with modern PBR lighting response
+            // Enhanced PS2 materials with visible rotation patterns
             const ps2PlayerColors = {
                 1: 0x00FFFF, // Cyan
                 2: 0xFF00FF, // Magenta
@@ -90,7 +137,48 @@ export class Player {
             const colorIndex = ((currentLevel - 1) % 10) + 1;
             const playerColor = ps2PlayerColors[colorIndex];
             
+            // Create visible rotation pattern
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const context = canvas.getContext('2d');
+            
+            // Base color
+            const color = new THREE.Color(playerColor);
+            context.fillStyle = `rgb(${color.r * 255}, ${color.g * 255}, ${color.b * 255})`;
+            context.fillRect(0, 0, 512, 512);
+            
+            // Add diagonal stripes for rotation visibility
+            context.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            context.lineWidth = 6;
+            
+            // Diagonal stripes
+            for (let i = -512; i < 1024; i += 32) {
+                context.beginPath();
+                context.moveTo(i, 0);
+                context.lineTo(i + 512, 512);
+                context.stroke();
+            }
+            
+            // Add contrasting dots
+            context.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            for (let x = 16; x < 512; x += 64) {
+                for (let y = 16; y < 512; y += 64) {
+                    context.beginPath();
+                    context.arc(x, y, 6, 0, Math.PI * 2);
+                    context.fill();
+                }
+            }
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.generateMipmaps = false;
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            
             material = new THREE.MeshStandardMaterial({ 
+                map: texture,
                 color: playerColor,
                 emissive: playerColor,
                 emissiveIntensity: 0.3,
@@ -101,7 +189,7 @@ export class Player {
                 opacity: 0.95
             });
         } else {
-            // Enhanced procedural material with better quality
+            // Enhanced procedural material with visible rotation patterns
             const canvas = document.createElement('canvas');
             canvas.width = 512;
             canvas.height = 512;
@@ -123,10 +211,38 @@ export class Player {
             context.fillStyle = gradient;
             context.fillRect(0, 0, 512, 512);
             
+            // Add visible rotation grid pattern
+            context.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            context.lineWidth = 4;
+            
+            // Grid pattern for rotation visibility
+            for (let i = 0; i < 512; i += 32) {
+                context.beginPath();
+                context.moveTo(i, 0);
+                context.lineTo(i, 512);
+                context.stroke();
+                
+                context.beginPath();
+                context.moveTo(0, i);
+                context.lineTo(512, i);
+                context.stroke();
+            }
+            
+            // Add circular patterns for better rotation visibility
+            context.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            context.lineWidth = 3;
+            for (let x = 64; x < 512; x += 128) {
+                for (let y = 64; y < 512; y += 128) {
+                    context.beginPath();
+                    context.arc(x, y, 20, 0, Math.PI * 2);
+                    context.stroke();
+                }
+            }
+            
             // Add metallic overlay
             const metallic = context.createRadialGradient(256, 256, 0, 256, 256, 256);
-            metallic.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-            metallic.addColorStop(0.5, 'rgba(255, 255, 255, 0.4)');
+            metallic.addColorStop(0, 'rgba(255, 255, 255, 0.4)');
+            metallic.addColorStop(0.5, 'rgba(255, 255, 255, 0.2)');
             metallic.addColorStop(1, 'rgba(255, 255, 255, 0.1)');
             
             context.fillStyle = metallic;
@@ -136,7 +252,6 @@ export class Player {
             const texture = new THREE.CanvasTexture(canvas);
             texture.wrapS = THREE.RepeatWrapping;
             texture.wrapT = THREE.RepeatWrapping;
-            texture.repeat.set(2, 2);
             texture.generateMipmaps = false; // Disable mipmaps for canvas textures
             texture.minFilter = THREE.LinearFilter;
             texture.magFilter = THREE.LinearFilter;
@@ -167,7 +282,7 @@ export class Player {
         // Track rotation for rolling
         this.rollRotation = new THREE.Vector3(0, 0, 0);
         
-        console.log('🎨 Enhanced player mesh created with high-quality materials');
+        console.log('🎨 Enhanced player mesh created with visible rotation patterns');
     }
     
     setupInputHandlers() {

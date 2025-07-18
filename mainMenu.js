@@ -658,7 +658,7 @@ export class MainMenu {
         
         // Start the game in local multiplayer battle mode
         if (this.onStartGame) {
-            this.onStartGame('local_multiplayer', { playerCount });
+            this.onStartGame('local_multiplayer', playerCount);
         }
     }
     
