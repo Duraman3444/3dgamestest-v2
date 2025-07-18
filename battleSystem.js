@@ -136,9 +136,51 @@ export class BattleSystem {
             this.player.mesh.visible = false;
         }
         
+        // Create visible rotation pattern for player ball
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const context = canvas.getContext('2d');
+        
+        // Green base
+        context.fillStyle = '#00FF00';
+        context.fillRect(0, 0, 256, 256);
+        
+        // Add visible rotation stripes
+        context.strokeStyle = '#FFFFFF';
+        context.lineWidth = 4;
+        
+        // Diagonal stripes for rotation visibility
+        for (let i = -256; i < 512; i += 24) {
+            context.beginPath();
+            context.moveTo(i, 0);
+            context.lineTo(i + 256, 256);
+            context.stroke();
+        }
+        
+        // Add dots for better rotation visibility
+        context.fillStyle = '#FFFF00';
+        for (let x = 16; x < 256; x += 32) {
+            for (let y = 16; y < 256; y += 32) {
+                context.beginPath();
+                context.arc(x, y, 4, 0, Math.PI * 2);
+                context.fill();
+            }
+        }
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.generateMipmaps = false;
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        
         // Create player ball
         const ballGeometry = new THREE.SphereGeometry(this.ballRadius, 16, 16);
-        const ballMaterial = new THREE.MeshLambertMaterial({ color: 0x00FF00 });
+        const ballMaterial = new THREE.MeshLambertMaterial({ 
+            map: texture,
+            color: 0x00FF00 
+        });
         this.playerBall = new THREE.Mesh(ballGeometry, ballMaterial);
         this.playerBall.position.set(0, 2, 0);
         this.playerBall.name = 'player_ball';
@@ -152,10 +194,7 @@ export class BattleSystem {
         // Ball rotation tracking
         this.playerBall.rollRotation = new THREE.Vector3(0, 0, 0);
         
-        // Ball rotation tracking
-        this.playerBall.rollRotation = new THREE.Vector3(0, 0, 0);
-        
-        console.log('🟢 Player ball created');
+        console.log('🟢 Player ball created with visible rotation pattern');
     }
     
     // Create enemy balls
@@ -169,9 +208,65 @@ export class BattleSystem {
             const x = Math.cos(angle) * radius;
             const z = Math.sin(angle) * radius;
             
+            // Create visible rotation pattern for enemy ball
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const context = canvas.getContext('2d');
+            
+            // Get enemy color
+            const enemyColor = new THREE.Color().setHSL(i / enemyCount, 1, 0.5);
+            context.fillStyle = `rgb(${enemyColor.r * 255}, ${enemyColor.g * 255}, ${enemyColor.b * 255})`;
+            context.fillRect(0, 0, 256, 256);
+            
+            // Add visible rotation pattern - different pattern for each enemy
+            context.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            context.lineWidth = 3;
+            
+            if (i % 2 === 0) {
+                // Horizontal and vertical stripes
+                for (let j = 0; j < 256; j += 32) {
+                    context.beginPath();
+                    context.moveTo(0, j);
+                    context.lineTo(256, j);
+                    context.stroke();
+                    
+                    context.beginPath();
+                    context.moveTo(j, 0);
+                    context.lineTo(j, 256);
+                    context.stroke();
+                }
+            } else {
+                // Diagonal stripes
+                for (let j = -256; j < 512; j += 32) {
+                    context.beginPath();
+                    context.moveTo(j, 0);
+                    context.lineTo(j + 256, 256);
+                    context.stroke();
+                }
+            }
+            
+            // Add contrasting dots
+            context.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            for (let x = 16; x < 256; x += 32) {
+                for (let y = 16; y < 256; y += 32) {
+                    context.beginPath();
+                    context.arc(x, y, 3, 0, Math.PI * 2);
+                    context.fill();
+                }
+            }
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.generateMipmaps = false;
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            
             const ballGeometry = new THREE.SphereGeometry(this.ballRadius, 16, 16);
             const ballMaterial = new THREE.MeshLambertMaterial({ 
-                color: new THREE.Color().setHSL(i / enemyCount, 1, 0.5)
+                map: texture,
+                color: enemyColor
             });
             const enemyBall = new THREE.Mesh(ballGeometry, ballMaterial);
             enemyBall.position.set(x, 2, z);
@@ -195,7 +290,7 @@ export class BattleSystem {
             this.enemyBalls.push(enemyBall);
         }
         
-        console.log(`🔴 Created ${enemyCount} enemy balls`);
+        console.log(`🔴 Created ${enemyCount} enemy balls with visible rotation patterns`);
         
         // Update UI with enemy count
         if (this.battleUI) {

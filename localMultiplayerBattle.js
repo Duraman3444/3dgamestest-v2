@@ -1127,9 +1127,89 @@ export class LocalMultiplayerBattle {
         for (let i = 0; i < this.activePlayerCount; i++) {
             const config = this.playerConfigs[i];
             
+            // Create visible rotation pattern for each player
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const context = canvas.getContext('2d');
+            
+            // Base color
+            const color = new THREE.Color(config.color);
+            context.fillStyle = `rgb(${color.r * 255}, ${color.g * 255}, ${color.b * 255})`;
+            context.fillRect(0, 0, 256, 256);
+            
+            // Add unique rotation pattern for each player
+            context.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            context.lineWidth = 4;
+            
+            // Different patterns for each player
+            switch (i % 4) {
+                case 0: // Player 1: Grid pattern
+                    for (let j = 0; j < 256; j += 32) {
+                        context.beginPath();
+                        context.moveTo(0, j);
+                        context.lineTo(256, j);
+                        context.stroke();
+                        
+                        context.beginPath();
+                        context.moveTo(j, 0);
+                        context.lineTo(j, 256);
+                        context.stroke();
+                    }
+                    break;
+                case 1: // Player 2: Diagonal stripes
+                    for (let j = -256; j < 512; j += 32) {
+                        context.beginPath();
+                        context.moveTo(j, 0);
+                        context.lineTo(j + 256, 256);
+                        context.stroke();
+                    }
+                    break;
+                case 2: // Player 3: Circles
+                    for (let x = 32; x < 256; x += 64) {
+                        for (let y = 32; y < 256; y += 64) {
+                            context.beginPath();
+                            context.arc(x, y, 16, 0, Math.PI * 2);
+                            context.stroke();
+                        }
+                    }
+                    break;
+                case 3: // Player 4: Diamonds
+                    for (let x = 32; x < 256; x += 64) {
+                        for (let y = 32; y < 256; y += 64) {
+                            context.beginPath();
+                            context.moveTo(x, y - 16);
+                            context.lineTo(x + 16, y);
+                            context.lineTo(x, y + 16);
+                            context.lineTo(x - 16, y);
+                            context.closePath();
+                            context.stroke();
+                        }
+                    }
+                    break;
+            }
+            
+            // Add contrasting dots for all players
+            context.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            for (let x = 16; x < 256; x += 32) {
+                for (let y = 16; y < 256; y += 32) {
+                    context.beginPath();
+                    context.arc(x, y, 3, 0, Math.PI * 2);
+                    context.fill();
+                }
+            }
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.generateMipmaps = false;
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            
             // Create high-quality player ball
             const ballGeometry = new THREE.SphereGeometry(this.ballRadius, 32, 32);
             const ballMaterial = new THREE.MeshPhongMaterial({ 
+                map: texture,
                 color: config.color,
                 transparent: true,
                 opacity: 0.95,
@@ -1197,7 +1277,7 @@ export class LocalMultiplayerBattle {
             player.ball.scale.setScalar(massScale);
         }
         
-        console.log(`👥 Created ${this.activePlayerCount} players with rigidbody physics and damage system`);
+        console.log(`👥 Created ${this.activePlayerCount} players with visible rotation patterns and rigidbody physics`);
     }
     
     // Create enhanced name label for player
