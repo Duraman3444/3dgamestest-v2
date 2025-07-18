@@ -9,6 +9,8 @@ export class AudioManager {
         this.isInitialized = false;
         this.backgroundMusic = null;
         this.soundProfiles = {};
+        this.waitingForUserInteraction = false;
+        this.userInteractionHandlerSet = false;
         
         // Initialize audio context
         this.initializeAudio();
@@ -48,14 +50,25 @@ export class AudioManager {
     
     async completeInitialization() {
         try {
+            console.log('🎵 Starting complete audio initialization...');
+            
+            // Set flags first to prevent issues if generation fails
+            this.waitingForUserInteraction = false;
+            
             // Create sound profiles for different game modes
             this.createSoundProfiles();
+            console.log('🎵 Sound profiles created');
             
             // Generate procedural sounds for each profile
-            await this.generateProceduralSounds();
+            try {
+                await this.generateProceduralSounds();
+                console.log('🎵 Procedural sounds generated');
+            } catch (soundError) {
+                console.warn('🎵 Failed to generate some sounds, but audio system will continue:', soundError);
+                // Don't fail completely if sound generation has issues
+            }
             
             this.isInitialized = true;
-            this.waitingForUserInteraction = false;
             console.log('🎵 AudioManager initialized successfully');
             
             // Show audio ready notification
@@ -69,50 +82,51 @@ export class AudioManager {
         } catch (error) {
             console.error('Failed to complete audio initialization:', error);
             this.isInitialized = false;
+            this.waitingForUserInteraction = false; // Ensure flag is false
             this.showAudioInitMessage('🎵 Audio initialization failed', 'error');
         }
     }
     
     setupUserInteractionHandler() {
+        // Prevent multiple handlers from being set up
+        if (this.userInteractionHandlerSet) {
+            return;
+        }
+        this.userInteractionHandlerSet = true;
+        
         const handleUserInteraction = async (event) => {
             console.log('🎵 User interaction detected, attempting to initialize audio...');
             
-            if (this.audioContext && this.audioContext.state === 'suspended') {
-                try {
+            // Immediately set flag to false to prevent multiple attempts
+            this.waitingForUserInteraction = false;
+            
+            // Remove the event listeners immediately to prevent multiple calls
+            document.removeEventListener('click', handleUserInteraction);
+            document.removeEventListener('keydown', handleUserInteraction);
+            document.removeEventListener('touchstart', handleUserInteraction);
+            
+            try {
+                if (this.audioContext && this.audioContext.state === 'suspended') {
                     await this.audioContext.resume();
                     console.log('🎵 Audio context resumed after user interaction');
-                    await this.completeInitialization();
-                    
-                    // Remove the event listeners
-                    document.removeEventListener('click', handleUserInteraction);
-                    document.removeEventListener('keydown', handleUserInteraction);
-                    document.removeEventListener('touchstart', handleUserInteraction);
-                    
-                    // Show success message
-                    this.showAudioInitMessage('🎵 Audio System Ready!', 'success');
-                    
-                } catch (error) {
-                    console.error('Failed to resume audio context:', error);
-                    this.showAudioInitMessage('🎵 Audio initialization failed', 'error');
-                }
-            } else if (!this.audioContext) {
-                // Try to create audio context again
-                try {
+                } else if (!this.audioContext) {
+                    // Try to create audio context again
                     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
                     await this.audioContext.resume();
-                    await this.completeInitialization();
-                    
-                    // Remove the event listeners
-                    document.removeEventListener('click', handleUserInteraction);
-                    document.removeEventListener('keydown', handleUserInteraction);
-                    document.removeEventListener('touchstart', handleUserInteraction);
-                    
-                    this.showAudioInitMessage('🎵 Audio System Ready!', 'success');
-                    
-                } catch (error) {
-                    console.error('Failed to create audio context:', error);
-                    this.showAudioInitMessage('🎵 Audio initialization failed', 'error');
+                    console.log('🎵 Audio context created and resumed');
                 }
+                
+                // Complete initialization
+                await this.completeInitialization();
+                
+                // Show success message
+                this.showAudioInitMessage('🎵 Audio System Ready!', 'success');
+                
+            } catch (error) {
+                console.error('Failed to initialize audio after user interaction:', error);
+                this.showAudioInitMessage('🎵 Audio initialization failed', 'error');
+                this.waitingForUserInteraction = false; // Ensure flag is false even on error
+                this.isInitialized = false;
             }
         };
         
@@ -504,6 +518,18 @@ export class AudioManager {
                 this.initializeAudio();
                 return;
             }
+        }
+        
+        // Additional check for audio context state
+        if (this.audioContext.state === 'suspended') {
+            console.log(`🎵 Audio context suspended, attempting to resume for sound: ${soundName}`);
+            this.audioContext.resume().then(() => {
+                console.log('🎵 Audio context resumed, retrying sound playback');
+                this.playSound(soundName, volume);
+            }).catch(error => {
+                console.error('Failed to resume audio context:', error);
+            });
+            return;
         }
         
         // Check if audio context is suspended
