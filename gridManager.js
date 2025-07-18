@@ -1617,6 +1617,15 @@ export class GridManager {
         return null;
     }
     
+    // Get tile by grid coordinates (for addRandomFruit and similar functions)
+    getTile(gridX, gridZ) {
+        if (gridX >= 0 && gridX < this.gridSize && gridZ >= 0 && gridZ < this.gridSize) {
+            const tileKey = `${gridX},${gridZ}`;
+            return this.tiles.get(tileKey);
+        }
+        return null;
+    }
+    
     getObstacles() {
         return this.obstacles;
     }

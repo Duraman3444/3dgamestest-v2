@@ -1572,6 +1572,11 @@ class Game {
             this.settingsManager.applySettings();
         }
         
+        // Reset exit activation flag for new game/level
+        if (this.collisionSystem) {
+            this.collisionSystem.resetExitActivation();
+        }
+        
         // Mark systems as initialized
         this.areSystemsInitialized = true;
         console.log('🎮 Systems initialization complete');
@@ -1990,6 +1995,11 @@ class Game {
         
         // Reinitialize systems with current level (always level 2 for classic)
         await this.setupSystems();
+        
+        // Reset exit activation flag to prevent spamming
+        if (this.collisionSystem) {
+            this.collisionSystem.resetExitActivation();
+        }
         
         // Add extra fruit for higher waves
         this.addExtraFruitForWave();
@@ -3164,6 +3174,11 @@ class Game {
             
             // Reinitialize the game systems with current level
             await this.setupSystems();
+            
+            // Reset exit activation flag to prevent spamming
+            if (this.collisionSystem) {
+                this.collisionSystem.resetExitActivation();
+            }
             
             // Restart the game loop
             this.gameLoop.start();

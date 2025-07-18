@@ -41,6 +41,9 @@ export class CollisionSystem {
         
         // Level completion notification
         this.readyToLeaveNotificationShown = false;
+        
+        // Exit activation prevention (prevent spamming in classic mode)
+        this.exitActivated = false;
     }
     
     setPlayer(player) {
@@ -126,6 +129,12 @@ export class CollisionSystem {
         if (this.enableCollisionDebug) {
             this.updateDebugHelpers();
         }
+    }
+    
+    // Reset exit activation flag (call when starting new level or wave)
+    resetExitActivation() {
+        this.exitActivated = false;
+        console.log('Exit activation flag reset');
     }
     
     checkObstacleCollisions() {
@@ -420,23 +429,27 @@ export class CollisionSystem {
             
             if (this.checkBoxCollision(playerBounds, exitBounds)) {
                 if (this.gridManager.canActivateExit()) {
-                    this.gridManager.activateExit();
-                    console.log('Level completed!');
-                    
-                    // Play level completion sound effect
-                    if (window.game && window.game.audioManager) {
-                        window.game.audioManager.playLevelCompleteSound();
-                    }
-                    
-                    // Check if this is level 6 (World 1) to show victory menu
-                    const currentLevel = window.game ? window.game.getCurrentLevel() : 1;
-                    if (currentLevel === 6) {
-                        // Level 6 completion - show victory menu
-                        this.handleCylinderVictory();
-                    } else {
-                        // Regular level completion
-                        if (this.levelCompletionCallback) {
-                            this.levelCompletionCallback();
+                    // Check if exit has already been activated to prevent spamming
+                    if (!this.exitActivated) {
+                        this.exitActivated = true; // Set flag to prevent multiple activations
+                        this.gridManager.activateExit();
+                        console.log('Level completed!');
+                        
+                        // Play level completion sound effect
+                        if (window.game && window.game.audioManager) {
+                            window.game.audioManager.playLevelCompleteSound();
+                        }
+                        
+                        // Check if this is level 6 (World 1) to show victory menu
+                        const currentLevel = window.game ? window.game.getCurrentLevel() : 1;
+                        if (currentLevel === 6) {
+                            // Level 6 completion - show victory menu
+                            this.handleCylinderVictory();
+                        } else {
+                            // Regular level completion
+                            if (this.levelCompletionCallback) {
+                                this.levelCompletionCallback();
+                            }
                         }
                     }
                 } else {
