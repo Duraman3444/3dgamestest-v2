@@ -652,6 +652,13 @@ export class LocalMultiplayerBattle {
     setPlayerCount(count) {
         this.activePlayerCount = Math.min(Math.max(count, 2), this.maxPlayers);
         console.log(`👥 Set active players: ${this.activePlayerCount}`);
+        
+        // Log player configurations that will be used
+        console.log(`🎮 Player configurations for ${this.activePlayerCount} players:`);
+        for (let i = 0; i < this.activePlayerCount; i++) {
+            const config = this.playerConfigs[i];
+            console.log(`  Player ${i + 1}: ${config.name} (${config.controls.up}${config.controls.down}${config.controls.left}${config.controls.right}) - Color: #${config.color.toString(16).padStart(6, '0').toUpperCase()}`);
+        }
     }
     
     // Initialize the battle
