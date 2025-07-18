@@ -461,7 +461,13 @@ export class PacmanMenu {
             }
         });
         
-        button.addEventListener('click', onClick);
+        button.addEventListener('click', () => {
+            // Play click sound
+            if (window.game && window.game.audioManager) {
+                window.game.audioManager.playMenuClickSound();
+            }
+            onClick();
+        });
         
         return button;
     }
@@ -501,7 +507,13 @@ export class PacmanMenu {
             button.style.transform = 'translateY(0)';
         });
         
-        button.addEventListener('click', onClick);
+        button.addEventListener('click', () => {
+            // Play click sound
+            if (window.game && window.game.audioManager) {
+                window.game.audioManager.playMenuClickSound();
+            }
+            onClick();
+        });
         
         return button;
     }

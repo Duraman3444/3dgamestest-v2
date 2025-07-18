@@ -1316,6 +1316,11 @@ export class GridManager {
                 } else if (currentTime - ghost.spawnTime >= ghost.activationTime) {
                     ghost.isActive = true;
                     console.log(`${ghost.color} ghost activated!`);
+                    
+                    // Play ghost sound effect when activated
+                    if (window.game && window.game.audioManager) {
+                        window.game.audioManager.playGhostSound();
+                    }
                 } else {
                     return; // Skip this ghost if not active yet
                 }

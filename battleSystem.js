@@ -63,6 +63,11 @@ export class BattleSystem {
         
         console.log(`🥊 Starting Sumo Battle - Level ${level}${botCount ? ` with ${botCount} bots` : ''}`);
         
+        // Play battle start sound effect
+        if (window.game && window.game.audioManager) {
+            window.game.audioManager.playBattleSound();
+        }
+        
         // Show UI
         if (this.battleUI) {
             this.battleUI.show();
@@ -594,6 +599,15 @@ export class BattleSystem {
         this.battleState = victory ? 'won' : 'lost';
         
         console.log(`🏁 Sumo Battle ended - ${victory ? 'Victory' : 'Defeat'}`);
+        
+        // Play victory or defeat sound effect
+        if (window.game && window.game.audioManager) {
+            if (victory) {
+                window.game.audioManager.playVictorySound();
+            } else {
+                window.game.audioManager.playDefeatSound();
+            }
+        }
         
         // Update UI
         if (this.battleUI) {

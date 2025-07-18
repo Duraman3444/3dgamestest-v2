@@ -401,6 +401,11 @@ export class CollisionSystem {
                     this.score += 50; // Key gives more points
                     console.log('Key collected!');
                     this.createCollectionEffect(key.position);
+                    
+                    // Play key pickup sound effect
+                    if (window.game && window.game.audioManager) {
+                        window.game.audioManager.playKeyPickupSound();
+                    }
                 }
             }
         }
@@ -417,6 +422,11 @@ export class CollisionSystem {
                 if (this.gridManager.canActivateExit()) {
                     this.gridManager.activateExit();
                     console.log('Level completed!');
+                    
+                    // Play level completion sound effect
+                    if (window.game && window.game.audioManager) {
+                        window.game.audioManager.playLevelCompleteSound();
+                    }
                     
                     // Check if this is multiplayer race mode
                     if (window.game && window.game.isMultiplayerMode && window.game.multiplayerGameModes && 
@@ -485,6 +495,11 @@ export class CollisionSystem {
         // Lose a life first
         const remainingLives = this.player.loseLife();
         console.log(`Player lost a life! Remaining lives: ${remainingLives}`);
+        
+        // Play death sound effect
+        if (window.game && window.game.audioManager) {
+            window.game.audioManager.playDeathSound();
+        }
         
         // Activate ghost immunity to prevent rapid-fire kills
         this.ghostImmunity = true;
@@ -633,6 +648,11 @@ export class CollisionSystem {
         
         // Kill the player - lose a life
         const remainingLives = this.player.loseLife();
+        
+        // Play death sound effect
+        if (window.game && window.game.audioManager) {
+            window.game.audioManager.playDeathSound();
+        }
         
         // Reset player to spawn position (using safe spawn point)
         const levelData = this.gridManager.levelLoader.getCurrentLevel();
@@ -1109,9 +1129,13 @@ export class CollisionSystem {
         // Simple effect - could be expanded with particles, sound, etc.
         console.log(`Collected item at position: ${position.x}, ${position.y}, ${position.z}`);
         
+        // Play collection sound effect
+        if (window.game && window.game.audioManager) {
+            window.game.audioManager.playCollectSound();
+        }
+        
         // You could add visual effects here, like:
         // - Particle systems
-        // - Sound effects
         // - Score popup animations
     }
     

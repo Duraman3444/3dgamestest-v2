@@ -19,6 +19,7 @@ import { MultiplayerGameModes } from './multiplayerGameModes.js';
 import { LocalMultiplayerBattle } from './localMultiplayerBattle.js';
 import { SkyboxManager } from './skyboxManager.js';
 import { GraphicsEnhancer } from './graphicsEnhancer.js';
+import { AudioManager } from './audioManager.js';
 
 class Game {
     constructor() {
@@ -44,6 +45,7 @@ class Game {
         this.localMultiplayerBattle = null;
         this.skyboxManager = null;
         this.graphicsEnhancer = null;
+        this.audioManager = null;
         this.isGameInitialized = false;
         this.areSystemsInitialized = false;
         this.isPaused = false;
@@ -228,6 +230,10 @@ class Game {
         
         // Set global game reference for settings
         window.game = this;
+        
+        // Initialize audio manager
+        this.audioManager = new AudioManager();
+        console.log('🎵 AudioManager initialized');
     }
     
     createPauseOverlay() {
@@ -462,6 +468,11 @@ class Game {
                 this.pauseOverlay = null;
             }
             
+            // Play resume sound
+            if (this.audioManager) {
+                this.audioManager.playResumeSound();
+            }
+            
             // Enable player controls
             if (this.player) {
                 this.player.enableControls();
@@ -484,6 +495,11 @@ class Game {
         } else {
             // Pause game
             this.isPaused = true;
+            
+            // Play pause sound
+            if (this.audioManager) {
+                this.audioManager.playPauseSound();
+            }
             
             // Disable player controls
             if (this.player) {
@@ -578,15 +594,24 @@ class Game {
         // Apply audio settings
         switch (key) {
             case 'masterVolume':
-                // Apply master volume (would need audio system)
+                // Apply master volume to audio manager
+                if (this.audioManager) {
+                    this.audioManager.setMasterVolume(value / 100);
+                }
                 console.log(`Master volume set to ${value}%`);
                 break;
             case 'musicVolume':
-                // Apply music volume
+                // Apply music volume to audio manager
+                if (this.audioManager) {
+                    this.audioManager.setMusicVolume(value / 100);
+                }
                 console.log(`Music volume set to ${value}%`);
                 break;
             case 'sfxVolume':
-                // Apply SFX volume
+                // Apply SFX volume to audio manager
+                if (this.audioManager) {
+                    this.audioManager.setSFXVolume(value / 100);
+                }
                 console.log(`SFX volume set to ${value}%`);
                 break;
         }
@@ -719,6 +744,11 @@ class Game {
         
         this.gameMode = mode; // Store game mode
         this.difficulty = difficulty; // Store difficulty
+        
+        // Set audio profile for the game mode
+        if (this.audioManager) {
+            this.audioManager.setGameMode(mode);
+        }
         
         // Reset pacman timer state
         this.stopPacmanTimer();
@@ -884,6 +914,11 @@ class Game {
         // Start the game loop only if initialization was successful
         if (this.gameLoop) {
             this.gameLoop.start();
+            
+            // Play level start sound
+            if (this.audioManager) {
+                this.audioManager.playLevelStartSound();
+            }
         } else {
             console.error('Game loop not initialized');
             this.showErrorAndReturnToMenu('Game loop failed to initialize. Please try again.');
@@ -2348,6 +2383,11 @@ class Game {
         // Clean up multiplayer game modes UI
         if (this.multiplayerGameModes) {
             this.multiplayerGameModes.cleanup();
+        }
+        
+        // Clean up audio manager
+        if (this.audioManager) {
+            this.audioManager.destroy();
         }
         
         // Remove any remaining game UI elements by comprehensive ID patterns

@@ -106,7 +106,7 @@ export class MainMenu {
         controlsInfo.textContent = 'Use ↑↓ arrow keys to navigate, ENTER to select';
         controlsInfo.style.cssText = `
             position: absolute;
-            bottom: 80px;
+            bottom: 120px;
             left: 50%;
             transform: translateX(-50%);
             color: #00ffff;
@@ -115,6 +115,32 @@ export class MainMenu {
             font-family: 'Courier New', monospace;
             text-shadow: 1px 1px 0px #000000;
         `;
+        
+        // Create audio info
+        const audioInfo = document.createElement('div');
+        audioInfo.textContent = '🎵 Audio System Ready - Click anywhere to enable sound';
+        audioInfo.style.cssText = `
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ffff00;
+            font-size: 14px;
+            text-align: center;
+            font-family: 'Courier New', monospace;
+            text-shadow: 1px 1px 0px #000000;
+            animation: pulse 2s infinite;
+        `;
+        
+        // Add pulsing animation for audio info
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.6; }
+            }
+        `;
+        document.head.appendChild(style);
         
         // Create version info
         const versionInfo = document.createElement('div');
@@ -147,6 +173,7 @@ export class MainMenu {
         this.menuElement.appendChild(subtitle);
         this.menuElement.appendChild(buttonsContainer);
         this.menuElement.appendChild(controlsInfo);
+        this.menuElement.appendChild(audioInfo);
         this.menuElement.appendChild(versionInfo);
         this.menuElement.appendChild(copyrightInfo);
         
@@ -187,10 +214,21 @@ export class MainMenu {
             if (button.style.display !== 'none') {
                 this.currentOptionIndex = index;
                 this.updateButtonSelection();
+                
+                // Play hover sound
+                if (window.game && window.game.audioManager) {
+                    window.game.audioManager.playMenuHoverSound();
+                }
             }
         });
         
-        button.addEventListener('click', onClick);
+        button.addEventListener('click', () => {
+            // Play click sound
+            if (window.game && window.game.audioManager) {
+                window.game.audioManager.playMenuClickSound();
+            }
+            onClick();
+        });
         
         return button;
     }
@@ -225,6 +263,11 @@ export class MainMenu {
         } while (this.menuButtons[newIndex].style.display === 'none');
         this.currentOptionIndex = newIndex;
         this.updateButtonSelection();
+        
+        // Play navigation sound
+        if (window.game && window.game.audioManager) {
+            window.game.audioManager.playMenuHoverSound();
+        }
     }
     
     navigateDown() {
@@ -234,6 +277,11 @@ export class MainMenu {
         } while (this.menuButtons[newIndex].style.display === 'none');
         this.currentOptionIndex = newIndex;
         this.updateButtonSelection();
+        
+        // Play navigation sound
+        if (window.game && window.game.audioManager) {
+            window.game.audioManager.playMenuHoverSound();
+        }
     }
     
     updateButtonSelection() {
@@ -263,6 +311,10 @@ export class MainMenu {
     
     selectCurrentOption() {
         if (this.menuButtons[this.currentOptionIndex]) {
+            // Play select sound
+            if (window.game && window.game.audioManager) {
+                window.game.audioManager.playMenuClickSound();
+            }
             this.menuButtons[this.currentOptionIndex].click();
         }
     }
