@@ -471,14 +471,14 @@ export class LocalMultiplayerBattle {
         
         // Round system
         this.currentRound = 1;
-        this.maxRounds = 5;
-        this.roundWinTarget = Math.ceil(this.maxRounds / 2);
+        this.maxRounds = 7; // Increased to accommodate 4 wins needed
+        this.roundWinTarget = 4; // Need 4 rounds to win the match
         this.roundWinner = null;
         this.matchWinner = null;
         this.roundEndTimer = 0;
         this.roundRestartDelay = 3;
         this.isRoundEnding = false;
-        this.arenaSelectionMode = 'sequential'; // 'sequential' or 'random'
+        this.arenaSelectionMode = 'random'; // Always randomize levels
         
         // Animation loop
         this.animationId = null;
@@ -673,6 +673,8 @@ export class LocalMultiplayerBattle {
         this.startAnimationLoop();
         
         console.log('🏟️ Local multiplayer battle arena initialized');
+        console.log(`🏆 Tournament Format: First to ${this.roundWinTarget} rounds wins the match!`);
+        console.log(`🎲 Arena Selection: Random (${this.arenaThemes.length} unique arenas available)`);
         return true;
     }
     
@@ -710,9 +712,11 @@ export class LocalMultiplayerBattle {
     selectArenaTheme() {
         if (this.arenaSelectionMode === 'random') {
             this.currentArenaTheme = Math.floor(Math.random() * this.arenaThemes.length);
+            console.log(`🎲 Arena randomly selected from ${this.arenaThemes.length} available themes`);
         } else {
             // Sequential - cycle through themes
             this.currentArenaTheme = (this.currentRound - 1) % this.arenaThemes.length;
+            console.log(`🔄 Arena selected sequentially (theme ${this.currentArenaTheme + 1})`);
         }
         
         const theme = this.arenaThemes[this.currentArenaTheme];
