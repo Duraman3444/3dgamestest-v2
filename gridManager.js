@@ -647,50 +647,67 @@ export class GridManager {
         
         tilesData.forEach(tileData => {
             const tileKey = `${tileData.x},${tileData.z}`;
-            const tile = this.createTile(tileData.x, tileData.z, tileData.height);
+            const tile = this.createTile(tileData.x, tileData.z, tileData.height, tileData.type);
             this.tiles.set(tileKey, tile);
             
             // Debug elevated tiles
             if (tileData.height > 0) {
                 console.log(`🏔️ Created elevated tile at (${tileData.x}, ${tileData.z}) with height ${tileData.height}`);
             }
+            
+            // Debug special tiles
+            if (tileData.type === 'slime' || tileData.type === 'mud') {
+                console.log(`🌿 Created ${tileData.type} tile at (${tileData.x}, ${tileData.z})`);
+            }
         });
     }
     
-    createTile(x, z, height = 0) {
+    createTile(x, z, height = 0, type = 'ground') {
         const worldPos = this.levelLoader.gridToWorld(x, z, this.tileSize);
+        let tileMesh = null;
         
-        // Create visual tile if it has height (elevated platform)
-        if (height > 0) {
-            console.log(`🎯 Creating elevated tile mesh at grid (${x}, ${z}) world (${worldPos.x}, ${worldPos.z}) height ${height}`);
+        // Create visual tile for special types or elevated tiles
+        if (height > 0 || type === 'slime' || type === 'mud') {
+            console.log(`🎯 Creating ${type} tile mesh at grid (${x}, ${z}) world (${worldPos.x}, ${worldPos.z}) height ${height}`);
             
-            const tileGeometry = new THREE.BoxGeometry(this.tileSize, height, this.tileSize);
-            // Temporarily use bright red material to make elevated tiles visible
-            const elevatedMaterial = new THREE.MeshLambertMaterial({ 
-                color: 0xFF0000, // Bright red
-                emissive: 0x330000,
-                emissiveIntensity: 0.3
-            });
-            const tileMesh = new THREE.Mesh(tileGeometry, elevatedMaterial);
-            tileMesh.position.set(worldPos.x, height / 2, worldPos.z);
+            const tileGeometry = new THREE.BoxGeometry(this.tileSize, Math.max(height, 0.1), this.tileSize);
+            let material;
+            
+            // Choose material based on tile type
+            if (type === 'slime') {
+                material = new THREE.MeshLambertMaterial({ 
+                    color: 0x32CD32, // Lime green
+                    transparent: true,
+                    opacity: 0.8,
+                    emissive: 0x004400,
+                    emissiveIntensity: 0.2
+                });
+            } else if (type === 'mud') {
+                material = new THREE.MeshLambertMaterial({ 
+                    color: 0x8B4513, // Saddle brown
+                    emissive: 0x221100,
+                    emissiveIntensity: 0.1
+                });
+            } else {
+                // Default elevated tile material
+                material = new THREE.MeshLambertMaterial({ 
+                    color: 0xFF0000, // Bright red
+                    emissive: 0x330000,
+                    emissiveIntensity: 0.3
+                });
+            }
+            
+            tileMesh = new THREE.Mesh(tileGeometry, material);
+            tileMesh.position.set(worldPos.x, Math.max(height, 0.1) / 2, worldPos.z);
             tileMesh.castShadow = true;
             tileMesh.receiveShadow = true;
             
+            // Set mesh name for graphics enhancer
+            tileMesh.name = `tile_${type}_${x}_${z}`;
+            
             this.scene.add(tileMesh);
             
-            console.log(`✅ Added elevated tile mesh to scene at position (${worldPos.x}, ${height / 2}, ${worldPos.z})`);
-            console.log(`📦 Tile geometry: ${this.tileSize}x${height}x${this.tileSize}, Material: red`);
-            
-            return {
-                x: x,
-                z: z,
-                worldX: worldPos.x,
-                worldZ: worldPos.z,
-                occupied: false,
-                type: 'ground',
-                height: height,
-                mesh: tileMesh
-            };
+            console.log(`✅ Added ${type} tile mesh to scene at position (${worldPos.x}, ${Math.max(height, 0.1) / 2}, ${worldPos.z})`);
         }
         
         return {
@@ -699,8 +716,9 @@ export class GridManager {
             worldX: worldPos.x,
             worldZ: worldPos.z,
             occupied: false,
-            type: 'ground',
-            height: 0
+            type: type,
+            height: height,
+            mesh: tileMesh
         };
     }
     

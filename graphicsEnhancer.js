@@ -110,6 +110,32 @@ export class GraphicsEnhancer {
                 });
                 break;
                 
+            case 'slime':
+                material = new THREE.MeshStandardMaterial({
+                    color: baseColor,
+                    transparent: true,
+                    opacity: 0.85,
+                    metalness: 0.0,
+                    roughness: 0.1,
+                    envMapIntensity: 0.8,
+                    emissive: new THREE.Color(baseColor).multiplyScalar(0.1),
+                    emissiveIntensity: 0.15,
+                    ...options
+                });
+                break;
+                
+            case 'mud':
+                material = new THREE.MeshStandardMaterial({
+                    color: baseColor,
+                    metalness: 0.0,
+                    roughness: 0.9,
+                    envMapIntensity: 0.2,
+                    emissive: new THREE.Color(baseColor).multiplyScalar(0.05),
+                    emissiveIntensity: 0.1,
+                    ...options
+                });
+                break;
+                
             default:
                 material = new THREE.MeshStandardMaterial({
                     color: baseColor,
@@ -141,7 +167,11 @@ export class GraphicsEnhancer {
         // Determine material type based on mesh name and game mode
         let materialType = 'plastic';
         
-        if (meshName.includes('ground') || meshName.includes('platform') || meshName.includes('tile')) {
+        if (meshName.includes('slime')) {
+            materialType = 'slime';
+        } else if (meshName.includes('mud')) {
+            materialType = 'mud';
+        } else if (meshName.includes('ground') || meshName.includes('platform') || meshName.includes('tile')) {
             materialType = 'stone';
         } else if (meshName.includes('metal') || meshName.includes('arena') || meshName.includes('obstacle')) {
             materialType = 'metal';
@@ -272,6 +302,59 @@ export class GraphicsEnhancer {
         this.scene.environment = cubeTexture;
         
         console.log(`🌍 Environment map created for ${gameMode} mode`);
+    }
+
+    // Create jungle atmosphere effects for slime and mud tiles
+    createJungleAtmosphere(tileType, position) {
+        if (tileType === 'slime') {
+            // Create slime bubbles
+            this.createParticleEffect('slime_bubbles', position, {
+                count: 15,
+                color: 0x32CD32,
+                size: 0.3,
+                opacity: 0.6,
+                spread: 0.8,
+                height: 2,
+                duration: 8000,
+                velocity: new THREE.Vector3(0, 0.5, 0)
+            });
+            
+            // Create glowing spores
+            this.createParticleEffect('spores', position, {
+                count: 8,
+                color: 0x90EE90,
+                size: 0.15,
+                opacity: 0.8,
+                spread: 1.2,
+                height: 1.5,
+                duration: 12000,
+                velocity: new THREE.Vector3(0, 0.2, 0)
+            });
+        } else if (tileType === 'mud') {
+            // Create mud steam
+            this.createParticleEffect('mud_steam', position, {
+                count: 12,
+                color: 0x8B4513,
+                size: 0.4,
+                opacity: 0.4,
+                spread: 0.6,
+                height: 2.5,
+                duration: 10000,
+                velocity: new THREE.Vector3(0, 0.3, 0)
+            });
+            
+            // Create earthy particles
+            this.createParticleEffect('earth_particles', position, {
+                count: 6,
+                color: 0xA0522D,
+                size: 0.2,
+                opacity: 0.7,
+                spread: 0.9,
+                height: 1.8,
+                duration: 15000,
+                velocity: new THREE.Vector3(0, 0.1, 0)
+            });
+        }
     }
 
     // Update particle systems

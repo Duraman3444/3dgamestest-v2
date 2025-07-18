@@ -645,6 +645,31 @@ class Game {
         return this.classicLives;
     }
     
+    // Create jungle atmosphere effects for level 1
+    createJungleAtmosphereForLevel1() {
+        if (!this.graphicsEnhancer || !this.gridManager) return;
+        
+        console.log('🌿 Creating jungle atmosphere effects for level 1');
+        
+        // Get all tiles from the grid manager
+        const tiles = this.gridManager.tiles;
+        
+        tiles.forEach((tile, key) => {
+            if (tile.type === 'slime' || tile.type === 'mud') {
+                const worldPosition = new THREE.Vector3(
+                    tile.worldX,
+                    tile.height + 0.5,
+                    tile.worldZ
+                );
+                
+                // Create atmospheric effects for each special tile
+                this.graphicsEnhancer.createJungleAtmosphere(tile.type, worldPosition);
+            }
+        });
+        
+        console.log('✨ Jungle atmosphere effects created for level 1');
+    }
+    
     applyAntiAliasing(enabled) {
         // Anti-aliasing requires renderer recreation, so just log for now
         console.log(`Anti-aliasing ${enabled ? 'enabled' : 'disabled'} - requires restart`);
@@ -1214,6 +1239,11 @@ class Game {
             // Delay material enhancement to allow all objects to be created
             setTimeout(() => {
                 this.graphicsEnhancer.enhanceSceneMaterials(this.gameMode);
+                
+                // Create jungle atmosphere effects for level 1
+                if (this.gameMode === 'normal' && this.currentLevel === 1) {
+                    this.createJungleAtmosphereForLevel1();
+                }
             }, 100);
         }
         
