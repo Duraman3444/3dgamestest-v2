@@ -254,7 +254,7 @@ class Game {
         console.log('🏆 Leaderboard system initialized');
     }
     
-    // Check for high score and show entry screen if qualified
+    // Always show score entry screen upon completion
     async checkForHighScore() {
         if (!this.leaderboardManager || !this.scoreEntry || !this.collisionSystem) {
             return;
@@ -292,9 +292,9 @@ class Game {
             scoreData.gameMode = 'pacman';
         }
         
-        // Check if score qualifies for leaderboard
-        if (category && this.leaderboardManager.qualifiesForLeaderboard(category, currentScore, scoreData.level, completionTime)) {
-            console.log(`🏆 High score detected! Category: ${category}, Score: ${currentScore}`);
+        // Always show score entry screen upon completion
+        if (category) {
+            console.log(`📝 Score entry for completion! Category: ${category}, Score: ${currentScore}`);
             
             // Show score entry screen
             await this.showScoreEntryScreen(scoreData, category);
@@ -1443,7 +1443,7 @@ class Game {
         // Setup collision system with grid and player
         this.collisionSystem.setPlayer(this.player);
         this.collisionSystem.setGrid(this.gridManager);
-        this.collisionSystem.setGameOverCallback(() => this.handleGameOver());
+        this.collisionSystem.setGameOverCallback(async () => await this.handleGameOver());
         this.collisionSystem.setLevelCompletionCallback(() => this.handleLevelCompletion());
         
         // Reset collision system state for new level
@@ -1666,7 +1666,7 @@ class Game {
         }
     }
     
-    handleGameOver() {
+    async handleGameOver() {
         console.log('Handling game over - showing game over screen');
         
         // Handle classic mode lives system
@@ -1692,6 +1692,9 @@ class Game {
         if (this.gameMode === 'pacman' || this.gameMode === 'pacman_classic') {
             this.stopPacmanTimer();
         }
+        
+        // Check for score entry before showing game over screen
+        await this.checkForHighScore();
         
         // Stop the game loop
         if (this.gameLoop) {
@@ -1840,13 +1843,13 @@ class Game {
             } catch (error) {
                 console.error('Error advancing to next level:', error);
                 // Fall back to game over if level loading fails
-                this.handleGameOver();
+                await this.handleGameOver();
             }
         } else {
             // No more levels - show game completion or return to menu
             console.log('All levels completed!');
             this.clearSavedGameState(); // Clear save since game is completed
-            this.handleGameOver(); // For now, treat as game over
+            await this.handleGameOver(); // For now, treat as game over
         }
     }
     
@@ -1895,13 +1898,11 @@ class Game {
             timestamp: Date.now()
         };
         
-        // Check if score qualifies for battle tournament leaderboard
-        if (this.leaderboardManager.qualifiesForLeaderboard('battleTournament', totalScore, null, completionTime)) {
-            console.log(`🏆 Battle tournament high score detected! Score: ${totalScore}`);
-            
-            // Show score entry screen
-            await this.showScoreEntryScreen(scoreData, 'battleTournament');
-        }
+        // Always show score entry screen for battle tournament completion
+        console.log(`📝 Battle tournament completed! Score: ${totalScore}`);
+        
+        // Show score entry screen
+        await this.showScoreEntryScreen(scoreData, 'battleTournament');
     }
     
     // Handle battle defeat
@@ -2791,7 +2792,8 @@ class Game {
             this.pacmanTimeRemaining = 0;
             this.pacmanTimerStarted = false;
             console.log('Time is up! Game over.');
-            this.handleGameOver();
+            // Handle async game over without blocking the game loop
+            this.handleGameOver().catch(err => console.error('Error in handleGameOver:', err));
         }
     }
     
