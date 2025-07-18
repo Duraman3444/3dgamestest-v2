@@ -254,7 +254,63 @@ class Game {
         console.log('🏆 Leaderboard system initialized');
     }
     
-    // Always show score entry screen upon completion
+    // Show score entry screen for level completion
+    async showScoreEntryForCompletion() {
+        if (!this.leaderboardManager || !this.scoreEntry || !this.collisionSystem) {
+            return;
+        }
+        
+        const currentScore = this.collisionSystem.getScore();
+        let completionTime = 0;
+        
+        // Calculate completion time based on game mode
+        if (this.gameMode === 'pacman' && this.pacmanTimerStarted) {
+            // For pacman mode, use remaining time (better score = more time left)
+            completionTime = this.pacmanTimeRemaining || 0;
+        } else {
+            // For other modes, use elapsed time
+            const gameStartTime = this.uiManager ? this.uiManager.gameState.gameStartTime : Date.now();
+            completionTime = (Date.now() - gameStartTime) / 1000; // Convert to seconds
+        }
+        
+        let category = null;
+        let scoreData = {
+            score: currentScore,
+            completionTime: completionTime,
+            level: this.currentLevel,
+            gameMode: this.gameMode,
+            timestamp: Date.now()
+        };
+        
+        // Determine score category based on game mode and completion status
+        if (this.isClassicMode) {
+            category = 'classicMode';
+            scoreData.wave = this.classicWave;
+        } else if (this.gameMode === 'normal') {
+            // Check if this is a full run completion (level 6 is the last level)
+            if (this.currentLevel === 6) {
+                category = 'fullRun';
+                scoreData.levelsCompleted = 6;
+            } else {
+                category = 'individualLevel';
+                scoreData.level = this.currentLevel;
+            }
+        } else if (this.gameMode === 'pacman') {
+            category = 'individualLevel';
+            scoreData.level = this.currentLevel;
+            scoreData.gameMode = 'pacman';
+        }
+        
+        // Always show score entry screen for level completion
+        if (category) {
+            console.log(`🏆 Level completed! Category: ${category}, Score: ${currentScore}`);
+            
+            // Show score entry screen
+            await this.showScoreEntryScreen(scoreData, category);
+        }
+    }
+
+    // Check for high score and show entry screen if qualified (legacy function - kept for battle mode)
     async checkForHighScore() {
         if (!this.leaderboardManager || !this.scoreEntry || !this.collisionSystem) {
             return;
@@ -292,9 +348,9 @@ class Game {
             scoreData.gameMode = 'pacman';
         }
         
-        // Always show score entry screen upon completion
-        if (category) {
-            console.log(`📝 Score entry for completion! Category: ${category}, Score: ${currentScore}`);
+        // Check if score qualifies for leaderboard
+        if (category && this.leaderboardManager.qualifiesForLeaderboard(category, currentScore, scoreData.level, completionTime)) {
+            console.log(`🏆 High score detected! Category: ${category}, Score: ${currentScore}`);
             
             // Show score entry screen
             await this.showScoreEntryScreen(scoreData, category);
@@ -1443,7 +1499,7 @@ class Game {
         // Setup collision system with grid and player
         this.collisionSystem.setPlayer(this.player);
         this.collisionSystem.setGrid(this.gridManager);
-        this.collisionSystem.setGameOverCallback(async () => await this.handleGameOver());
+        this.collisionSystem.setGameOverCallback(() => this.handleGameOver());
         this.collisionSystem.setLevelCompletionCallback(() => this.handleLevelCompletion());
         
         // Reset collision system state for new level
@@ -1680,8 +1736,12 @@ class Game {
                 this.handleClassicModeRespawn();
                 return;
             } else {
-                // No more lives, game over
+                // No more lives, game over - show score entry screen
                 console.log('Classic Mode: All lives lost! Game Over!');
+                
+                // Show score entry for classic mode completion
+                await this.showScoreEntryForCompletion();
+                
                 // Reset lives for next game
                 this.player.resetLives();
                 this.setClassicLives(3);
@@ -1692,9 +1752,6 @@ class Game {
         if (this.gameMode === 'pacman' || this.gameMode === 'pacman_classic') {
             this.stopPacmanTimer();
         }
-        
-        // Check for score entry before showing game over screen
-        await this.checkForHighScore();
         
         // Stop the game loop
         if (this.gameLoop) {
@@ -1763,8 +1820,7 @@ class Game {
         if (this.isClassicMode) {
             console.log(`Classic Mode Wave ${this.classicWave} completed!`);
             
-            // Check for classic mode high score
-            await this.checkForHighScore();
+            // In classic mode, just advance to next wave - don't show score entry until game over
             
             // Increase wave counter
             this.classicWave++;
@@ -1778,6 +1834,11 @@ class Game {
             }
             
             console.log(`Wave ${this.classicWave}: Player Speed: ${this.classicPlayerSpeed}, Enemy Speed: ${this.classicEnemySpeed}`);
+            
+            // Show wave completion notification
+            if (this.uiManager) {
+                this.uiManager.showNotification(`Wave ${this.classicWave-1} Complete!<br>Starting Wave ${this.classicWave}`, 'success', 3000);
+            }
             
             // Brief pause to show completion
             await new Promise(resolve => setTimeout(resolve, 1500));
@@ -1820,8 +1881,8 @@ class Game {
             this.clearSavedGameState();
         }
         
-        // Check for high score before advancing
-        await this.checkForHighScore();
+        // Show score entry for level completion
+        await this.showScoreEntryForCompletion();
         
         // Stop the game loop
         if (this.gameLoop) {
@@ -1843,13 +1904,13 @@ class Game {
             } catch (error) {
                 console.error('Error advancing to next level:', error);
                 // Fall back to game over if level loading fails
-                await this.handleGameOver();
+                this.handleGameOver();
             }
         } else {
             // No more levels - show game completion or return to menu
             console.log('All levels completed!');
             this.clearSavedGameState(); // Clear save since game is completed
-            await this.handleGameOver(); // For now, treat as game over
+            this.handleGameOver(); // For now, treat as game over
         }
     }
     
@@ -1898,11 +1959,13 @@ class Game {
             timestamp: Date.now()
         };
         
-        // Always show score entry screen for battle tournament completion
-        console.log(`📝 Battle tournament completed! Score: ${totalScore}`);
-        
-        // Show score entry screen
-        await this.showScoreEntryScreen(scoreData, 'battleTournament');
+        // Check if score qualifies for battle tournament leaderboard
+        if (this.leaderboardManager.qualifiesForLeaderboard('battleTournament', totalScore, null, completionTime)) {
+            console.log(`🏆 Battle tournament high score detected! Score: ${totalScore}`);
+            
+            // Show score entry screen
+            await this.showScoreEntryScreen(scoreData, 'battleTournament');
+        }
     }
     
     // Handle battle defeat
@@ -2792,8 +2855,7 @@ class Game {
             this.pacmanTimeRemaining = 0;
             this.pacmanTimerStarted = false;
             console.log('Time is up! Game over.');
-            // Handle async game over without blocking the game loop
-            this.handleGameOver().catch(err => console.error('Error in handleGameOver:', err));
+            this.handleGameOver();
         }
     }
     

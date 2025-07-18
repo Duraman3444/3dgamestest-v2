@@ -386,7 +386,11 @@ export class LeaderboardUI {
             border-bottom: 2px solid #00ffff;
         `;
         
-        const headers = ['Rank', 'Initials', 'Score', 'Time', 'Date'];
+        // Check if scores contain pacman mode entries to adjust header
+        const hasPacmanMode = scores.some(score => score.gameMode === 'pacman');
+        const timeHeaderText = hasPacmanMode ? 'Time Left' : 'Time';
+        
+        const headers = ['Rank', 'Initials', 'Score', timeHeaderText, 'Date'];
         headers.forEach(headerText => {
             const th = document.createElement('th');
             th.textContent = headerText;
