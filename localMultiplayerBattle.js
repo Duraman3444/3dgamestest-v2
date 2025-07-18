@@ -599,6 +599,9 @@ export class LocalMultiplayerBattle {
         // Initialize canvas settings
         this.initializeCanvas();
         
+        // Callbacks
+        this.onMatchEnd = null;
+        
         console.log('🥊 Local Multiplayer Battle system initialized');
     }
     
@@ -3051,9 +3054,13 @@ export class LocalMultiplayerBattle {
             if (event.code === 'Space') {
                 document.removeEventListener('keydown', returnHandler);
                 document.body.removeChild(resultsDiv);
-                this.cleanup();
-                // Return to main menu
-                window.location.reload();
+                // Call the callback to return to main menu
+                if (this.onMatchEnd) {
+                    this.onMatchEnd();
+                } else {
+                    this.cleanup();
+                    window.location.reload();
+                }
             }
         };
         
@@ -3072,31 +3079,8 @@ export class LocalMultiplayerBattle {
             this.scene.fog = null;
         }
         
-        // Remove HUD elements
-        if (this.hudElement) {
-            document.body.removeChild(this.hudElement);
-            this.hudElement = null;
-        }
-        
-        if (this.playerHUDs) {
-            this.playerHUDs.forEach(hud => {
-                if (hud.parentNode) {
-                    document.body.removeChild(hud);
-                }
-            });
-            this.playerHUDs = null;
-        }
-        
-        if (this.roundHUD) {
-            document.body.removeChild(this.roundHUD);
-            this.roundHUD = null;
-        }
-        
-        if (this.minimap) {
-            document.body.removeChild(this.minimap);
-            this.minimap = null;
-            this.minimapCanvas = null;
-        }
+        // Remove ALL battle-related UI elements
+        this.cleanupAllBattleUI();
         
         // Clear arena objects
         this.clearArenaObjects();
@@ -3121,6 +3105,103 @@ export class LocalMultiplayerBattle {
         this.players = [];
         
         console.log('🧹 Local multiplayer battle tournament with themed arenas cleaned up');
+    }
+    
+    // Clean up all battle UI elements
+    cleanupAllBattleUI() {
+        console.log('🧹 Cleaning up all battle UI elements...');
+        
+        // Remove main HUD elements
+        if (this.hudElement) {
+            if (this.hudElement.parentNode) {
+                document.body.removeChild(this.hudElement);
+            }
+            this.hudElement = null;
+        }
+        
+        // Remove player HUDs
+        if (this.playerHUDs) {
+            this.playerHUDs.forEach(hud => {
+                if (hud && hud.parentNode) {
+                    document.body.removeChild(hud);
+                }
+            });
+            this.playerHUDs = [];
+        }
+        
+        // Remove round HUD
+        if (this.roundHUD) {
+            if (this.roundHUD.parentNode) {
+                document.body.removeChild(this.roundHUD);
+            }
+            this.roundHUD = null;
+        }
+        
+        // Remove minimap
+        if (this.minimap) {
+            if (this.minimap.parentNode) {
+                document.body.removeChild(this.minimap);
+            }
+            this.minimap = null;
+            this.minimapCanvas = null;
+        }
+        
+        // Remove any setup dialogs or overlays
+        const setupDialog = document.getElementById('multiplayer-setup');
+        if (setupDialog) {
+            document.body.removeChild(setupDialog);
+        }
+        
+        const arenaIntro = document.getElementById('arena-intro');
+        if (arenaIntro) {
+            document.body.removeChild(arenaIntro);
+        }
+        
+        const battleCountdown = document.getElementById('battle-countdown');
+        if (battleCountdown) {
+            document.body.removeChild(battleCountdown);
+        }
+        
+        // Remove any elimination messages
+        const eliminationMessages = document.querySelectorAll('[id^="elimination-message"]');
+        eliminationMessages.forEach(msg => {
+            if (msg.parentNode) {
+                document.body.removeChild(msg);
+            }
+        });
+        
+        // Remove any round end messages
+        const roundEndMessages = document.querySelectorAll('[id^="round-end-message"]');
+        roundEndMessages.forEach(msg => {
+            if (msg.parentNode) {
+                document.body.removeChild(msg);
+            }
+        });
+        
+        // Remove any battle-related style elements
+        const battleStyles = document.querySelectorAll('style[data-battle-style]');
+        battleStyles.forEach(style => {
+            if (style.parentNode) {
+                document.head.removeChild(style);
+            }
+        });
+        
+        // Remove any remaining battle UI elements by class or ID pattern
+        const battleElements = document.querySelectorAll('[id*="battle"], [id*="multiplayer"], [class*="battle"], [class*="multiplayer"]');
+        battleElements.forEach(element => {
+            // Only remove elements that are clearly battle-related, not the main menu
+            if (element.id !== 'mainMenu' && element.id !== 'gameCanvas' && 
+                !element.closest('#mainMenu') && element.parentNode) {
+                try {
+                    document.body.removeChild(element);
+                } catch (e) {
+                    // Element might already be removed or not a direct child of body
+                    console.log('Could not remove battle element:', element.id || element.className);
+                }
+            }
+        });
+        
+        console.log('🧹 All battle UI elements cleaned up');
     }
     
     // Create arena hazards based on theme

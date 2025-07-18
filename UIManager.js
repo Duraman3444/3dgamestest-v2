@@ -40,13 +40,50 @@ export class UIManager {
     }
     
     init() {
-        if (this.isInitialized) return;
+        if (this.isInitialized) {
+            console.warn('UIManager already initialized, skipping...');
+            return;
+        }
+        
+        // Clean up any existing UI elements first
+        this.cleanupExistingElements();
         
         this.setupUIElements();
         this.setupEventListeners();
         this.startUpdateLoop();
         
         this.isInitialized = true;
+        console.log('✅ UIManager initialized successfully');
+    }
+    
+    cleanupExistingElements() {
+        // Remove any existing UI elements that might interfere
+        const existingElements = [
+            'fps-counter',
+            'position-display',
+            'collectibles-counter',
+            'keys-counter',
+            'lives-counter',
+            'game-timer',
+            'camera-mode',
+            'minimap',
+            'pause-menu',
+            'notification-system',
+            'multiplayer-display',
+            'classic-wave-display'
+        ];
+        
+        existingElements.forEach(id => {
+            const element = document.getElementById(id);
+            if (element && element.parentNode) {
+                try {
+                    element.parentNode.removeChild(element);
+                    console.log(`Cleaned up existing UI element: ${id}`);
+                } catch (e) {
+                    console.warn(`Could not remove existing UI element ${id}:`, e);
+                }
+            }
+        });
     }
     
     setupUIElements() {
@@ -321,7 +358,7 @@ export class UIManager {
     
     setupEventListeners() {
         // Keyboard shortcuts for UI
-        document.addEventListener('keydown', (event) => {
+        this.keyboardListener = (event) => {
             switch (event.code) {
                 case 'Escape':
                     this.togglePause();
@@ -339,12 +376,16 @@ export class UIManager {
                     event.preventDefault();
                     break;
             }
-        });
+        };
+        
+        document.addEventListener('keydown', this.keyboardListener);
         
         // Handle window resize
-        window.addEventListener('resize', () => {
+        this.resizeListener = () => {
             this.updateLayout();
-        });
+        };
+        
+        window.addEventListener('resize', this.resizeListener);
     }
     
     update(deltaTime, gameData) {
@@ -946,17 +987,43 @@ export class UIManager {
     }
     
     destroy() {
+        console.log('🧹 Destroying UIManager...');
+        
         if (this.animationFrameId) {
             cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
         }
         
         // Remove created elements
         Object.values(this.elements).forEach(element => {
             if (element && element.parentNode) {
-                element.parentNode.removeChild(element);
+                try {
+                    element.parentNode.removeChild(element);
+                    console.log(`Removed UI element from UIManager`);
+                } catch (e) {
+                    console.warn('Could not remove UI element:', e);
+                }
             }
         });
         
+        // Clear the elements object
+        this.elements = {};
+        
+        // Reset state
         this.isInitialized = false;
+        this.notification.isActive = false;
+        
+        // Remove event listeners
+        if (this.keyboardListener) {
+            document.removeEventListener('keydown', this.keyboardListener);
+            this.keyboardListener = null;
+        }
+        
+        if (this.resizeListener) {
+            window.removeEventListener('resize', this.resizeListener);
+            this.resizeListener = null;
+        }
+        
+        console.log('✅ UIManager destroyed successfully');
     }
 } 
