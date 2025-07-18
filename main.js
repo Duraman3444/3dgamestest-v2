@@ -699,6 +699,33 @@ class Game {
             const playerCount = level || 2; // level parameter contains player count
             this.startLocalMultiplayerBattle(playerCount);
             return; // Exit early since battle handles its own game loop
+        } else if (mode === 'bot_battle') {
+            console.log('🤖 Bot battle mode detected, setting up bot battle...');
+            this.isMultiplayerMode = false;
+            this.multiplayerData = null;
+            this.currentLevel = 1;
+            this.gameMode = 'battle'; // Set to battle mode for battle system initialization
+            this.botCount = level || 3; // level parameter contains bot count
+            
+            // Show the game canvas
+            this.canvas.style.display = 'block';
+            
+            // Show game UI elements for battle
+            const gameUI = document.getElementById('ui');
+            const crosshair = document.getElementById('crosshair');
+            const instructions = document.getElementById('instructions');
+            
+            if (gameUI) gameUI.style.display = 'block';
+            if (crosshair) crosshair.style.display = 'block';
+            if (instructions) instructions.style.display = 'block';
+            
+            // Initialize 3D environment if not already done
+            if (!this.isGameInitialized) {
+                await this.init();
+                this.isGameInitialized = true;
+            }
+            
+            // Continue with battle system initialization below
         } else {
             this.isMultiplayerMode = false;
             this.multiplayerData = null;
@@ -1223,8 +1250,8 @@ class Game {
             this.battleSystem.setVictoryCallback(() => this.handleBattleVictory());
             this.battleSystem.setDefeatCallback(() => this.handleBattleDefeat());
             
-            // Start battle at specified level
-            this.battleSystem.startBattle(this.currentLevel);
+            // Start battle at specified level with bot count if available
+            this.battleSystem.startBattle(this.currentLevel, this.botCount);
         }
 
         // Setup game loop

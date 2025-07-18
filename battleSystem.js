@@ -55,13 +55,13 @@ export class BattleSystem {
     }
     
     // Start battle
-    startBattle(level = 1) {
+    startBattle(level = 1, botCount = null) {
         this.currentLevel = level;
         this.battleState = 'waiting';
         this.isActive = true;
         this.roundTimer = 0;
         
-        console.log(`🥊 Starting Sumo Battle - Level ${level}`);
+        console.log(`🥊 Starting Sumo Battle - Level ${level}${botCount ? ` with ${botCount} bots` : ''}`);
         
         // Show UI
         if (this.battleUI) {
@@ -76,8 +76,8 @@ export class BattleSystem {
         // Convert player to ball
         this.createPlayerBall();
         
-        // Create enemy balls based on level
-        this.createEnemyBalls(level);
+        // Create enemy balls based on level or bot count
+        this.createEnemyBalls(level, botCount);
         
         // Start countdown
         this.startCountdown();
@@ -153,8 +153,8 @@ export class BattleSystem {
     }
     
     // Create enemy balls
-    createEnemyBalls(level) {
-        const enemyCount = Math.min(level + 1, 4); // 2-5 enemies max
+    createEnemyBalls(level, botCount = null) {
+        const enemyCount = botCount || Math.min(level + 1, 4); // Use bot count if provided, otherwise use level-based count
         this.enemiesAlive = enemyCount;
         
         for (let i = 0; i < enemyCount; i++) {
