@@ -66,6 +66,7 @@ export class UIManager {
         this.createMinimap();
         this.createPauseMenu();
         this.createNotificationSystem();
+        this.createMultiplayerDisplay();
     }
     
     createFPSCounter() {
@@ -360,6 +361,10 @@ export class UIManager {
         this.gameState.classicLives = gameData.classicLives !== undefined ? Math.max(0, Math.min(gameData.classicLives, 3)) : undefined; // Cap at 3 lives
         this.gameState.classicWave = gameData.classicWave;
         
+        // Update multiplayer data
+        this.gameState.isMultiplayerMode = gameData.isMultiplayerMode || false;
+        this.gameState.multiplayerPlayers = gameData.multiplayerPlayers || [];
+        
         // Update timer with validation
         if (validDeltaTime > 0 && validDeltaTime < 1) { // Reasonable deltaTime range
             this.gameState.gameTime += validDeltaTime;
@@ -527,6 +532,59 @@ export class UIManager {
                 
                 this.elements.timerElement.textContent = `Time: ${displayMinutes.toString().padStart(2, '0')}:${displaySeconds.toString().padStart(2, '0')}`;
             }
+        }
+        
+        // Update multiplayer display
+        this.updateMultiplayerDisplay();
+    }
+
+    // Create multiplayer display
+    createMultiplayerDisplay() {
+        const multiplayerContainer = document.createElement('div');
+        multiplayerContainer.id = 'multiplayer-display';
+        multiplayerContainer.style.cssText = `
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            z-index: 101;
+            display: none;
+        `;
+        
+        document.body.appendChild(multiplayerContainer);
+        this.elements.multiplayerContainer = multiplayerContainer;
+    }
+
+    // Update multiplayer display
+    updateMultiplayerDisplay() {
+        if (!this.elements.multiplayerContainer) return;
+        
+        if (this.gameState.isMultiplayerMode) {
+            this.elements.multiplayerContainer.style.display = 'block';
+            
+            let displayText = `🎮 Multiplayer - ${this.gameState.multiplayerPlayers.length} players`;
+            
+            // Add mode-specific information
+            if (this.gameState.gameMode === 'race') {
+                displayText += ` | 🏁 Race Mode`;
+            } else if (this.gameState.gameMode === 'battle') {
+                displayText += ` | ⚔️ Battle Mode`;
+            }
+            
+            // Add spectator info if in spectator mode
+            if (this.gameState.isSpectator) {
+                displayText += ` | 👁️ Spectating`;
+            }
+            
+            this.elements.multiplayerContainer.innerHTML = displayText;
+        } else {
+            this.elements.multiplayerContainer.style.display = 'none';
         }
     }
     

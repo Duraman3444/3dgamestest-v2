@@ -418,15 +418,22 @@ export class CollisionSystem {
                     this.gridManager.activateExit();
                     console.log('Level completed!');
                     
-                    // Check if this is level 6 (World 1) to show victory menu
-                    const currentLevel = window.game ? window.game.getCurrentLevel() : 1;
-                    if (currentLevel === 6) {
-                        // Level 6 completion - show victory menu
-                        this.handleCylinderVictory();
+                    // Check if this is multiplayer race mode
+                    if (window.game && window.game.isMultiplayerMode && window.game.multiplayerGameModes && 
+                        window.game.multiplayerGameModes.currentMode === 'race') {
+                        // Race mode completion
+                        window.game.multiplayerGameModes.onRaceComplete();
                     } else {
-                        // Regular level completion
-                        if (this.levelCompletionCallback) {
-                            this.levelCompletionCallback();
+                        // Check if this is level 6 (World 1) to show victory menu
+                        const currentLevel = window.game ? window.game.getCurrentLevel() : 1;
+                        if (currentLevel === 6) {
+                            // Level 6 completion - show victory menu
+                            this.handleCylinderVictory();
+                        } else {
+                            // Regular level completion
+                            if (this.levelCompletionCallback) {
+                                this.levelCompletionCallback();
+                            }
                         }
                     }
                 } else {

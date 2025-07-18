@@ -14,6 +14,9 @@ import { GameOverScreen } from './gameOverScreen.js';
 import { SettingsManager } from './settingsManager.js';
 import { BattleSystem } from './battleSystem.js';
 import { BattleUI } from './battleUI.js';
+import { MultiplayerManager } from './multiplayerManager.js';
+import { MultiplayerGameModes } from './multiplayerGameModes.js';
+import { LocalMultiplayerBattle } from './localMultiplayerBattle.js';
 
 class Game {
     constructor() {
@@ -34,6 +37,9 @@ class Game {
         this.settingsManager = null;
         this.battleSystem = null;
         this.battleUI = null;
+        this.multiplayerManager = null;
+        this.multiplayerGameModes = null;
+        this.localMultiplayerBattle = null;
         this.isGameInitialized = false;
         this.isPaused = false;
         this.pauseOverlay = null;
@@ -41,7 +47,7 @@ class Game {
         // Level progression system for pacman mode
         this.currentLevel = 1;
         this.maxLevel = 10; // Maximum number of levels
-        this.gameMode = 'normal'; // 'normal' or 'pacman'
+        this.gameMode = 'normal'; // 'normal', 'pacman', 'battle', or 'multiplayer'
         
         // Pacman timer system
         this.pacmanTimer = null; // Countdown timer for pacman mode
@@ -624,11 +630,57 @@ class Game {
     }
     
     async startGame(mode = 'normal', level = 1, difficulty = 'normal') {
+        console.log(`🎮 Starting game with mode: ${mode}, level: ${level}, difficulty: ${difficulty}`);
+        
         this.gameMode = mode; // Store game mode
         this.difficulty = difficulty; // Store difficulty
         
         // Reset pacman timer state
         this.stopPacmanTimer();
+        
+        // Handle multiplayer mode
+        if (mode === 'multiplayer') {
+            console.log('🌐 Multiplayer mode detected, setting up multiplayer...');
+            this.isMultiplayerMode = true;
+            this.multiplayerData = level; // level parameter contains multiplayer data
+            this.currentLevel = 1; // Start with level 1 for multiplayer
+            
+            // Initialize multiplayer manager if not already done
+            if (!this.multiplayerManager) {
+                this.multiplayerManager = this.multiplayerData.multiplayerManager;
+                this.setupMultiplayerHandlers();
+            }
+        } else if (mode === 'local_multiplayer') {
+            console.log('🥊 Local multiplayer mode detected, setting up battle arena...');
+            this.isMultiplayerMode = false;
+            this.multiplayerData = null;
+            this.currentLevel = 1;
+            
+            // Show the game canvas
+            this.canvas.style.display = 'block';
+            
+            // Hide UI elements that aren't needed for battle
+            const gameUI = document.getElementById('ui');
+            const crosshair = document.getElementById('crosshair');
+            const instructions = document.getElementById('instructions');
+            
+            if (gameUI) gameUI.style.display = 'none';
+            if (crosshair) crosshair.style.display = 'none';
+            if (instructions) instructions.style.display = 'none';
+            
+            // Initialize 3D environment if not already done
+            if (!this.isGameInitialized) {
+                await this.init();
+                this.isGameInitialized = true;
+            }
+            
+            // Start local multiplayer battle
+            this.startLocalMultiplayerBattle();
+            return; // Exit early since battle handles its own game loop
+        } else {
+            this.isMultiplayerMode = false;
+            this.multiplayerData = null;
+        }
         
         // Handle classic pacman mode
         if (mode === 'pacman_classic') {
@@ -641,9 +693,9 @@ class Game {
         } else {
             this.isClassicMode = false;
             // Set starting level (for single player mode and pacman mode with level selection)
-            if ((mode === 'normal' || mode === 'pacman') && level) {
+            if ((mode === 'normal' || mode === 'pacman') && level && mode !== 'multiplayer') {
                 this.currentLevel = level;
-            } else {
+            } else if (mode !== 'multiplayer') {
                 this.currentLevel = 1; // Default to level 1 for other modes
             }
         }
@@ -677,8 +729,8 @@ class Game {
         // Start the game loop
         this.gameLoop.start();
         
-        // Start auto-save system (but not in pacman modes)
-        if (!this.isClassicMode && this.gameMode !== 'pacman' && this.gameMode !== 'pacman_classic') {
+        // Start auto-save system (but not in pacman modes or multiplayer)
+        if (!this.isClassicMode && this.gameMode !== 'pacman' && this.gameMode !== 'pacman_classic' && this.gameMode !== 'multiplayer') {
             this.startAutoSave();
         }
         
@@ -686,6 +738,175 @@ class Game {
         if (this.settingsManager) {
             this.settingsManager.applySettings();
         }
+    }
+    
+    setupMultiplayerHandlers() {
+        if (!this.multiplayerManager) return;
+        
+        // Set scene reference for creating other player meshes
+        this.multiplayerManager.setScene(this.scene);
+        
+        // Initialize multiplayer game modes
+        this.multiplayerGameModes = new MultiplayerGameModes(this.scene, this.multiplayerManager);
+        
+        // Set initial mode from multiplayer data
+        if (this.multiplayerData?.gameState?.mode) {
+            this.multiplayerGameModes.setMode(this.multiplayerData.gameState.mode);
+        }
+        
+        // Handle player movement updates
+        this.multiplayerManager.onPlayerMoved = (data) => {
+            // Other players' movement is handled automatically by the multiplayer manager
+            console.log(`Player ${data.playerId} moved to:`, data.position);
+        };
+        
+        // Handle player actions
+        this.multiplayerManager.onPlayerAction = (data) => {
+            console.log(`Player ${data.playerId} performed action:`, data.action);
+            // Handle specific actions like shooting, collecting items, etc.
+        };
+        
+        // Handle player damage/death
+        this.multiplayerManager.onPlayerDamage = (data) => {
+            console.log(`Player ${data.playerId} health changed:`, data.health);
+            // Update UI for other players' health if needed
+        };
+        
+        // Handle game state updates
+        this.multiplayerManager.onGameStateUpdate = (data) => {
+            console.log('Game state updated:', data);
+            // Sync any global game state changes
+        };
+        
+        // Handle game mode changes
+        this.multiplayerManager.socket.on('gameModeChanged', (data) => {
+            console.log(`Game mode changed to: ${data.mode}`);
+            if (this.multiplayerGameModes) {
+                this.multiplayerGameModes.setMode(data.mode);
+            }
+        });
+        
+        // Handle race winner
+        this.multiplayerManager.socket.on('raceWinner', (data) => {
+            console.log(`Race winner: ${data.winner.name}`);
+            this.showMultiplayerResult(`🏁 Race Winner: ${data.winner.name}!`, `Time: ${(data.completionTime / 1000).toFixed(2)}s`);
+        });
+        
+        // Handle battle round winner
+        this.multiplayerManager.socket.on('battleRoundWinner', (data) => {
+            console.log(`Battle round winner: ${data.winner.name}`);
+            this.showMultiplayerResult(`⚔️ Round ${data.round} Winner: ${data.winner.name}!`, `Wins: ${data.roundWins}/${data.maxRounds}`);
+        });
+        
+        // Handle battle match winner
+        this.multiplayerManager.socket.on('battleMatchWinner', (data) => {
+            console.log(`Battle match winner: ${data.winner.name}`);
+            this.showMultiplayerResult(`🏆 Match Winner: ${data.winner.name}!`, 'Game Complete!');
+                 });
+    }
+    
+    startLocalMultiplayerBattle() {
+        console.log('🥊 Initializing Local Multiplayer Battle Arena...');
+        
+        // Hide the main menu
+        if (this.mainMenu) {
+            this.mainMenu.hide();
+        }
+        
+        // Clear any existing game state
+        this.clearGameState();
+        
+        // Create the local multiplayer battle system
+        this.localMultiplayerBattle = new LocalMultiplayerBattle(this.scene, this.cameraSystem.camera, this.renderer);
+        
+        // Set up callbacks
+        this.localMultiplayerBattle.onBackToMenu = () => {
+            console.log('🥊 Returning to main menu from local multiplayer battle');
+            this.localMultiplayerBattle.cleanup();
+            this.localMultiplayerBattle = null;
+            this.showMainMenu();
+        };
+        
+        // Start the battle
+        this.localMultiplayerBattle.startBattle();
+    }
+    
+    clearGameState() {
+        // Clear any existing game objects from the scene
+        if (this.scene) {
+            const objectsToRemove = [];
+            this.scene.traverse((child) => {
+                if (child.isMesh && child.name !== 'background') {
+                    objectsToRemove.push(child);
+                }
+            });
+            objectsToRemove.forEach(obj => this.scene.remove(obj));
+        }
+        
+        // Stop any existing game loop
+        if (this.gameLoop) {
+            this.gameLoop.stop();
+            this.gameLoop = null;
+        }
+        
+        // Clean up systems
+        if (this.player) {
+            // Remove player mesh from scene if it exists
+            if (this.player.mesh) {
+                this.scene.remove(this.player.mesh);
+            }
+            this.player = null;
+        }
+        
+        if (this.gridManager) {
+            this.gridManager.cleanupLevel();
+            this.gridManager = null;
+        }
+        
+        if (this.battleSystem) {
+            this.battleSystem.cleanup();
+            this.battleSystem = null;
+        }
+        
+        if (this.battleUI) {
+            this.battleUI.cleanup();
+            this.battleUI = null;
+        }
+        
+        console.log('🧹 Game state cleared');
+    }
+    
+    showMultiplayerResult(title, subtitle) {
+        const resultDiv = document.createElement('div');
+        resultDiv.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 40px 60px;
+            border-radius: 15px;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            z-index: 500;
+            border: 2px solid #FFD700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.5);
+        `;
+        
+        resultDiv.innerHTML = `
+            <h1 style="margin: 0 0 20px 0; font-size: 32px; color: #FFD700;">${title}</h1>
+            <p style="margin: 0; font-size: 20px; color: #fff;">${subtitle}</p>
+        `;
+        
+        document.body.appendChild(resultDiv);
+        
+        // Remove after 5 seconds
+        setTimeout(() => {
+            if (document.body.contains(resultDiv)) {
+                document.body.removeChild(resultDiv);
+            }
+        }, 5000);
     }
     
     async init() {

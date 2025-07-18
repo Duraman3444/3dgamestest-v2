@@ -1,3 +1,6 @@
+import { MultiplayerMenu } from './multiplayerMenu.js';
+import { LocalMultiplayerBattle } from './localMultiplayerBattle.js';
+
 export class MainMenu {
     constructor(onStartGame) {
         this.onStartGame = onStartGame;
@@ -7,6 +10,7 @@ export class MainMenu {
         this.currentOptionIndex = 0;
         this.menuButtons = [];
         this.keyboardListener = null;
+        this.multiplayerMenu = null;
         
         this.createMenu();
     }
@@ -326,7 +330,181 @@ export class MainMenu {
     }
     
     showMultiplayerNotice() {
-        this.showNotice('Multiplayer', 'Multiplayer mode is not yet implemented. Stay tuned for future updates!');
+        this.showMultiplayerTypeChoice();
+    }
+    
+    showMultiplayerTypeChoice() {
+        // Hide main menu
+        this.hide();
+        
+        // Create multiplayer type selection dialog
+        const typeDialog = document.createElement('div');
+        typeDialog.id = 'multiplayer-type-dialog';
+        typeDialog.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            font-family: 'Courier New', monospace;
+            color: white;
+        `;
+        
+        typeDialog.innerHTML = `
+            <div style="text-align: center; max-width: 500px; padding: 20px;">
+                <h1 style="
+                    color: #00ffff;
+                    font-size: 48px;
+                    font-weight: bold;
+                    margin-bottom: 30px;
+                    text-shadow: 3px 3px 0px #ff00ff, 6px 6px 0px #000000;
+                    letter-spacing: 4px;
+                ">MULTIPLAYER</h1>
+                
+                <p style="
+                    font-size: 18px;
+                    color: #ffffff;
+                    margin-bottom: 40px;
+                    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+                ">Choose your multiplayer mode:</p>
+                
+                <div style="display: flex; flex-direction: column; gap: 20px; align-items: center;">
+                    <button id="local-multiplayer-btn" style="
+                        padding: 20px 40px;
+                        font-size: 24px;
+                        font-weight: bold;
+                        background: linear-gradient(45deg, #4CAF50, #45a049);
+                        color: white;
+                        border: none;
+                        border-radius: 10px;
+                        cursor: pointer;
+                        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                        transition: all 0.3s;
+                        font-family: 'Courier New', monospace;
+                        text-transform: uppercase;
+                        letter-spacing: 2px;
+                        width: 300px;
+                    ">🎮 Local Multiplayer</button>
+                    
+                    <button id="online-multiplayer-btn" style="
+                        padding: 20px 40px;
+                        font-size: 24px;
+                        font-weight: bold;
+                        background: linear-gradient(45deg, #2196F3, #1976D2);
+                        color: white;
+                        border: none;
+                        border-radius: 10px;
+                        cursor: pointer;
+                        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                        transition: all 0.3s;
+                        font-family: 'Courier New', monospace;
+                        text-transform: uppercase;
+                        letter-spacing: 2px;
+                        width: 300px;
+                    ">🌐 Online Multiplayer</button>
+                    
+                    <button id="back-from-multiplayer-btn" style="
+                        padding: 15px 30px;
+                        font-size: 18px;
+                        background: linear-gradient(45deg, #f44336, #d32f2f);
+                        color: white;
+                        border: none;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                        transition: all 0.3s;
+                        font-family: 'Courier New', monospace;
+                        text-transform: uppercase;
+                        letter-spacing: 1px;
+                        width: 200px;
+                        margin-top: 20px;
+                    ">← Back</button>
+                </div>
+                
+                <div style="margin-top: 30px; font-size: 14px; color: #aaa; text-align: left;">
+                    <p><strong>🎮 Local Multiplayer:</strong> Play with friends on the same device using split-screen</p>
+                    <p><strong>🌐 Online Multiplayer:</strong> Play with friends over the internet</p>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(typeDialog);
+        
+        // Add hover effects
+        const buttons = typeDialog.querySelectorAll('button');
+        buttons.forEach(button => {
+            button.addEventListener('mouseenter', () => {
+                button.style.transform = 'translateY(-2px)';
+                button.style.boxShadow = '0 6px 20px rgba(0,0,0,0.4)';
+            });
+            
+            button.addEventListener('mouseleave', () => {
+                button.style.transform = 'translateY(0)';
+                button.style.boxShadow = '0 4px 15px rgba(0,0,0,0.3)';
+            });
+        });
+        
+        // Add event listeners
+        document.getElementById('local-multiplayer-btn').addEventListener('click', () => {
+            document.body.removeChild(typeDialog);
+            this.startLocalMultiplayer();
+        });
+        
+        document.getElementById('online-multiplayer-btn').addEventListener('click', () => {
+            document.body.removeChild(typeDialog);
+            this.startOnlineMultiplayer();
+        });
+        
+        document.getElementById('back-from-multiplayer-btn').addEventListener('click', () => {
+            document.body.removeChild(typeDialog);
+            this.show();
+        });
+    }
+    
+    startLocalMultiplayer() {
+        console.log('🥊 Starting Local Multiplayer Battle Arena!');
+        
+        // Start the game in battle mode
+        if (this.onStartGame) {
+            this.onStartGame('local_multiplayer');
+        }
+    }
+    
+    startOnlineMultiplayer() {
+        // Hide main menu
+        this.hide();
+        
+        // Create and show multiplayer menu
+        this.multiplayerMenu = new MultiplayerMenu();
+        
+        // Set up callbacks
+        this.multiplayerMenu.onStartMultiplayerGame = (data) => {
+            this.multiplayerMenu.hide();
+            
+            // Start game with multiplayer data
+            if (this.onStartGame) {
+                // Pass multiplayer manager along with the data
+                const multiplayerData = {
+                    ...data,
+                    multiplayerManager: this.multiplayerMenu.getMultiplayerManager()
+                };
+                this.onStartGame('multiplayer', multiplayerData);
+            }
+        };
+        
+        this.multiplayerMenu.onBackToMain = () => {
+            this.multiplayerMenu.hide();
+            this.show();
+        };
+        
+        // Show multiplayer menu
+        this.multiplayerMenu.show();
     }
     
     showSettings() {

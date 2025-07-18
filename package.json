@@ -1,18 +1,20 @@
 {
   "name": "3d-game-threejs",
   "version": "1.0.0",
-  "description": "A Three.js 3D game with ES6 modules",
-  "main": "main.js",
+  "description": "A Three.js 3D game with ES6 modules and multiplayer support",
+  "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "python -m http.server 3000",
-    "dev": "python -m http.server 3000"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
   "dependencies": {
-    "three": "^0.158.0"
+    "three": "^0.158.0",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2"
   },
   "devDependencies": {},
-  "keywords": ["threejs", "3d", "game", "webgl"],
+  "keywords": ["threejs", "3d", "game", "webgl", "multiplayer", "socket.io"],
   "author": "",
   "license": "MIT"
 } 
