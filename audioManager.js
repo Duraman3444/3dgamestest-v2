@@ -16,8 +16,11 @@ export class AudioManager {
     
     async initializeAudio() {
         try {
+            console.log('🎵 Starting audio initialization...');
+            
             // Initialize Web Audio API
             this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            console.log(`🎵 Audio context created, state: ${this.audioContext.state}`);
             
             // Check if audio context is suspended (requires user interaction)
             if (this.audioContext.state === 'suspended') {
@@ -27,32 +30,53 @@ export class AudioManager {
                 return;
             }
             
-            await this.completeInitialization();
+            // If context is running, complete initialization immediately
+            if (this.audioContext.state === 'running') {
+                console.log('🎵 Audio context is running, completing initialization...');
+                await this.completeInitialization();
+            } else {
+                console.log('🎵 Audio context state is:', this.audioContext.state);
+                this.setupUserInteractionHandler();
+            }
+            
         } catch (error) {
             console.error('Failed to initialize AudioManager:', error);
             this.isInitialized = false;
+            this.showAudioInitMessage('🎵 Audio initialization failed - browser may not support Web Audio API', 'error');
         }
     }
     
     async completeInitialization() {
-        // Create sound profiles for different game modes
-        this.createSoundProfiles();
-        
-        // Generate procedural sounds for each profile
-        await this.generateProceduralSounds();
-        
-        this.isInitialized = true;
-        this.waitingForUserInteraction = false;
-        console.log('🎵 AudioManager initialized successfully');
-        
-        // Show audio ready notification
-        if (window.game && window.game.uiManager) {
-            window.game.uiManager.showNotification('🎵 Audio System Ready!', 'success', 2000);
+        try {
+            // Create sound profiles for different game modes
+            this.createSoundProfiles();
+            
+            // Generate procedural sounds for each profile
+            await this.generateProceduralSounds();
+            
+            this.isInitialized = true;
+            this.waitingForUserInteraction = false;
+            console.log('🎵 AudioManager initialized successfully');
+            
+            // Show audio ready notification
+            if (window.game && window.game.uiManager) {
+                window.game.uiManager.showNotification('🎵 Audio System Ready!', 'success', 2000);
+            } else {
+                // If no UI manager, show our own notification
+                this.showAudioInitMessage('🎵 Audio System Ready!', 'success');
+            }
+            
+        } catch (error) {
+            console.error('Failed to complete audio initialization:', error);
+            this.isInitialized = false;
+            this.showAudioInitMessage('🎵 Audio initialization failed', 'error');
         }
     }
     
     setupUserInteractionHandler() {
-        const handleUserInteraction = async () => {
+        const handleUserInteraction = async (event) => {
+            console.log('🎵 User interaction detected, attempting to initialize audio...');
+            
             if (this.audioContext && this.audioContext.state === 'suspended') {
                 try {
                     await this.audioContext.resume();
@@ -63,8 +87,31 @@ export class AudioManager {
                     document.removeEventListener('click', handleUserInteraction);
                     document.removeEventListener('keydown', handleUserInteraction);
                     document.removeEventListener('touchstart', handleUserInteraction);
+                    
+                    // Show success message
+                    this.showAudioInitMessage('🎵 Audio System Ready!', 'success');
+                    
                 } catch (error) {
                     console.error('Failed to resume audio context:', error);
+                    this.showAudioInitMessage('🎵 Audio initialization failed', 'error');
+                }
+            } else if (!this.audioContext) {
+                // Try to create audio context again
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    await this.audioContext.resume();
+                    await this.completeInitialization();
+                    
+                    // Remove the event listeners
+                    document.removeEventListener('click', handleUserInteraction);
+                    document.removeEventListener('keydown', handleUserInteraction);
+                    document.removeEventListener('touchstart', handleUserInteraction);
+                    
+                    this.showAudioInitMessage('🎵 Audio System Ready!', 'success');
+                    
+                } catch (error) {
+                    console.error('Failed to create audio context:', error);
+                    this.showAudioInitMessage('🎵 Audio initialization failed', 'error');
                 }
             }
         };
@@ -75,6 +122,55 @@ export class AudioManager {
         document.addEventListener('touchstart', handleUserInteraction);
         
         console.log('🎵 Waiting for user interaction to enable audio...');
+        this.showAudioInitMessage('🎵 Click anywhere to enable audio', 'info');
+    }
+    
+    showAudioInitMessage(message, type) {
+        // Remove any existing audio messages
+        const existingMessages = document.querySelectorAll('.audio-init-message');
+        existingMessages.forEach(msg => msg.remove());
+        
+        // Create new message
+        const messageEl = document.createElement('div');
+        messageEl.className = 'audio-init-message';
+        messageEl.textContent = message;
+        messageEl.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'success' ? 'rgba(0, 255, 0, 0.9)' : 
+                        type === 'error' ? 'rgba(255, 0, 0, 0.9)' : 
+                        'rgba(255, 255, 0, 0.9)'};
+            color: ${type === 'error' ? 'white' : 'black'};
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 10000;
+            pointer-events: none;
+            font-family: 'Courier New', monospace;
+            animation: fadeInOut 3s ease-in-out;
+        `;
+        
+        // Add fade animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInOut {
+                0% { opacity: 0; transform: translateY(-10px); }
+                10% { opacity: 1; transform: translateY(0); }
+                90% { opacity: 1; transform: translateY(0); }
+                100% { opacity: 0; transform: translateY(-10px); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        document.body.appendChild(messageEl);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            if (document.body.contains(messageEl)) {
+                document.body.removeChild(messageEl);
+            }
+        }, 3000);
     }
     
     createSoundProfiles() {
@@ -87,6 +183,9 @@ export class AudioManager {
             death: { type: 'synthesized', waveform: 'sawtooth', frequencies: [220, 185, 147, 110], duration: 1.5, reverb: true, fade: true },
             jump: { type: 'synthesized', waveform: 'sine', frequencies: [294, 370], duration: 0.2, reverb: false },
             footstep: { type: 'noise', frequencies: [100, 200], duration: 0.1, reverb: false },
+            teleport: { type: 'synthesized', waveform: 'sine', frequencies: [880, 1108, 1397], duration: 0.6, reverb: true },
+            hit: { type: 'synthesized', waveform: 'sawtooth', frequencies: [150, 200], duration: 0.3, reverb: false },
+            roll: { type: 'noise', frequencies: [50, 100], duration: 0.2, reverb: false },
             // Menu and UI sounds
             menuHover: { type: 'synthesized', waveform: 'sine', frequencies: [440], duration: 0.1, reverb: false },
             menuClick: { type: 'synthesized', waveform: 'square', frequencies: [523, 659], duration: 0.2, reverb: true },
@@ -109,6 +208,9 @@ export class AudioManager {
             defeat: { type: 'chiptune', waveform: 'square', frequencies: [220, 185, 147], duration: 1.2, bitCrush: true },
             jump: { type: 'chiptune', waveform: 'square', frequencies: [440, 523], duration: 0.2, bitCrush: true },
             footstep: { type: 'noise', frequencies: [80, 160], duration: 0.1, bitCrush: true },
+            teleport: { type: 'chiptune', waveform: 'square', frequencies: [880, 1108, 1397], duration: 0.6, bitCrush: true },
+            hit: { type: 'chiptune', waveform: 'square', frequencies: [150, 200], duration: 0.3, bitCrush: true },
+            roll: { type: 'noise', frequencies: [50, 100], duration: 0.2, bitCrush: true },
             // Menu and UI sounds
             menuHover: { type: 'chiptune', waveform: 'square', frequencies: [659], duration: 0.1, bitCrush: true },
             menuClick: { type: 'chiptune', waveform: 'square', frequencies: [784, 988], duration: 0.2, bitCrush: true },
@@ -116,29 +218,33 @@ export class AudioManager {
             pause: { type: 'chiptune', waveform: 'square', frequencies: [523, 659], duration: 0.4, bitCrush: true },
             resume: { type: 'chiptune', waveform: 'square', frequencies: [659, 784], duration: 0.4, bitCrush: true },
             levelStart: { type: 'chiptune', waveform: 'square', frequencies: [523, 659, 784], duration: 0.8, bitCrush: true },
-            battleMusic: { type: 'chiptune', tempo: 'fast', mood: 'energetic' }
+            battleMusic: { type: 'chiptune', tempo: 'upbeat', mood: 'energetic' }
         };
         
-        // Retro Arcade Profile (Pacman Mode)
+        // Arcade Era Profile (Pacman Mode)
         this.soundProfiles.arcade = {
-            // Classic arcade bleeps and bloops
-            collect: { type: 'arcade', waveform: 'sine', frequencies: [1319], duration: 0.1, arcade: true },
-            keyPickup: { type: 'arcade', waveform: 'sine', frequencies: [784, 988, 1175], duration: 0.3, arcade: true },
-            levelComplete: { type: 'arcade', waveform: 'sine', frequencies: [659, 784, 988, 1175, 1319], duration: 0.8, arcade: true },
-            death: { type: 'arcade', waveform: 'sine', frequencies: [523, 494, 440, 392, 349, 294], duration: 1.0, arcade: true },
-            ghost: { type: 'arcade', waveform: 'triangle', frequencies: [220, 247], duration: 0.5, arcade: true },
-            powerPellet: { type: 'arcade', waveform: 'square', frequencies: [131, 147, 165, 175], duration: 0.2, arcade: true },
-            siren: { type: 'arcade', waveform: 'sine', frequencies: [200, 400], duration: 2.0, arcade: true, loop: true },
-            jump: { type: 'arcade', waveform: 'sine', frequencies: [523, 659], duration: 0.2, arcade: true },
-            footstep: { type: 'noise', frequencies: [120, 240], duration: 0.1, arcade: true },
+            // Classic arcade sounds
+            collect: { type: 'arcade', waveform: 'sine', frequencies: [659, 784], duration: 0.15, reverb: false },
+            keyPickup: { type: 'arcade', waveform: 'square', frequencies: [523, 659, 784], duration: 0.3, reverb: false },
+            levelComplete: { type: 'arcade', waveform: 'sine', frequencies: [523, 659, 784, 1047, 1319], duration: 1.2, reverb: false },
+            death: { type: 'arcade', waveform: 'sawtooth', frequencies: [294, 247, 220, 185], duration: 1.0, reverb: false },
+            jump: { type: 'arcade', waveform: 'sine', frequencies: [440, 523], duration: 0.2, reverb: false },
+            footstep: { type: 'noise', frequencies: [80, 160], duration: 0.1, reverb: false },
+            teleport: { type: 'arcade', waveform: 'sine', frequencies: [880, 1108, 1397], duration: 0.6, reverb: false },
+            hit: { type: 'arcade', waveform: 'sawtooth', frequencies: [150, 200], duration: 0.3, reverb: false },
+            roll: { type: 'noise', frequencies: [50, 100], duration: 0.2, reverb: false },
+            // Pacman-specific sounds
+            ghost: { type: 'arcade', waveform: 'square', frequencies: [110, 147, 185], duration: 0.4, reverb: false },
+            powerPellet: { type: 'arcade', waveform: 'sine', frequencies: [220, 277, 330, 392], duration: 0.8, reverb: false },
+            siren: { type: 'arcade', waveform: 'sawtooth', frequencies: [185, 220, 247, 294], duration: 2.0, reverb: false },
             // Menu and UI sounds
-            menuHover: { type: 'arcade', waveform: 'sine', frequencies: [880], duration: 0.1, arcade: true },
-            menuClick: { type: 'arcade', waveform: 'sine', frequencies: [1175, 1319], duration: 0.2, arcade: true },
-            menuBack: { type: 'arcade', waveform: 'sine', frequencies: [659, 523], duration: 0.3, arcade: true },
-            pause: { type: 'arcade', waveform: 'sine', frequencies: [659, 784], duration: 0.4, arcade: true },
-            resume: { type: 'arcade', waveform: 'sine', frequencies: [784, 988], duration: 0.4, arcade: true },
-            levelStart: { type: 'arcade', waveform: 'sine', frequencies: [659, 784, 988], duration: 0.8, arcade: true },
-            arcadeMusic: { type: 'arcade', tempo: 'medium', mood: 'nostalgic' }
+            menuHover: { type: 'arcade', waveform: 'sine', frequencies: [659], duration: 0.1, reverb: false },
+            menuClick: { type: 'arcade', waveform: 'sine', frequencies: [784, 988], duration: 0.2, reverb: false },
+            menuBack: { type: 'arcade', waveform: 'sine', frequencies: [523, 440], duration: 0.3, reverb: false },
+            pause: { type: 'arcade', waveform: 'sine', frequencies: [523, 659], duration: 0.4, reverb: false },
+            resume: { type: 'arcade', waveform: 'sine', frequencies: [659, 784], duration: 0.4, reverb: false },
+            levelStart: { type: 'arcade', waveform: 'sine', frequencies: [523, 659, 784], duration: 0.8, reverb: false },
+            pacmanMusic: { type: 'arcade', tempo: 'medium', mood: 'nostalgic' }
         };
     }
     
@@ -389,7 +495,20 @@ export class AudioManager {
     
     playSound(soundName, volume = 1.0) {
         if (!this.isInitialized || !this.audioContext) {
-            console.log(`🎵 Audio not ready, skipping sound: ${soundName}`);
+            if (this.waitingForUserInteraction) {
+                console.log(`🎵 Audio waiting for user interaction, skipping sound: ${soundName}`);
+                return;
+            } else {
+                console.log(`🎵 Audio not ready, attempting to initialize for sound: ${soundName}`);
+                // Try to initialize audio
+                this.initializeAudio();
+                return;
+            }
+        }
+        
+        // Check if audio context is suspended
+        if (this.audioContext.state === 'suspended') {
+            console.log(`🎵 Audio context suspended, skipping sound: ${soundName}`);
             return;
         }
         
@@ -414,9 +533,6 @@ export class AudioManager {
             
             source.start();
             console.log(`🎵 Playing sound: ${soundName} (${profile} profile)`);
-            
-            // Show visual feedback
-            this.showSoundFeedback(soundName);
         } catch (error) {
             console.error('Error playing sound:', error);
         }
@@ -644,6 +760,16 @@ export class AudioManager {
         this.playSound('victory', 1.0);
     }
     
+    playHighScoreSound() {
+        // Play a celebratory high score sound
+        this.playSound('victory', 1.0);
+    }
+    
+    playSuccessSound() {
+        // Play a success sound for score submission
+        this.playSound('powerUp', 0.8);
+    }
+    
     playDefeatSound() {
         this.playSound('defeat', 0.8);
     }
@@ -685,16 +811,93 @@ export class AudioManager {
         this.playSound('levelStart', 0.9);
     }
     
-    // Cleanup
-    destroy() {
-        this.stopBackgroundMusic();
+    playTeleportSound() {
+        this.playSound('teleport', 0.8);
+    }
+    
+    playHitSound() {
+        this.playSound('hit', 0.7);
+    }
+    
+    playRollSound() {
+        this.playSound('roll', 0.4);
+    }
+    
+    // Manual audio initialization (can be called from UI)
+    async manualInitialize() {
+        console.log('🎵 Manual audio initialization requested...');
         
-        if (this.audioContext) {
-            this.audioContext.close();
+        try {
+            if (!this.audioContext) {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            
+            if (this.audioContext.state === 'suspended') {
+                await this.audioContext.resume();
+            }
+            
+            await this.completeInitialization();
+            return true;
+            
+        } catch (error) {
+            console.error('Manual audio initialization failed:', error);
+            this.showAudioInitMessage('🎵 Audio initialization failed', 'error');
+            return false;
+        }
+    }
+    
+    // Get audio status
+    getAudioStatus() {
+        if (!this.audioContext) {
+            return { ready: false, message: 'Audio context not created' };
         }
         
+        if (this.audioContext.state === 'suspended') {
+            return { ready: false, message: 'Audio context suspended - click to enable' };
+        }
+        
+        if (!this.isInitialized) {
+            return { ready: false, message: 'Audio not initialized' };
+        }
+        
+        return { ready: true, message: 'Audio ready' };
+    }
+    
+    // Cleanup
+    destroy() {
+        console.log('🎵 AudioManager cleanup initiated...');
+        
+        // Stop background music
+        this.stopBackgroundMusic();
+        
+        // Close audio context if it exists
+        if (this.audioContext) {
+            try {
+                this.audioContext.close();
+                console.log('🎵 Audio context closed');
+            } catch (error) {
+                console.warn('Error closing audio context:', error);
+            }
+        }
+        
+        // Clear all sounds
         this.sounds = {};
+        this.soundProfiles = {};
+        
+        // Reset state
         this.isInitialized = false;
+        this.waitingForUserInteraction = false;
+        this.audioContext = null;
+        this.backgroundMusic = null;
+        this.currentProfile = null;
+        
+        // Remove any remaining audio messages
+        const audioMessages = document.querySelectorAll('.audio-init-message');
+        audioMessages.forEach(msg => {
+            if (msg.parentNode) {
+                msg.parentNode.removeChild(msg);
+            }
+        });
         
         console.log('🎵 AudioManager destroyed');
     }

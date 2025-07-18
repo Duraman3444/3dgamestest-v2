@@ -72,12 +72,7 @@ export class GameLoop {
         if (this.systems.player) {
             this.systems.player.update(deltaTime);
             
-            // Send multiplayer position updates
-            if (window.game && window.game.isMultiplayerMode && window.game.multiplayerManager) {
-                const position = this.systems.player.position;
-                const velocity = this.systems.player.velocity;
-                window.game.multiplayerManager.sendPlayerPosition(position, velocity);
-            }
+
         }
         
         // Update camera system
@@ -121,11 +116,7 @@ export class GameLoop {
             });
         }
         
-        // Update multiplayer game modes
-        if (window.game && window.game.multiplayerGameModes && window.game.isMultiplayerMode) {
-            const playerPosition = this.systems.player ? this.systems.player.position : null;
-            window.game.multiplayerGameModes.update(deltaTime, playerPosition);
-        }
+
         
         // Update UI
         if (this.systems.uiManager && (!this.systems.battleSystem || !this.systems.battleSystem.isActive)) {
@@ -148,8 +139,7 @@ export class GameLoop {
                 isClassicMode: window.game ? window.game.isClassicMode : false,
                 classicLives: window.game ? window.game.classicLives : null,
                 classicWave: window.game ? window.game.classicWave : null,
-                isMultiplayerMode: window.game ? window.game.isMultiplayerMode : false,
-                multiplayerPlayers: window.game && window.game.multiplayerManager ? window.game.multiplayerManager.getOtherPlayers() : []
+                isMultiplayerMode: window.game ? window.game.isMultiplayerMode : false
             });
         }
     }

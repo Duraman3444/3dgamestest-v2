@@ -428,22 +428,15 @@ export class CollisionSystem {
                         window.game.audioManager.playLevelCompleteSound();
                     }
                     
-                    // Check if this is multiplayer race mode
-                    if (window.game && window.game.isMultiplayerMode && window.game.multiplayerGameModes && 
-                        window.game.multiplayerGameModes.currentMode === 'race') {
-                        // Race mode completion
-                        window.game.multiplayerGameModes.onRaceComplete();
+                    // Check if this is level 6 (World 1) to show victory menu
+                    const currentLevel = window.game ? window.game.getCurrentLevel() : 1;
+                    if (currentLevel === 6) {
+                        // Level 6 completion - show victory menu
+                        this.handleCylinderVictory();
                     } else {
-                        // Check if this is level 6 (World 1) to show victory menu
-                        const currentLevel = window.game ? window.game.getCurrentLevel() : 1;
-                        if (currentLevel === 6) {
-                            // Level 6 completion - show victory menu
-                            this.handleCylinderVictory();
-                        } else {
-                            // Regular level completion
-                            if (this.levelCompletionCallback) {
-                                this.levelCompletionCallback();
-                            }
+                        // Regular level completion
+                        if (this.levelCompletionCallback) {
+                            this.levelCompletionCallback();
                         }
                     }
                 } else {
@@ -571,6 +564,11 @@ export class CollisionSystem {
     // Handle bounce pad collision
     handleBouncePadCollision(pad) {
         console.log(`Bounce pad activated: ${pad.type}!`);
+        
+        // Play bounce sound effect
+        if (window.game && window.game.audioManager) {
+            window.game.audioManager.playJumpSound();
+        }
         
         if (pad.type === 'vertical') {
             // Vertical bounce - launch upward
@@ -858,6 +856,11 @@ export class CollisionSystem {
         const destWorld = this.gridManager.levelLoader.gridToWorld(portal.destination.x, portal.destination.z, tileSize);
         const destY = portal.destination.y ?? 1;
         console.log(`Teleporting via ${portal.type || 'portal'} to (grid ${portal.destination.x}, ${portal.destination.z}) => world (${destWorld.x.toFixed(2)}, ${destY}, ${destWorld.z.toFixed(2)})`);
+        
+        // Play teleportation sound effect
+        if (window.game && window.game.audioManager) {
+            window.game.audioManager.playTeleportSound();
+        }
         
         this.player.setPosition(destWorld.x, destY, destWorld.z);
         this.player.velocity.set(0, 0, 0);

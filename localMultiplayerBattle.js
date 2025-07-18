@@ -446,8 +446,8 @@ export class LocalMultiplayerBattle {
         // Rigidbody physics properties
         this.ballRadius = 0.8;
         this.gravity = -20;
-        this.airResistance = 0.995;
-        this.groundFriction = 0.95;
+        this.airResistance = 0.999; // Reduced friction for consistent fast speed
+        this.groundFriction = 0.98; // Reduced friction for consistent fast speed
         this.restitution = 0.6;
         
         // Damage and knockback system
@@ -539,7 +539,7 @@ export class LocalMultiplayerBattle {
                 color: 0x00FF00,
                 name: 'Player 1',
                 mass: 1.0,
-                moveForce: 18,
+                moveForce: 28, // Increased from 18 to 28 for faster movement
                 controls: {
                     up: 'KeyW',
                     down: 'KeyS',
@@ -553,7 +553,7 @@ export class LocalMultiplayerBattle {
                 color: 0xFF0000,
                 name: 'Player 2',
                 mass: 1.1,
-                moveForce: 16,
+                moveForce: 24, // Increased from 16 to 24 for faster movement
                 controls: {
                     up: 'ArrowUp',
                     down: 'ArrowDown',
@@ -567,7 +567,7 @@ export class LocalMultiplayerBattle {
                 color: 0x0000FF,
                 name: 'Player 3',
                 mass: 0.9,
-                moveForce: 20,
+                moveForce: 30, // Increased from 20 to 30 for faster movement
                 controls: {
                     up: 'KeyI',
                     down: 'KeyK',
@@ -581,7 +581,7 @@ export class LocalMultiplayerBattle {
                 color: 0xFFFF00,
                 name: 'Player 4',
                 mass: 1.2,
-                moveForce: 14,
+                moveForce: 22, // Increased from 14 to 22 for faster movement
                 controls: {
                     up: 'KeyT',
                     down: 'KeyG',
@@ -2294,12 +2294,19 @@ export class LocalMultiplayerBattle {
             
             // Update ball rotation based on movement (rolling physics)
             if (player.velocity.length() > 0.1) {
-                const rollSpeed = player.velocity.length() / this.ballRadius;
+                const rollSpeed = (player.velocity.length() / this.ballRadius) * 2.5; // Increased from 1.0 to 2.5 for faster rolling
                 player.rollRotation.x += player.velocity.z * rollSpeed * deltaTime;
                 player.rollRotation.z -= player.velocity.x * rollSpeed * deltaTime;
                 
                 player.ball.rotation.x = player.rollRotation.x;
                 player.ball.rotation.z = player.rollRotation.z;
+                
+                // Play rolling sound occasionally when moving fast
+                if (player.velocity.length() > 2 && Math.random() < 0.02) { // 2% chance per frame for fast movement
+                    if (window.game && window.game.audioManager) {
+                        window.game.audioManager.playRollSound();
+                    }
+                }
             }
             
             // Update label position
@@ -2365,6 +2372,11 @@ export class LocalMultiplayerBattle {
         // Check if collision is strong enough to cause damage
         const impactSpeed = Math.abs(velAlongNormal);
         if (impactSpeed > this.minCollisionSpeed) {
+            // Play collision sound effect
+            if (window.game && window.game.audioManager) {
+                window.game.audioManager.playHitSound();
+            }
+            
             // Calculate damage based on impact speed and masses
             const damageAmount = this.baseDamage + (Math.random() * this.damageVariation);
             
@@ -2416,7 +2428,7 @@ export class LocalMultiplayerBattle {
     applyDamage(player, damage, attacker) {
         const currentTime = performance.now() / 1000; // Convert to seconds
         let finalDamage = damage;
-        let hitMultiplier = 1.0;
+        let hitNumber = 1;
         
         // Only apply escalating damage if there's an attacker (not environmental damage)
         if (attacker && attacker.id !== undefined) {
@@ -2428,29 +2440,23 @@ export class LocalMultiplayerBattle {
             // Get current consecutive hit count for this attacker
             const currentHits = player.consecutiveHits.get(attacker.id) || 0;
             const newHitCount = currentHits + 1;
+            hitNumber = newHitCount;
             
-            // Calculate damage multiplier based on consecutive hits
-            // 1st hit: 1.0x, 2nd hit: 1.3x, 3rd hit: 1.6x, 4th hit: 2.0x, 5th+ hit: 2.5x
-            if (newHitCount >= 5) {
-                hitMultiplier = 2.5;
-            } else if (newHitCount >= 4) {
-                hitMultiplier = 2.0;
-            } else if (newHitCount >= 3) {
-                hitMultiplier = 1.6;
-            } else if (newHitCount >= 2) {
-                hitMultiplier = 1.3;
+            // Calculate damage based on consecutive hits
+            // 1st hit: 9 damage, 2nd hit: 14 damage, 3rd hit: 25 damage, 4th+ hit: 25 damage
+            if (newHitCount >= 3) {
+                finalDamage = 25;
+            } else if (newHitCount === 2) {
+                finalDamage = 14;
             } else {
-                hitMultiplier = 1.0;
+                finalDamage = 9;
             }
-            
-            // Apply damage multiplier
-            finalDamage = damage * hitMultiplier;
             
             // Update consecutive hit tracking
             player.consecutiveHits.set(attacker.id, newHitCount);
             player.lastHitTime = currentTime;
             
-            console.log(`💥 ${player.name} took ${finalDamage.toFixed(1)} damage (${hitMultiplier.toFixed(1)}x multiplier, hit #${newHitCount} from ${attacker.name})! Total: ${(player.damage + finalDamage).toFixed(1)}%`);
+            console.log(`💥 ${player.name} took ${finalDamage} damage (hit #${newHitCount} from ${attacker.name})! Total: ${(player.damage + finalDamage).toFixed(1)}%`);
         } else {
             console.log(`💥 ${player.name} took ${finalDamage.toFixed(1)} environmental damage! Total: ${(player.damage + finalDamage).toFixed(1)}%`);
         }
@@ -2463,8 +2469,8 @@ export class LocalMultiplayerBattle {
         // Apply hitstun
         player.hitstunTimer = this.hitstunTime;
         
-        // Create enhanced damage number effect with multiplier info
-        this.createDamageNumberEffect(player.ball.position.clone(), finalDamage, hitMultiplier);
+        // Create enhanced damage number effect with hit number info
+        this.createDamageNumberEffect(player.ball.position.clone(), finalDamage, hitNumber);
     }
     
     // Apply knockback based on damage percentage
@@ -2486,8 +2492,8 @@ export class LocalMultiplayerBattle {
         player.velocity.y += upwardKnockback / player.mass;
     }
     
-    // Create damage number effect with multiplier support
-    createDamageNumberEffect(position, damage, multiplier = 1.0) {
+    // Create damage number effect with hit number support
+    createDamageNumberEffect(position, damage, hitNumber = 1) {
         // Create ultra-high-quality canvas for the damage number
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
@@ -2500,61 +2506,61 @@ export class LocalMultiplayerBattle {
         context.textBaseline = 'middle';
         context.textRenderingOptimizeLegibility = true;
         
-        // Determine damage color with enhanced gradient effects and multiplier scaling
+        // Determine damage color with enhanced gradient effects and hit number scaling
         let damageColor = '#FF0000';
         let glowColor = '#FF4444';
-        let multiplierColor = '#FFFF00';
+        let hitColor = '#FFFF00';
         
         // Base damage color
-        if (damage >= 40) {
-            damageColor = '#FF0000'; // Red for massive damage
+        if (damage >= 20) {
+            damageColor = '#FF0000'; // Red for massive damage (25)
             glowColor = '#FF4444';
-        } else if (damage >= 20) {
-            damageColor = '#FF6600'; // Orange for heavy damage
+        } else if (damage >= 14) {
+            damageColor = '#FF6600'; // Orange for heavy damage (14)
             glowColor = '#FF8844';
-        } else if (damage >= 10) {
-            damageColor = '#FFAA00'; // Yellow for moderate damage
+        } else if (damage >= 9) {
+            damageColor = '#FFAA00'; // Yellow for moderate damage (9)
             glowColor = '#FFCC44';
         } else {
             damageColor = '#FFFFFF'; // White for light damage
             glowColor = '#FFFFFF';
         }
         
-        // Enhanced colors for multiplied damage
-        if (multiplier >= 2.5) {
-            damageColor = '#FF0066'; // Hot pink for max multiplier
+        // Enhanced colors for consecutive hits
+        if (hitNumber >= 3) {
+            damageColor = '#FF0066'; // Hot pink for 3+ hits
             glowColor = '#FF4488';
-            multiplierColor = '#FF00FF';
-        } else if (multiplier >= 2.0) {
-            damageColor = '#FF0033'; // Bright red for high multiplier
+            hitColor = '#FF00FF';
+        } else if (hitNumber >= 2) {
+            damageColor = '#FF0033'; // Bright red for 2nd hit
             glowColor = '#FF4466';
-            multiplierColor = '#FF6600';
-        } else if (multiplier >= 1.5) {
-            damageColor = '#FF3300'; // Orange-red for medium multiplier
+            hitColor = '#FF6600';
+        } else if (hitNumber >= 1) {
+            damageColor = '#FF3300'; // Orange-red for 1st hit
             glowColor = '#FF6644';
-            multiplierColor = '#FFAA00';
+            hitColor = '#FFAA00';
         }
         
         // Enhanced font with better stack
         context.font = 'bold 42px "Segoe UI", "Helvetica Neue", Arial, sans-serif';
         context.textAlign = 'center';
         
-        // Prepare damage text with multiplier
+        // Prepare damage text with hit number
         const damageText = `${damage.toFixed(0)}%`;
-        const multiplierText = multiplier > 1.0 ? `x${multiplier.toFixed(1)}` : '';
+        const hitText = hitNumber > 1 ? `Hit #${hitNumber}` : '';
         
         // Triple-layer outline for ultra-clarity
         context.strokeStyle = 'rgba(0, 0, 0, 1.0)';
         context.lineWidth = 8;
-        context.strokeText(damageText, 120, multiplierText ? 50 : 60);
+        context.strokeText(damageText, 120, hitText ? 50 : 60);
         
         context.strokeStyle = 'rgba(64, 64, 64, 0.9)';
         context.lineWidth = 4;
-        context.strokeText(damageText, 120, multiplierText ? 50 : 60);
+        context.strokeText(damageText, 120, hitText ? 50 : 60);
         
         context.strokeStyle = 'rgba(255, 255, 255, 0.8)';
         context.lineWidth = 2;
-        context.strokeText(damageText, 120, multiplierText ? 50 : 60);
+        context.strokeText(damageText, 120, hitText ? 50 : 60);
         
         // Add glow effect
         context.shadowColor = glowColor;
@@ -2567,26 +2573,26 @@ export class LocalMultiplayerBattle {
         gradient.addColorStop(0, damageColor);
         gradient.addColorStop(1, glowColor);
         context.fillStyle = gradient;
-        context.fillText(damageText, 120, multiplierText ? 50 : 60);
+        context.fillText(damageText, 120, hitText ? 50 : 60);
         
-        // Add multiplier text if applicable
-        if (multiplierText) {
+        // Add hit number text if applicable
+        if (hitText) {
             context.font = 'bold 24px "Segoe UI", "Helvetica Neue", Arial, sans-serif';
             
-            // Multiplier outline
+            // Hit number outline
             context.strokeStyle = 'rgba(0, 0, 0, 1.0)';
             context.lineWidth = 4;
-            context.strokeText(multiplierText, 120, 80);
+            context.strokeText(hitText, 120, 80);
             
             context.strokeStyle = 'rgba(64, 64, 64, 0.9)';
             context.lineWidth = 2;
-            context.strokeText(multiplierText, 120, 80);
+            context.strokeText(hitText, 120, 80);
             
-            // Multiplier fill with glow
-            context.shadowColor = multiplierColor;
+            // Hit number fill with glow
+            context.shadowColor = hitColor;
             context.shadowBlur = 12;
-            context.fillStyle = multiplierColor;
-            context.fillText(multiplierText, 120, 80);
+            context.fillStyle = hitColor;
+            context.fillText(hitText, 120, 80);
         }
         
         // Create sprite with ultra-high-quality texture settings
@@ -5067,6 +5073,11 @@ export class LocalMultiplayerBattle {
                         if (!hazard.affectedPlayers.has(player.id)) {
                             hazard.affectedPlayers.add(player.id);
                             
+                            // Play spike damage sound effect
+                            if (window.game && window.game.audioManager) {
+                                window.game.audioManager.playDeathSound();
+                            }
+                            
                             // Apply massive damage (increased from base 25 to 40)
                             const massiveDamage = Math.max(40, hazard.damage * 1.6);
                             this.applyDamage(player, massiveDamage, null);
@@ -5100,6 +5111,11 @@ export class LocalMultiplayerBattle {
                             // Teleport player to destination
                             const destX = hazard.destination.x + (Math.random() - 0.5) * 2;
                             const destZ = hazard.destination.z + (Math.random() - 0.5) * 2;
+                            
+                            // Play teleportation sound effect
+                            if (window.game && window.game.audioManager) {
+                                window.game.audioManager.playTeleportSound();
+                            }
                             
                             // Check if destination is off the arena (dangerous teleport)
                             const destDistance = Math.sqrt(destX * destX + destZ * destZ);
@@ -5139,6 +5155,12 @@ export class LocalMultiplayerBattle {
                         
                         if (!hazard.affectedPlayers.has(player.id)) {
                             hazard.affectedPlayers.add(player.id);
+                            
+                            // Play bounce sound effect
+                            if (window.game && window.game.audioManager) {
+                                window.game.audioManager.playJumpSound();
+                            }
+                            
                             this.createBounceEffect(player.ball.position.clone());
                             console.log(`🦘 ${player.name} bounced high!`);
                         }
@@ -5159,6 +5181,11 @@ export class LocalMultiplayerBattle {
                     if (distance <= hazard.radius) {
                         if (!hazard.affectedPlayers.has(player.id)) {
                             hazard.affectedPlayers.add(player.id);
+                            
+                            // Play launch sound effect
+                            if (window.game && window.game.audioManager) {
+                                window.game.audioManager.playJumpSound();
+                            }
                             
                             // Enhanced dramatic launch effect similar to volcano
                             const launchForce = Math.max(50, hazard.force * 1.2); // Minimum 50 force, or 1.2x hazard force

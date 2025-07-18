@@ -408,12 +408,19 @@ export class BattleSystem {
         
         // Update ball rotation based on movement (rolling physics)
         if (this.playerBall.userData.velocity.length() > 0.1) {
-            const rollSpeed = this.playerBall.userData.velocity.length() / this.ballRadius;
+            const rollSpeed = (this.playerBall.userData.velocity.length() / this.ballRadius) * 2.5; // Increased from 1.0 to 2.5 for faster rolling
             this.playerBall.userData.rollRotation.x += this.playerBall.userData.velocity.z * rollSpeed * deltaTime;
             this.playerBall.userData.rollRotation.z -= this.playerBall.userData.velocity.x * rollSpeed * deltaTime;
             
             this.playerBall.rotation.x = this.playerBall.userData.rollRotation.x;
             this.playerBall.rotation.z = this.playerBall.userData.rollRotation.z;
+            
+            // Play rolling sound occasionally when moving fast
+            if (this.playerBall.userData.velocity.length() > 2 && Math.random() < 0.02) { // 2% chance per frame for fast movement
+                if (window.game && window.game.audioManager) {
+                    window.game.audioManager.playRollSound();
+                }
+            }
         }
         
         // Keep on arena (soft boundary)
@@ -466,12 +473,19 @@ export class BattleSystem {
             
             // Update ball rotation based on movement (rolling physics)
             if (enemy.userData.velocity.length() > 0.1) {
-                const rollSpeed = enemy.userData.velocity.length() / this.ballRadius;
+                const rollSpeed = (enemy.userData.velocity.length() / this.ballRadius) * 2.5; // Increased from 1.0 to 2.5 for faster rolling
                 enemy.userData.rollRotation.x += enemy.userData.velocity.z * rollSpeed * deltaTime;
                 enemy.userData.rollRotation.z -= enemy.userData.velocity.x * rollSpeed * deltaTime;
                 
                 enemy.rotation.x = enemy.userData.rollRotation.x;
                 enemy.rotation.z = enemy.userData.rollRotation.z;
+                
+                // Play rolling sound occasionally when moving fast
+                if (enemy.userData.velocity.length() > 2 && Math.random() < 0.01) { // 1% chance per frame for enemy movement
+                    if (window.game && window.game.audioManager) {
+                        window.game.audioManager.playRollSound();
+                    }
+                }
             }
         });
     }
@@ -508,6 +522,11 @@ export class BattleSystem {
     
     // Handle collision between two balls
     handleCollision(ball1, ball2) {
+        // Play collision sound effect
+        if (window.game && window.game.audioManager) {
+            window.game.audioManager.playHitSound();
+        }
+        
         // Calculate collision normal
         const normal = new THREE.Vector3()
             .subVectors(ball2.position, ball1.position)
