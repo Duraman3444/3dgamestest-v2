@@ -70,7 +70,7 @@ class Game {
         this.initializeMenu();
     }
     
-    handleMainMenuSelection(mode) {
+    handleMainMenuSelection(mode, level, difficulty) {
         if (mode === 'normal') {
             // Show single player options menu
             this.showSinglePlayerMenu();
@@ -81,8 +81,8 @@ class Game {
             // Show battle mode menu (now for bot battles)
             this.showBattleMenu();
         } else {
-            // For other modes, start directly
-            this.startGame(mode);
+            // For other modes, start directly with proper parameters
+            this.startGame(mode, level, difficulty);
         }
     }
     
@@ -180,7 +180,7 @@ class Game {
         });
         
         // Create main menu
-        this.mainMenu = new MainMenu((mode) => this.handleMainMenuSelection(mode));
+        this.mainMenu = new MainMenu((mode, level, difficulty) => this.handleMainMenuSelection(mode, level, difficulty));
         
         // Create single player menu
         this.singlePlayerMenu = new SinglePlayerMenu(
