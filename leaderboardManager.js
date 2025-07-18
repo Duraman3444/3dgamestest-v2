@@ -18,7 +18,11 @@ export class LeaderboardManager {
                 level3: [],
                 level4: [],
                 level5: [],
-                level6: []
+                level6: [],
+                level7: [],
+                level8: [],
+                level9: [],
+                level10: []
             },
             battleTournament: []
         };
@@ -74,7 +78,11 @@ export class LeaderboardManager {
                     level3: [],
                     level4: [],
                     level5: [],
-                    level6: []
+                    level6: [],
+                    level7: [],
+                    level8: [],
+                    level9: [],
+                    level10: []
                 },
                 battleTournament: []
             };
@@ -159,6 +167,13 @@ export class LeaderboardManager {
                 if (b.score !== a.score) {
                     return b.score - a.score;
                 }
+                
+                // For pacman mode, higher completion time is better (more time remaining)
+                if (a.gameMode === 'pacman' || b.gameMode === 'pacman') {
+                    return b.completionTime - a.completionTime;
+                }
+                
+                // For normal mode, lower completion time is better (faster completion)
                 return a.completionTime - b.completionTime;
             });
         }
@@ -180,7 +195,9 @@ export class LeaderboardManager {
         
         // Category-specific validation
         if (category === 'individualLevel') {
-            if (!score.level || score.level < 1 || score.level > 6) {
+            // Normal mode: levels 1-6, Pacman mode: levels 1-10
+            const maxLevel = score.gameMode === 'pacman' ? 10 : 6;
+            if (!score.level || score.level < 1 || score.level > maxLevel) {
                 return false;
             }
         }
@@ -200,7 +217,7 @@ export class LeaderboardManager {
     }
     
     // Check if a score qualifies for the leaderboard
-    qualifiesForLeaderboard(category, score, level = null) {
+    qualifiesForLeaderboard(category, score, level = null, completionTime = null, gameMode = null) {
         const topScores = this.getTopScores(category, level, this.maxEntriesPerCategory);
         
         if (topScores.length < this.maxEntriesPerCategory) {
@@ -213,10 +230,21 @@ export class LeaderboardManager {
         if (category === 'classicMode') {
             return score > lowestScore.score;
         } else {
-            // For other categories, higher score wins, then lower time
-            return score > lowestScore.score || 
-                   (score === lowestScore.score && 
-                    arguments[3] < lowestScore.completionTime);
+            // For other categories, higher score wins, then by time comparison
+            if (score > lowestScore.score) {
+                return true;
+            }
+            
+            if (score === lowestScore.score && completionTime !== null) {
+                // For pacman mode, higher completion time is better (more time remaining)
+                if (gameMode === 'pacman') {
+                    return completionTime > lowestScore.completionTime;
+                }
+                // For normal mode, lower completion time is better (faster completion)
+                return completionTime < lowestScore.completionTime;
+            }
+            
+            return false;
         }
     }
     

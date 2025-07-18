@@ -316,7 +316,12 @@ export class ScoreEntry {
         `;
         
         const timeLabel = document.createElement('div');
-        timeLabel.textContent = 'Completion Time';
+        // Different labels for different game modes
+        if (this.scoreData.gameMode === 'pacman') {
+            timeLabel.textContent = 'Time Remaining';
+        } else {
+            timeLabel.textContent = 'Completion Time';
+        }
         timeLabel.style.cssText = `
             color: #ff00ff;
             font-size: 14px;
