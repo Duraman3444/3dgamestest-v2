@@ -946,6 +946,7 @@ class Game {
     
     startLocalMultiplayerBattle(playerCount = 2) {
         console.log(`🥊 Initializing ${playerCount}-Player Local Multiplayer Battle Arena...`);
+        console.log(`🎯 Player count parameter received: ${playerCount}`);
         
         // Hide the main menu
         if (this.mainMenu) {
@@ -959,6 +960,7 @@ class Game {
         this.localMultiplayerBattle = new LocalMultiplayerBattle(this.scene, this.cameraSystem.camera, this.renderer);
         
         // Set the player count
+        console.log(`🎯 Setting player count to: ${playerCount}`);
         this.localMultiplayerBattle.setPlayerCount(playerCount);
         
         // Set up callbacks
