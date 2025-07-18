@@ -840,12 +840,33 @@ class Game {
         
         // Initialize the game if not already done
         if (!this.isGameInitialized) {
-            await this.init();
-            this.isGameInitialized = true;
+            try {
+                await this.init();
+                this.isGameInitialized = true;
+            } catch (error) {
+                console.error('Failed to initialize game:', error);
+                this.showErrorAndReturnToMenu('Failed to initialize the game. Please try again.');
+                return;
+            }
         }
         
-        // Start the game loop
-        this.gameLoop.start();
+        // Setup all game systems
+        try {
+            await this.setupSystems();
+        } catch (error) {
+            console.error('Failed to setup game systems:', error);
+            this.showErrorAndReturnToMenu('Failed to setup game systems. Please try again.');
+            return;
+        }
+        
+        // Start the game loop only if initialization was successful
+        if (this.gameLoop) {
+            this.gameLoop.start();
+        } else {
+            console.error('Game loop not initialized');
+            this.showErrorAndReturnToMenu('Game loop failed to initialize. Please try again.');
+            return;
+        }
         
         // Start auto-save system (but not in pacman modes or multiplayer)
         if (!this.isClassicMode && this.gameMode !== 'pacman' && this.gameMode !== 'pacman_classic' && this.gameMode !== 'multiplayer') {
@@ -1342,22 +1363,30 @@ class Game {
                 console.error('Failed to initialize battle system:', error);
                 // Show error message and return to main menu
                 this.showErrorAndReturnToMenu('Failed to start the battle system. Please try again or check your browser console for more details.');
-                return;
+                return; // Exit early to prevent game loop creation
             }
         }
 
-        // Setup game loop
-        this.gameLoop = new GameLoop(this.renderer, this.scene, this.cameraSystem.camera, {
-            player: this.player,
-            gridManager: this.gridManager,
-            cameraSystem: this.cameraSystem,
-            collisionSystem: this.collisionSystem,
-            uiManager: this.uiManager,
-            levelLoader: this.levelLoader,
-            battleSystem: this.battleSystem,
-            battleUI: this.battleUI
-        });
-
+        // Setup game loop only if we reach this point successfully
+        try {
+            this.gameLoop = new GameLoop(this.renderer, this.scene, this.cameraSystem.camera, {
+                player: this.player,
+                gridManager: this.gridManager,
+                cameraSystem: this.cameraSystem,
+                collisionSystem: this.collisionSystem,
+                uiManager: this.uiManager,
+                levelLoader: this.levelLoader,
+                battleSystem: this.battleSystem,
+                battleUI: this.battleUI
+            });
+            
+            console.log('🎮 Game loop initialized successfully');
+        } catch (error) {
+            console.error('Failed to initialize game loop:', error);
+            this.showErrorAndReturnToMenu('Failed to initialize the game loop. Please try again.');
+            return;
+        }
+        
         // Load existing level progress if available (skip for battle mode and classic mode)
         if (this.gameMode !== 'battle' && !this.isClassicMode) {
             // This ensures that if a player has previously played this level and collected items,
@@ -1368,6 +1397,16 @@ class Game {
         // Start pacman timer if in pacman mode
         if (this.gameMode === 'pacman') {
             this.startPacmanTimer();
+        }
+        
+        // Start auto-save system (but not in pacman modes or multiplayer)
+        if (!this.isClassicMode && this.gameMode !== 'pacman' && this.gameMode !== 'pacman_classic' && this.gameMode !== 'multiplayer') {
+            this.startAutoSave();
+        }
+        
+        // Apply initial settings
+        if (this.settingsManager) {
+            this.settingsManager.applySettings();
         }
     }
 
