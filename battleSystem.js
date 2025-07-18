@@ -149,6 +149,12 @@ export class BattleSystem {
         this.playerBall.isAlive = true;
         this.playerBall.mass = 1;
         
+        // Ball rotation tracking
+        this.playerBall.rollRotation = new THREE.Vector3(0, 0, 0);
+        
+        // Ball rotation tracking
+        this.playerBall.rollRotation = new THREE.Vector3(0, 0, 0);
+        
         console.log('🟢 Player ball created');
     }
     
@@ -177,6 +183,9 @@ export class BattleSystem {
             enemyBall.isAlive = true;
             enemyBall.mass = 1;
             enemyBall.id = i;
+            
+            // Ball rotation tracking
+            enemyBall.rollRotation = new THREE.Vector3(0, 0, 0);
             
             // Simple AI properties
             enemyBall.aiTarget = this.playerBall;
@@ -298,6 +307,16 @@ export class BattleSystem {
             this.playerBall.velocity.y = 0;
         }
         
+        // Update ball rotation based on movement (rolling physics)
+        if (this.playerBall.velocity.length() > 0.1) {
+            const rollSpeed = this.playerBall.velocity.length() / this.ballRadius;
+            this.playerBall.rollRotation.x += this.playerBall.velocity.z * rollSpeed * deltaTime;
+            this.playerBall.rollRotation.z -= this.playerBall.velocity.x * rollSpeed * deltaTime;
+            
+            this.playerBall.rotation.x = this.playerBall.rollRotation.x;
+            this.playerBall.rotation.z = this.playerBall.rollRotation.z;
+        }
+        
         // Keep on arena (soft boundary)
         const distanceFromCenter = Math.sqrt(
             this.playerBall.position.x ** 2 + this.playerBall.position.z ** 2
@@ -344,6 +363,16 @@ export class BattleSystem {
             if (enemy.position.y <= this.ballRadius) {
                 enemy.position.y = this.ballRadius;
                 enemy.velocity.y = 0;
+            }
+            
+            // Update ball rotation based on movement (rolling physics)
+            if (enemy.velocity.length() > 0.1) {
+                const rollSpeed = enemy.velocity.length() / this.ballRadius;
+                enemy.rollRotation.x += enemy.velocity.z * rollSpeed * deltaTime;
+                enemy.rollRotation.z -= enemy.velocity.x * rollSpeed * deltaTime;
+                
+                enemy.rotation.x = enemy.rollRotation.x;
+                enemy.rotation.z = enemy.rollRotation.z;
             }
         });
     }

@@ -32,8 +32,21 @@ export class GameLoop {
     animate(currentTime) {
         if (!this.isRunning) return;
         
+        // Validate currentTime to prevent NaN
+        if (isNaN(currentTime) || !isFinite(currentTime) || currentTime < 0) {
+            console.warn('Invalid currentTime in animate:', currentTime);
+            currentTime = this.lastTime || performance.now();
+        }
+        
         // Calculate delta time
         this.deltaTime = (currentTime - this.lastTime) / 1000; // Convert to seconds
+        
+        // Validate deltaTime to prevent NaN propagation
+        if (isNaN(this.deltaTime) || !isFinite(this.deltaTime) || this.deltaTime < 0 || this.deltaTime > 1) {
+            console.warn('Invalid deltaTime calculated:', this.deltaTime, 'currentTime:', currentTime, 'lastTime:', this.lastTime);
+            this.deltaTime = 1/60; // Default to 60 FPS (16.67ms)
+        }
+        
         this.lastTime = currentTime;
         
         // Update FPS counter
@@ -62,7 +75,8 @@ export class GameLoop {
             // Send multiplayer position updates
             if (window.game && window.game.isMultiplayerMode && window.game.multiplayerManager) {
                 const position = this.systems.player.position;
-                window.game.multiplayerManager.sendPlayerPosition(position);
+                const velocity = this.systems.player.velocity;
+                window.game.multiplayerManager.sendPlayerPosition(position, velocity);
             }
         }
         

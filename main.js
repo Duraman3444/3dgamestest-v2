@@ -1349,9 +1349,9 @@ class Game {
         // Handle pointer lock change
         document.addEventListener('pointerlockchange', () => {
             if (document.pointerLockElement === this.canvas && !this.isPaused) {
-                this.player.enableControls();
+                if (this.player) this.player.enableControls();
             } else {
-                this.player.disableControls();
+                if (this.player) this.player.disableControls();
             }
         });
         
@@ -2251,6 +2251,19 @@ class Game {
         
         this.pacmanLevelTimeLimit = this.getPacmanTimeLimit();
         this.pacmanTimeRemaining = this.pacmanLevelTimeLimit;
+        
+        // Validate timer values to prevent NaN
+        if (isNaN(this.pacmanLevelTimeLimit) || !isFinite(this.pacmanLevelTimeLimit) || this.pacmanLevelTimeLimit <= 0) {
+            console.warn('Invalid pacmanLevelTimeLimit, using default 300 seconds');
+            this.pacmanLevelTimeLimit = 300;
+            this.pacmanTimeRemaining = 300;
+        }
+        
+        if (isNaN(this.pacmanTimeRemaining) || !isFinite(this.pacmanTimeRemaining)) {
+            console.warn('Invalid pacmanTimeRemaining, resetting to time limit');
+            this.pacmanTimeRemaining = this.pacmanLevelTimeLimit;
+        }
+        
         this.pacmanTimerStarted = true;
         
         console.log(`Starting pacman timer for level ${this.currentLevel}: ${this.pacmanLevelTimeLimit} seconds`);
@@ -2263,6 +2276,19 @@ class Game {
         
         // Classic mode doesn't use timer
         if (this.isClassicMode) return;
+        
+        // Validate deltaTime to prevent NaN
+        if (isNaN(deltaTime) || !isFinite(deltaTime) || deltaTime < 0 || deltaTime > 1) {
+            console.warn('Invalid deltaTime in updatePacmanTimer:', deltaTime);
+            return;
+        }
+        
+        // Validate current timer value
+        if (isNaN(this.pacmanTimeRemaining) || !isFinite(this.pacmanTimeRemaining)) {
+            console.warn('Invalid pacmanTimeRemaining, resetting timer');
+            this.pacmanTimeRemaining = this.pacmanLevelTimeLimit || 0;
+            return;
+        }
         
         this.pacmanTimeRemaining -= deltaTime;
         
@@ -2282,19 +2308,43 @@ class Game {
     
     // Get time remaining as formatted string (MM:SS)
     getFormattedTimeRemaining() {
+        // Validate timer value to prevent NaN display
+        if (isNaN(this.pacmanTimeRemaining) || !isFinite(this.pacmanTimeRemaining) || this.pacmanTimeRemaining < 0) {
+            return '00:00';
+        }
+        
         const minutes = Math.floor(this.pacmanTimeRemaining / 60);
         const seconds = Math.floor(this.pacmanTimeRemaining % 60);
-        return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        
+        // Double-check that calculated values are valid
+        const displayMinutes = isNaN(minutes) ? 0 : Math.max(0, minutes);
+        const displaySeconds = isNaN(seconds) ? 0 : Math.max(0, seconds);
+        
+        return `${displayMinutes.toString().padStart(2, '0')}:${displaySeconds.toString().padStart(2, '0')}`;
     }
     
     // Calculate time bonus points based on remaining time
     calculateTimeBonus() {
         if (this.gameMode !== 'pacman' || !this.pacmanTimerStarted) return 0;
         
+        // Validate timer values to prevent NaN in calculations
+        if (isNaN(this.pacmanTimeRemaining) || !isFinite(this.pacmanTimeRemaining) || 
+            isNaN(this.pacmanLevelTimeLimit) || !isFinite(this.pacmanLevelTimeLimit) || 
+            this.pacmanLevelTimeLimit <= 0) {
+            console.warn('Invalid timer values in calculateTimeBonus, returning 0');
+            return 0;
+        }
+        
         // Base bonus calculation: more remaining time = more points
         // Max bonus is 1000 points for completing quickly
         const timeUsed = this.pacmanLevelTimeLimit - this.pacmanTimeRemaining;
         const efficiency = Math.max(0, (this.pacmanLevelTimeLimit - timeUsed) / this.pacmanLevelTimeLimit);
+        
+        // Validate efficiency calculation
+        if (isNaN(efficiency) || !isFinite(efficiency)) {
+            console.warn('Invalid efficiency calculation, returning 0');
+            return 0;
+        }
         
         return Math.floor(efficiency * 1000);
     }

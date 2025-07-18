@@ -1,4 +1,5 @@
 import { io } from 'https://cdn.socket.io/4.7.2/socket.io.esm.min.js';
+import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
 
 export class MultiplayerManager {
     constructor() {
@@ -22,6 +23,10 @@ export class MultiplayerManager {
         
         // Player colors for different players
         this.playerColors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00'];
+        
+        // Ball rotation tracking for multiplayer
+        this.ballRadius = 1;
+        this.playerRotations = new Map(); // Track rotation for each player
     }
     
     // Initialize connection to server
@@ -91,7 +96,7 @@ export class MultiplayerManager {
         });
         
         this.socket.on('playerMoved', (data) => {
-            this.updateOtherPlayerPosition(data.playerId, data.position);
+            this.updateOtherPlayerPosition(data.playerId, data.position, data.rotation, data.velocity);
             
             if (this.onPlayerMoved) {
                 this.onPlayerMoved(data);
@@ -166,10 +171,32 @@ export class MultiplayerManager {
         }
     }
     
-    // Send player position update
-    sendPlayerPosition(position) {
-        if (this.isConnected && this.isMultiplayer) {
-            this.socket.emit('playerMove', { position });
+    // Send player position to server
+    sendPlayerPosition(position, velocity = null) {
+        if (this.socket && this.isConnected) {
+            // Calculate rotation based on velocity if available
+            let rotationData = null;
+            if (velocity && velocity.length() > 0.1) {
+                const playerId = this.playerId;
+                if (!this.playerRotations.has(playerId)) {
+                    this.playerRotations.set(playerId, { x: 0, y: 0, z: 0 });
+                }
+                
+                const rotation = this.playerRotations.get(playerId);
+                const rollSpeed = velocity.length() / this.ballRadius;
+                const deltaTime = 1/60; // Approximate deltaTime
+                
+                rotation.x += velocity.z * rollSpeed * deltaTime;
+                rotation.z -= velocity.x * rollSpeed * deltaTime;
+                
+                rotationData = { x: rotation.x, y: rotation.y, z: rotation.z };
+            }
+            
+            this.socket.emit('playerMove', { 
+                position: position,
+                rotation: rotationData,
+                velocity: velocity
+            });
         }
     }
     
@@ -245,15 +272,22 @@ export class MultiplayerManager {
     }
     
     // Update other player's position
-    updateOtherPlayerPosition(playerId, position) {
+    updateOtherPlayerPosition(playerId, position, rotation = null, velocity = null) {
         const player = this.otherPlayers.get(playerId);
         if (player) {
             player.position = position;
+            if (rotation) player.rotation = rotation;
+            if (velocity) player.velocity = velocity;
             
             // Update visual representation
             if (this.playerMeshes.has(playerId)) {
                 const mesh = this.playerMeshes.get(playerId);
                 mesh.position.set(position.x, position.y, position.z);
+                
+                // Update rotation if available
+                if (rotation) {
+                    mesh.rotation.set(rotation.x, rotation.y, rotation.z);
+                }
             }
         }
     }
@@ -262,9 +296,9 @@ export class MultiplayerManager {
     createPlayerMesh(player) {
         if (!this.scene) return;
         
-        // Create a simple colored cube for other players
-        const geometry = new THREE.BoxGeometry(0.8, 1.6, 0.8);
-        const material = new THREE.MeshBasicMaterial({ 
+        // Create a sphere for other players (matching the main player)
+        const geometry = new THREE.SphereGeometry(this.ballRadius, 16, 16);
+        const material = new THREE.MeshLambertMaterial({ 
             color: player.color || this.playerColors[0],
             transparent: true,
             opacity: 0.8
@@ -272,10 +306,15 @@ export class MultiplayerManager {
         
         const mesh = new THREE.Mesh(geometry, material);
         mesh.position.set(player.position.x, player.position.y, player.position.z);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        
+        // Initialize rotation tracking
+        this.playerRotations.set(player.id, { x: 0, y: 0, z: 0 });
         
         // Add name tag
         const nameTag = this.createNameTag(player.name);
-        nameTag.position.set(0, 1, 0);
+        nameTag.position.set(0, 1.5, 0);
         mesh.add(nameTag);
         
         this.scene.add(mesh);

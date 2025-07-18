@@ -33,8 +33,8 @@ export class LocalMultiplayerBattle {
                 particles: { color: 0x32CD32, count: 4 },
                 hazards: [
                     { type: 'sinkhole', position: { x: 0, z: 0 }, radius: 2, strength: 8 },
-                    { type: 'spikes', position: { x: 6, z: 0 }, size: 1.5, damage: 15 },
-                    { type: 'spikes', position: { x: -6, z: 0 }, size: 1.5, damage: 15 },
+                    { type: 'spikes', position: { x: 6, z: 0 }, size: 1.5, damage: 25 },
+                    { type: 'spikes', position: { x: -6, z: 0 }, size: 1.5, damage: 25 },
                     { type: 'bounce', position: { x: 0, z: 6 }, radius: 1.5, force: 20 },
                     { type: 'bounce', position: { x: 0, z: -6 }, radius: 1.5, force: 20 }
                 ]
@@ -102,16 +102,16 @@ export class LocalMultiplayerBattle {
                     { type: 'bounce', position: { x: 0, z: -4 }, radius: 1.5, force: 35, level: 'upper', airCombo: true },
                     
                     // Ground level teleporters for quick repositioning
-                    { type: 'teleporter', position: { x: 9, z: 0 }, radius: 1.5, destination: { x: -9, z: 0 }, damage: 3, stunDuration: 0.3 },
-                    { type: 'teleporter', position: { x: -9, z: 0 }, radius: 1.5, destination: { x: 9, z: 0 }, damage: 3, stunDuration: 0.3 },
-                    { type: 'teleporter', position: { x: 0, z: 9 }, radius: 1.5, destination: { x: 0, z: -9 }, damage: 3, stunDuration: 0.3 },
-                    { type: 'teleporter', position: { x: 0, z: -9 }, radius: 1.5, destination: { x: 0, z: 9 }, damage: 3, stunDuration: 0.3 },
+                    { type: 'teleporter', position: { x: 9, z: 0 }, radius: 1.5, destination: { x: -9, z: 0 }, damage: 8, stunDuration: 0.3 },
+                    { type: 'teleporter', position: { x: -9, z: 0 }, radius: 1.5, destination: { x: 9, z: 0 }, damage: 8, stunDuration: 0.3 },
+                    { type: 'teleporter', position: { x: 0, z: 9 }, radius: 1.5, destination: { x: 0, z: -9 }, damage: 8, stunDuration: 0.3 },
+                    { type: 'teleporter', position: { x: 0, z: -9 }, radius: 1.5, destination: { x: 0, z: 9 }, damage: 8, stunDuration: 0.3 },
                     
                     // Upper level teleporters for platform hopping
-                    { type: 'teleporter', position: { x: 8, z: 0 }, radius: 1.5, destination: { x: -8, z: 0 }, level: 'upper', damage: 3, stunDuration: 0.3 },
-                    { type: 'teleporter', position: { x: -8, z: 0 }, radius: 1.5, destination: { x: 8, z: 0 }, level: 'upper', damage: 3, stunDuration: 0.3 },
-                    { type: 'teleporter', position: { x: 0, z: 8 }, radius: 1.5, destination: { x: 0, z: -8 }, level: 'upper', damage: 3, stunDuration: 0.3 },
-                    { type: 'teleporter', position: { x: 0, z: -8 }, radius: 1.5, destination: { x: 0, z: 8 }, level: 'upper', damage: 3, stunDuration: 0.3 },
+                    { type: 'teleporter', position: { x: 8, z: 0 }, radius: 1.5, destination: { x: -8, z: 0 }, level: 'upper', damage: 8, stunDuration: 0.3 },
+                    { type: 'teleporter', position: { x: -8, z: 0 }, radius: 1.5, destination: { x: 8, z: 0 }, level: 'upper', damage: 8, stunDuration: 0.3 },
+                    { type: 'teleporter', position: { x: 0, z: 8 }, radius: 1.5, destination: { x: 0, z: -8 }, level: 'upper', damage: 8, stunDuration: 0.3 },
+                    { type: 'teleporter', position: { x: 0, z: -8 }, radius: 1.5, destination: { x: 0, z: 8 }, level: 'upper', damage: 8, stunDuration: 0.3 },
                     
                     // Wind currents for aerial movement between levels
                     { type: 'wind_current', position: { x: 4, z: 4 }, radius: 2, force: 20, direction: { x: 0, y: 1, z: 0 } },
@@ -120,10 +120,10 @@ export class LocalMultiplayerBattle {
                     { type: 'wind_current', position: { x: -4, z: 4 }, radius: 2, force: 20, direction: { x: 0, y: 1, z: 0 } },
                     
                     // Sky lightning strikes on upper level
-                    { type: 'sky_lightning', position: { x: 3, z: 3 }, radius: 2, damage: 15, stunDuration: 1.2, interval: 6, level: 'upper' },
-                    { type: 'sky_lightning', position: { x: -3, z: -3 }, radius: 2, damage: 15, stunDuration: 1.2, interval: 6, level: 'upper' },
-                    { type: 'sky_lightning', position: { x: 3, z: -3 }, radius: 2, damage: 15, stunDuration: 1.2, interval: 6, level: 'upper' },
-                    { type: 'sky_lightning', position: { x: -3, z: 3 }, radius: 2, damage: 15, stunDuration: 1.2, interval: 6, level: 'upper' },
+                    { type: 'sky_lightning', position: { x: 3, z: 3 }, radius: 2, damage: 25, stunDuration: 1.2, interval: 6, level: 'upper' },
+                    { type: 'sky_lightning', position: { x: -3, z: -3 }, radius: 2, damage: 25, stunDuration: 1.2, interval: 6, level: 'upper' },
+                    { type: 'sky_lightning', position: { x: 3, z: -3 }, radius: 2, damage: 25, stunDuration: 1.2, interval: 6, level: 'upper' },
+                    { type: 'sky_lightning', position: { x: -3, z: 3 }, radius: 2, damage: 25, stunDuration: 1.2, interval: 6, level: 'upper' },
                     
                     // Floating cloud platforms for vertical movement
                     { type: 'cloud_platform', position: { x: 6, z: 0 }, radius: 1.5, interval: 5, duration: 4, height: 4 },
@@ -154,27 +154,27 @@ export class LocalMultiplayerBattle {
                     { type: 'ramp', position: { x: 7, z: 0 }, angle: 35, force: 25, ancient: true },
                     
                     // Enhanced central spike trap
-                    { type: 'spikes', position: { x: 0, z: 0 }, size: 2.5, damage: 20, ancient: true },
+                    { type: 'spikes', position: { x: 0, z: 0 }, size: 2.5, damage: 35, ancient: true },
                     
                     // New desert-themed hazards
-                    { type: 'quicksand', position: { x: 0, z: 6 }, radius: 2.5, sinkRate: 0.8, damage: 8 },
-                    { type: 'quicksand', position: { x: 0, z: -6 }, radius: 2.5, sinkRate: 0.8, damage: 8 },
-                    { type: 'quicksand', position: { x: 6, z: 3 }, radius: 2, sinkRate: 0.6, damage: 6 },
-                    { type: 'quicksand', position: { x: -6, z: -3 }, radius: 2, sinkRate: 0.6, damage: 6 },
+                    { type: 'quicksand', position: { x: 0, z: 6 }, radius: 2.5, sinkRate: 0.8, damage: 15 },
+                    { type: 'quicksand', position: { x: 0, z: -6 }, radius: 2.5, sinkRate: 0.8, damage: 15 },
+                    { type: 'quicksand', position: { x: 6, z: 3 }, radius: 2, sinkRate: 0.6, damage: 12 },
+                    { type: 'quicksand', position: { x: -6, z: -3 }, radius: 2, sinkRate: 0.6, damage: 12 },
                     
                     // Sandstorm vortex hazards
-                    { type: 'sandstorm', position: { x: 5, z: -5 }, radius: 3, interval: 4, force: 20, damage: 10 },
-                    { type: 'sandstorm', position: { x: -5, z: 5 }, radius: 3, interval: 4, force: 20, damage: 10 },
+                    { type: 'sandstorm', position: { x: 5, z: -5 }, radius: 3, interval: 4, force: 20, damage: 18 },
+                    { type: 'sandstorm', position: { x: -5, z: 5 }, radius: 3, interval: 4, force: 20, damage: 18 },
                     
                     // Ancient obelisk energy blasts
-                    { type: 'obelisk_blast', position: { x: 8, z: 8 }, radius: 2.5, interval: 6, damage: 15, stunDuration: 1.0 },
-                    { type: 'obelisk_blast', position: { x: -8, z: -8 }, radius: 2.5, interval: 6, damage: 15, stunDuration: 1.0 },
-                    { type: 'obelisk_blast', position: { x: 8, z: -8 }, radius: 2.5, interval: 6, damage: 15, stunDuration: 1.0 },
-                    { type: 'obelisk_blast', position: { x: -8, z: 8 }, radius: 2.5, interval: 6, damage: 15, stunDuration: 1.0 },
+                    { type: 'obelisk_blast', position: { x: 8, z: 8 }, radius: 2.5, interval: 6, damage: 25, stunDuration: 1.0 },
+                    { type: 'obelisk_blast', position: { x: -8, z: -8 }, radius: 2.5, interval: 6, damage: 25, stunDuration: 1.0 },
+                    { type: 'obelisk_blast', position: { x: 8, z: -8 }, radius: 2.5, interval: 6, damage: 25, stunDuration: 1.0 },
+                    { type: 'obelisk_blast', position: { x: -8, z: 8 }, radius: 2.5, interval: 6, damage: 25, stunDuration: 1.0 },
                     
                     // Desert mirage teleporters
-                    { type: 'mirage_teleporter', position: { x: 3, z: -3 }, radius: 1.8, destination: { x: -3, z: 3 }, damage: 3 },
-                    { type: 'mirage_teleporter', position: { x: -3, z: 3 }, radius: 1.8, destination: { x: 3, z: -3 }, damage: 3 }
+                    { type: 'mirage_teleporter', position: { x: 3, z: -3 }, radius: 1.8, destination: { x: -3, z: 3 }, damage: 8 },
+                    { type: 'mirage_teleporter', position: { x: -3, z: 3 }, radius: 1.8, destination: { x: 3, z: -3 }, damage: 8 }
                 ]
             },
             {
@@ -233,10 +233,10 @@ export class LocalMultiplayerBattle {
                 lighting: { ambient: 0x332211, directional: 0xDEB887 },
                 particles: { color: 0xCD853F, count: 4 },
                 hazards: [
-                    { type: 'spikes', position: { x: 4, z: 4 }, size: 2, damage: 25 },
-                    { type: 'spikes', position: { x: -4, z: -4 }, size: 2, damage: 25 },
-                    { type: 'spikes', position: { x: 4, z: -4 }, size: 2, damage: 25 },
-                    { type: 'spikes', position: { x: -4, z: 4 }, size: 2, damage: 25 },
+                    { type: 'spikes', position: { x: 4, z: 4 }, size: 2, damage: 35 },
+                    { type: 'spikes', position: { x: -4, z: -4 }, size: 2, damage: 35 },
+                    { type: 'spikes', position: { x: 4, z: -4 }, size: 2, damage: 35 },
+                    { type: 'spikes', position: { x: -4, z: 4 }, size: 2, damage: 35 },
                     { type: 'ramp', position: { x: 0, z: 0 }, angle: 35, force: 22 },
                     { type: 'sinkhole', position: { x: 0, z: 6 }, radius: 2, strength: 15 },
                     { type: 'sinkhole', position: { x: 0, z: -6 }, radius: 2, strength: 15 }
@@ -412,11 +412,11 @@ export class LocalMultiplayerBattle {
                 hazards: [
                     { type: 'ramp', position: { x: -7, z: 0 }, angle: 45, force: 35 },
                     { type: 'ramp', position: { x: 7, z: 0 }, angle: 45, force: 35 },
-                    { type: 'lava_geyser', position: { x: 0, z: 0 }, radius: 2, force: 45, interval: 5, damage: 20 },
-                    { type: 'lava_pool', position: { x: 4, z: 4 }, radius: 2.5, damage: 15 },
-                    { type: 'lava_pool', position: { x: -4, z: -4 }, radius: 2.5, damage: 15 },
-                    { type: 'magma_burst', position: { x: 0, z: 6 }, radius: 2, damage: 12, interval: 4 },
-                    { type: 'magma_burst', position: { x: 0, z: -6 }, radius: 2, damage: 12, interval: 4 }
+                    { type: 'lava_geyser', position: { x: 0, z: 0 }, radius: 2, force: 45, interval: 5, damage: 30 },
+                    { type: 'lava_pool', position: { x: 4, z: 4 }, radius: 2.5, damage: 25 },
+                    { type: 'lava_pool', position: { x: -4, z: -4 }, radius: 2.5, damage: 25 },
+                    { type: 'magma_burst', position: { x: 0, z: 6 }, radius: 2, damage: 20, interval: 4 },
+                    { type: 'magma_burst', position: { x: 0, z: -6 }, radius: 2, damage: 20, interval: 4 }
                 ]
             },
             {
@@ -451,12 +451,12 @@ export class LocalMultiplayerBattle {
         this.restitution = 0.6;
         
         // Damage and knockback system
-        this.baseDamage = 3;
-        this.damageVariation = 2;
-        this.baseKnockback = 4;
+        this.baseDamage = 8;        // Increased from 3 to 8 for higher initial damage
+        this.damageVariation = 4;   // Increased from 2 to 4 for more damage range
+        this.baseKnockback = 6;     // Increased from 4 to 6 for stronger knockback
         this.knockbackScaling = 0.08;
-        this.maxKnockback = 30;
-        this.hitstunTime = 0.3;
+        this.maxKnockback = 35;     // Increased from 30 to 35 for more dramatic knockback
+        this.hitstunTime = 0.4;     // Increased from 0.3 to 0.4 for longer stun
         
         // Collision and force properties
         this.collisionDamping = 0.8;
@@ -1171,12 +1171,20 @@ export class LocalMultiplayerBattle {
                 hitstunTimer: 0,
                 lastHitBy: null,
                 
+                // Escalating damage system
+                consecutiveHits: new Map(), // Track consecutive hits from each attacker
+                lastHitTime: 0,
+                hitResetTime: 3.0, // Reset consecutive hits after 3 seconds
+                
                 // Round system
                 roundWins: 0,
                 
                 // Visual
                 spawnPosition: config.spawnPosition.clone(),
-                originalColor: config.color
+                originalColor: config.color,
+                
+                // Ball rotation tracking
+                rollRotation: new THREE.Vector3(0, 0, 0)
             };
             
             this.players.push(player);
@@ -2190,6 +2198,16 @@ export class LocalMultiplayerBattle {
                 player.velocity.y = Math.max(0, player.velocity.y * -this.restitution);
             }
             
+            // Update ball rotation based on movement (rolling physics)
+            if (player.velocity.length() > 0.1) {
+                const rollSpeed = player.velocity.length() / this.ballRadius;
+                player.rollRotation.x += player.velocity.z * rollSpeed * deltaTime;
+                player.rollRotation.z -= player.velocity.x * rollSpeed * deltaTime;
+                
+                player.ball.rotation.x = player.rollRotation.x;
+                player.ball.rotation.z = player.rollRotation.z;
+            }
+            
             // Update label position
             if (player.label) {
                 player.label.position.copy(player.ball.position);
@@ -2300,19 +2318,59 @@ export class LocalMultiplayerBattle {
         player2.lastCollisionTime = currentTime;
     }
     
-    // Apply damage to a player
+    // Apply damage to a player with escalating damage system
     applyDamage(player, damage, attacker) {
-        player.damage += damage;
+        const currentTime = performance.now() / 1000; // Convert to seconds
+        let finalDamage = damage;
+        let hitMultiplier = 1.0;
+        
+        // Only apply escalating damage if there's an attacker (not environmental damage)
+        if (attacker && attacker.id !== undefined) {
+            // Reset consecutive hits if too much time has passed
+            if (currentTime - player.lastHitTime > player.hitResetTime) {
+                player.consecutiveHits.clear();
+            }
+            
+            // Get current consecutive hit count for this attacker
+            const currentHits = player.consecutiveHits.get(attacker.id) || 0;
+            const newHitCount = currentHits + 1;
+            
+            // Calculate damage multiplier based on consecutive hits
+            // 1st hit: 1.0x, 2nd hit: 1.3x, 3rd hit: 1.6x, 4th hit: 2.0x, 5th+ hit: 2.5x
+            if (newHitCount >= 5) {
+                hitMultiplier = 2.5;
+            } else if (newHitCount >= 4) {
+                hitMultiplier = 2.0;
+            } else if (newHitCount >= 3) {
+                hitMultiplier = 1.6;
+            } else if (newHitCount >= 2) {
+                hitMultiplier = 1.3;
+            } else {
+                hitMultiplier = 1.0;
+            }
+            
+            // Apply damage multiplier
+            finalDamage = damage * hitMultiplier;
+            
+            // Update consecutive hit tracking
+            player.consecutiveHits.set(attacker.id, newHitCount);
+            player.lastHitTime = currentTime;
+            
+            console.log(`💥 ${player.name} took ${finalDamage.toFixed(1)} damage (${hitMultiplier.toFixed(1)}x multiplier, hit #${newHitCount} from ${attacker.name})! Total: ${(player.damage + finalDamage).toFixed(1)}%`);
+        } else {
+            console.log(`💥 ${player.name} took ${finalDamage.toFixed(1)} environmental damage! Total: ${(player.damage + finalDamage).toFixed(1)}%`);
+        }
+        
+        // Apply the final damage
+        player.damage += finalDamage;
         player.damage = Math.min(player.damage, player.maxDamage);
         player.lastHitBy = attacker;
         
         // Apply hitstun
         player.hitstunTimer = this.hitstunTime;
         
-        console.log(`💥 ${player.name} took ${damage.toFixed(1)} damage! Total: ${player.damage.toFixed(1)}%`);
-        
-        // Create damage number effect
-        this.createDamageNumberEffect(player.ball.position.clone(), damage);
+        // Create enhanced damage number effect with multiplier info
+        this.createDamageNumberEffect(player.ball.position.clone(), finalDamage, hitMultiplier);
     }
     
     // Apply knockback based on damage percentage
@@ -2334,8 +2392,8 @@ export class LocalMultiplayerBattle {
         player.velocity.y += upwardKnockback / player.mass;
     }
     
-    // Create damage number effect
-    createDamageNumberEffect(position, damage) {
+    // Create damage number effect with multiplier support
+    createDamageNumberEffect(position, damage, multiplier = 1.0) {
         // Create ultra-high-quality canvas for the damage number
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
@@ -2348,9 +2406,12 @@ export class LocalMultiplayerBattle {
         context.textBaseline = 'middle';
         context.textRenderingOptimizeLegibility = true;
         
-        // Determine damage color with enhanced gradient effects
+        // Determine damage color with enhanced gradient effects and multiplier scaling
         let damageColor = '#FF0000';
         let glowColor = '#FF4444';
+        let multiplierColor = '#FFFF00';
+        
+        // Base damage color
         if (damage >= 40) {
             damageColor = '#FF0000'; // Red for massive damage
             glowColor = '#FF4444';
@@ -2365,22 +2426,41 @@ export class LocalMultiplayerBattle {
             glowColor = '#FFFFFF';
         }
         
+        // Enhanced colors for multiplied damage
+        if (multiplier >= 2.5) {
+            damageColor = '#FF0066'; // Hot pink for max multiplier
+            glowColor = '#FF4488';
+            multiplierColor = '#FF00FF';
+        } else if (multiplier >= 2.0) {
+            damageColor = '#FF0033'; // Bright red for high multiplier
+            glowColor = '#FF4466';
+            multiplierColor = '#FF6600';
+        } else if (multiplier >= 1.5) {
+            damageColor = '#FF3300'; // Orange-red for medium multiplier
+            glowColor = '#FF6644';
+            multiplierColor = '#FFAA00';
+        }
+        
         // Enhanced font with better stack
         context.font = 'bold 42px "Segoe UI", "Helvetica Neue", Arial, sans-serif';
         context.textAlign = 'center';
         
+        // Prepare damage text with multiplier
+        const damageText = `${damage.toFixed(0)}%`;
+        const multiplierText = multiplier > 1.0 ? `x${multiplier.toFixed(1)}` : '';
+        
         // Triple-layer outline for ultra-clarity
         context.strokeStyle = 'rgba(0, 0, 0, 1.0)';
         context.lineWidth = 8;
-        context.strokeText(`${damage.toFixed(0)}%`, 120, 60);
+        context.strokeText(damageText, 120, multiplierText ? 50 : 60);
         
         context.strokeStyle = 'rgba(64, 64, 64, 0.9)';
         context.lineWidth = 4;
-        context.strokeText(`${damage.toFixed(0)}%`, 120, 60);
+        context.strokeText(damageText, 120, multiplierText ? 50 : 60);
         
         context.strokeStyle = 'rgba(255, 255, 255, 0.8)';
         context.lineWidth = 2;
-        context.strokeText(`${damage.toFixed(0)}%`, 120, 60);
+        context.strokeText(damageText, 120, multiplierText ? 50 : 60);
         
         // Add glow effect
         context.shadowColor = glowColor;
@@ -2393,7 +2473,27 @@ export class LocalMultiplayerBattle {
         gradient.addColorStop(0, damageColor);
         gradient.addColorStop(1, glowColor);
         context.fillStyle = gradient;
-        context.fillText(`${damage.toFixed(0)}%`, 120, 60);
+        context.fillText(damageText, 120, multiplierText ? 50 : 60);
+        
+        // Add multiplier text if applicable
+        if (multiplierText) {
+            context.font = 'bold 24px "Segoe UI", "Helvetica Neue", Arial, sans-serif';
+            
+            // Multiplier outline
+            context.strokeStyle = 'rgba(0, 0, 0, 1.0)';
+            context.lineWidth = 4;
+            context.strokeText(multiplierText, 120, 80);
+            
+            context.strokeStyle = 'rgba(64, 64, 64, 0.9)';
+            context.lineWidth = 2;
+            context.strokeText(multiplierText, 120, 80);
+            
+            // Multiplier fill with glow
+            context.shadowColor = multiplierColor;
+            context.shadowBlur = 12;
+            context.fillStyle = multiplierColor;
+            context.fillText(multiplierText, 120, 80);
+        }
         
         // Create sprite with ultra-high-quality texture settings
         const texture = new THREE.CanvasTexture(canvas);
@@ -2768,6 +2868,14 @@ export class LocalMultiplayerBattle {
             player.acceleration.set(0, 0, 0);
             player.force.set(0, 0, 0);
             
+            // Reset escalating damage system
+            player.consecutiveHits.clear();
+            player.lastHitTime = 0;
+            
+            // Reset ball rotation
+            player.rollRotation.set(0, 0, 0);
+            player.ball.rotation.set(0, 0, 0);
+            
             // Reset position
             player.ball.position.copy(player.spawnPosition);
             player.ball.visible = true;
@@ -2928,10 +3036,16 @@ export class LocalMultiplayerBattle {
     createArenaHazards(theme) {
         this.clearHazards();
         
-        theme.hazards.forEach(hazardData => {
+        console.log(`🏗️ Creating hazards for ${theme.name}:`, theme.hazards.length);
+        
+        theme.hazards.forEach((hazardData, index) => {
+            console.log(`   Creating hazard ${index + 1}/${theme.hazards.length}: ${hazardData.type} at (${hazardData.position.x}, ${hazardData.position.z})`);
             const hazard = this.createHazard(hazardData, theme);
             if (hazard) {
                 this.hazards.push(hazard);
+                console.log(`   ✅ Successfully created ${hazardData.type} hazard`);
+            } else {
+                console.warn(`   ❌ Failed to create ${hazardData.type} hazard`);
             }
         });
         
@@ -2962,6 +3076,15 @@ export class LocalMultiplayerBattle {
                 break;
             case 'lava_burst':
                 hazard.mesh = this.createLavaBurstMarker(hazard, theme);
+                break;
+            case 'lava_geyser':
+                hazard.mesh = this.createLavaGeyser(hazard, theme);
+                break;
+            case 'magma_burst':
+                hazard.mesh = this.createMagmaBurst(hazard, theme);
+                break;
+            case 'lava_pool':
+                hazard.mesh = this.createLavaPool(hazard, theme);
                 break;
             case 'ramp':
                 hazard.mesh = this.createRamp(hazard, theme);
@@ -3077,6 +3200,126 @@ export class LocalMultiplayerBattle {
         ring.name = 'lava_warning';
         this.scene.add(ring);
         this.arenaObjects.push(ring);
+        
+        return mesh;
+    }
+    
+    // Create lava geyser hazard
+    createLavaGeyser(hazard, theme) {
+        const geometry = new THREE.CylinderGeometry(hazard.radius, hazard.radius * 0.8, 1.5, 16);
+        const material = new THREE.MeshLambertMaterial({ 
+            color: 0xFF4500,
+            emissive: 0xFF2200,
+            emissiveIntensity: 0.7,
+            transparent: true,
+            opacity: 0.9
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.copy(hazard.position);
+        mesh.position.y = 0.75;
+        mesh.name = 'lava_geyser';
+        this.scene.add(mesh);
+        this.arenaObjects.push(mesh);
+        
+        // Add geyser spout effect
+        const spoutGeometry = new THREE.CylinderGeometry(0.3, 0.8, 3, 8);
+        const spoutMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0xFF6600,
+            emissive: 0xFF4400,
+            emissiveIntensity: 0.8,
+            transparent: true,
+            opacity: 0.7
+        });
+        const spout = new THREE.Mesh(spoutGeometry, spoutMaterial);
+        spout.position.copy(hazard.position);
+        spout.position.y = 2.5;
+        spout.name = 'geyser_spout';
+        this.scene.add(spout);
+        this.arenaObjects.push(spout);
+        
+        return mesh;
+    }
+    
+    // Create magma burst hazard
+    createMagmaBurst(hazard, theme) {
+        const geometry = new THREE.CylinderGeometry(hazard.radius, hazard.radius * 0.6, 0.8, 12);
+        const material = new THREE.MeshLambertMaterial({ 
+            color: 0xCC2200,
+            emissive: 0xAA1100,
+            emissiveIntensity: 0.6,
+            transparent: true,
+            opacity: 0.8
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.copy(hazard.position);
+        mesh.position.y = 0.4;
+        mesh.name = 'magma_burst';
+        this.scene.add(mesh);
+        this.arenaObjects.push(mesh);
+        
+        // Add magma bubbles
+        for (let i = 0; i < 8; i++) {
+            const bubbleGeometry = new THREE.SphereGeometry(0.15, 8, 8);
+            const bubbleMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0xFF3300,
+                emissive: 0xDD2200,
+                emissiveIntensity: 0.5,
+                transparent: true,
+                opacity: 0.8
+            });
+            const bubble = new THREE.Mesh(bubbleGeometry, bubbleMaterial);
+            const angle = (i / 8) * Math.PI * 2;
+            bubble.position.set(
+                hazard.position.x + Math.cos(angle) * hazard.radius * 0.7,
+                0.2,
+                hazard.position.z + Math.sin(angle) * hazard.radius * 0.7
+            );
+            bubble.name = 'magma_bubble';
+            this.scene.add(bubble);
+            this.arenaObjects.push(bubble);
+        }
+        
+        return mesh;
+    }
+    
+    // Create lava pool hazard
+    createLavaPool(hazard, theme) {
+        const geometry = new THREE.CylinderGeometry(hazard.radius, hazard.radius, 0.2, 16);
+        const material = new THREE.MeshLambertMaterial({ 
+            color: 0xDD3300,
+            emissive: 0xBB2200,
+            emissiveIntensity: 0.5,
+            transparent: true,
+            opacity: 0.9
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.copy(hazard.position);
+        mesh.position.y = 0.1;
+        mesh.name = 'lava_pool';
+        this.scene.add(mesh);
+        this.arenaObjects.push(mesh);
+        
+        // Add bubbling effect
+        for (let i = 0; i < 6; i++) {
+            const bubbleGeometry = new THREE.SphereGeometry(0.1, 6, 6);
+            const bubbleMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0xFF4400,
+                emissive: 0xDD3300,
+                emissiveIntensity: 0.6,
+                transparent: true,
+                opacity: 0.8
+            });
+            const bubble = new THREE.Mesh(bubbleGeometry, bubbleMaterial);
+            const angle = (i / 6) * Math.PI * 2;
+            bubble.position.set(
+                hazard.position.x + Math.cos(angle) * hazard.radius * 0.5,
+                0.15,
+                hazard.position.z + Math.sin(angle) * hazard.radius * 0.5
+            );
+            bubble.name = 'lava_bubble';
+            this.scene.add(bubble);
+            this.arenaObjects.push(bubble);
+        }
         
         return mesh;
     }
@@ -3501,70 +3744,101 @@ export class LocalMultiplayerBattle {
     
     // Create quicksand hazard
     createQuicksand(hazard, theme) {
-        const geometry = new THREE.CylinderGeometry(hazard.radius, hazard.radius * 0.8, 0.3, 16);
-        const material = new THREE.MeshLambertMaterial({ 
-            color: 0xF4A460,
-            transparent: true,
-            opacity: 0.8
-        });
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.position.copy(hazard.position);
-        mesh.position.y = 0.15;
-        mesh.name = 'quicksand';
-        this.scene.add(mesh);
-        this.arenaObjects.push(mesh);
-        
-        // Add bubbling sand particles
-        for (let i = 0; i < 12; i++) {
-            const bubbleGeometry = new THREE.SphereGeometry(0.05, 8, 8);
-            const bubbleMaterial = new THREE.MeshLambertMaterial({ 
-                color: 0xDEB887,
+        try {
+            const geometry = new THREE.CylinderGeometry(hazard.radius, hazard.radius * 0.8, 0.3, 16);
+            const material = new THREE.MeshLambertMaterial({ 
+                color: 0xF4A460,
                 transparent: true,
-                opacity: 0.6
+                opacity: 0.8
             });
-            const bubble = new THREE.Mesh(bubbleGeometry, bubbleMaterial);
-            const angle = (i / 12) * Math.PI * 2;
-            const radius = Math.random() * hazard.radius * 0.8;
-            bubble.position.set(
-                hazard.position.x + Math.cos(angle) * radius,
-                0.2,
-                hazard.position.z + Math.sin(angle) * radius
-            );
-            bubble.name = 'sand_bubble';
-            this.scene.add(bubble);
-            this.arenaObjects.push(bubble);
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.copy(hazard.position);
+            mesh.position.y = 0.15;
+            mesh.name = 'quicksand';
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            this.scene.add(mesh);
+            this.arenaObjects.push(mesh);
+            
+            // Add bubbling sand particles
+            for (let i = 0; i < 12; i++) {
+                const bubbleGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+                const bubbleMaterial = new THREE.MeshLambertMaterial({ 
+                    color: 0xDEB887,
+                    transparent: true,
+                    opacity: 0.6
+                });
+                const bubble = new THREE.Mesh(bubbleGeometry, bubbleMaterial);
+                const angle = (i / 12) * Math.PI * 2;
+                const radius = Math.random() * hazard.radius * 0.8;
+                bubble.position.set(
+                    hazard.position.x + Math.cos(angle) * radius,
+                    0.2,
+                    hazard.position.z + Math.sin(angle) * radius
+                );
+                bubble.name = 'sand_bubble';
+                bubble.castShadow = true;
+                bubble.receiveShadow = true;
+                this.scene.add(bubble);
+                this.arenaObjects.push(bubble);
+            }
+            
+            console.log(`🏖️ Quicksand hazard created at (${hazard.position.x}, ${hazard.position.z}) with radius ${hazard.radius}`);
+            return mesh;
+        } catch (error) {
+            console.error('Failed to create quicksand hazard:', error);
+            return null;
         }
-        
-        return mesh;
     }
     
     // Create sandstorm hazard
     createSandstorm(hazard, theme) {
-        const geometry = new THREE.CylinderGeometry(hazard.radius, hazard.radius * 0.6, 0.8, 16);
+        // Create tornado-like vortex shape (cone that gets wider at the top)
+        const geometry = new THREE.ConeGeometry(hazard.radius * 0.3, 6, 16);
         const material = new THREE.MeshLambertMaterial({ 
             color: 0xCD853F,
             transparent: true,
-            opacity: 0.4
+            opacity: 0.5,
+            emissive: 0x8B4513,
+            emissiveIntensity: 0.2
         });
         const mesh = new THREE.Mesh(geometry, material);
         mesh.position.copy(hazard.position);
-        mesh.position.y = 0.4;
+        mesh.position.y = 3; // Raise the vortex higher
         mesh.name = 'sandstorm';
         this.scene.add(mesh);
         this.arenaObjects.push(mesh);
         
-        // Add swirling sand particles
-        for (let i = 0; i < 20; i++) {
-            const particleGeometry = new THREE.SphereGeometry(0.08, 6, 6);
+        // Add base swirl effect
+        const baseGeometry = new THREE.CylinderGeometry(hazard.radius, hazard.radius * 0.6, 0.3, 16);
+        const baseMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0xF4A460,
+            transparent: true,
+            opacity: 0.6,
+            emissive: 0xCD853F,
+            emissiveIntensity: 0.3
+        });
+        const baseMesh = new THREE.Mesh(baseGeometry, baseMaterial);
+        baseMesh.position.copy(hazard.position);
+        baseMesh.position.y = 0.15;
+        baseMesh.name = 'sandstorm_base';
+        this.scene.add(baseMesh);
+        this.arenaObjects.push(baseMesh);
+        
+        // Add enhanced swirling sand particles in a spiral pattern
+        for (let i = 0; i < 30; i++) {
+            const particleGeometry = new THREE.SphereGeometry(0.1, 6, 6);
             const particleMaterial = new THREE.MeshLambertMaterial({ 
                 color: 0xF5DEB3,
                 transparent: true,
-                opacity: 0.7
+                opacity: 0.8,
+                emissive: 0xFFD700,
+                emissiveIntensity: 0.1
             });
             const particle = new THREE.Mesh(particleGeometry, particleMaterial);
-            const angle = (i / 20) * Math.PI * 2;
-            const radius = Math.random() * hazard.radius;
-            const height = Math.random() * 3 + 0.5;
+            const angle = (i / 30) * Math.PI * 2;
+            const radius = Math.random() * hazard.radius * 0.8;
+            const height = Math.random() * 5 + 0.5; // Particles go higher
             particle.position.set(
                 hazard.position.x + Math.cos(angle) * radius,
                 height,
@@ -3573,6 +3847,27 @@ export class LocalMultiplayerBattle {
             particle.name = 'sand_particle';
             this.scene.add(particle);
             this.arenaObjects.push(particle);
+        }
+        
+        // Add warning arrows pointing up
+        for (let i = 0; i < 4; i++) {
+            const arrowGeometry = new THREE.ConeGeometry(0.3, 1, 6);
+            const arrowMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0xFFD700,
+                emissive: 0xFFD700,
+                emissiveIntensity: 0.6
+            });
+            const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+            const angle = (i / 4) * Math.PI * 2;
+            arrow.position.set(
+                hazard.position.x + Math.cos(angle) * (hazard.radius * 0.8),
+                1.5,
+                hazard.position.z + Math.sin(angle) * (hazard.radius * 0.8)
+            );
+            arrow.rotation.x = -Math.PI / 2; // Point upward
+            arrow.name = 'vortex_arrow';
+            this.scene.add(arrow);
+            this.arenaObjects.push(arrow);
         }
         
         return mesh;
@@ -3707,6 +4002,15 @@ export class LocalMultiplayerBattle {
                 case 'lava_burst':
                     this.updateLavaBurst(hazard, deltaTime);
                     break;
+                case 'lava_geyser':
+                    this.updateLavaGeyser(hazard, deltaTime);
+                    break;
+                case 'magma_burst':
+                    this.updateMagmaBurst(hazard, deltaTime);
+                    break;
+                case 'lava_pool':
+                    this.updateLavaPool(hazard, deltaTime);
+                    break;
                 case 'sinkhole':
                     this.updateSinkhole(hazard, deltaTime);
                     break;
@@ -3738,7 +4042,8 @@ export class LocalMultiplayerBattle {
                     this.updateMirageTeleporter(hazard, deltaTime);
                     break;
                 case 'launch_pad':
-                    // Launch pads are always active, no special update needed
+                    // Animate launch pad effects
+                    this.updateLaunchPad(hazard, deltaTime);
                     break;
                 case 'wind_current':
                     // Wind currents are always active, no special update needed
@@ -3810,15 +4115,150 @@ export class LocalMultiplayerBattle {
             
             const distance = player.ball.position.distanceTo(hazard.position);
             if (distance <= hazard.radius) {
-                // Apply upward knockback
-                player.velocity.y += hazard.force;
-                player.velocity.x += (Math.random() - 0.5) * 5;
-                player.velocity.z += (Math.random() - 0.5) * 5;
+                // Enhanced dramatic launch effect
+                const launchForce = Math.max(45, hazard.force * 1.8); // Minimum 45 force, or 1.8x hazard force
+                const minLaunchVelocity = 35; // Ensure minimum launch height
+                
+                // Apply powerful upward launch
+                player.velocity.y = Math.max(player.velocity.y + launchForce, minLaunchVelocity);
+                
+                // Add more dramatic horizontal spread based on distance from center
+                const centerOffset = new THREE.Vector3()
+                    .subVectors(player.ball.position, hazard.position)
+                    .normalize();
+                const horizontalForce = 8 + (Math.random() * 4); // 8-12 horizontal force
+                
+                player.velocity.x += centerOffset.x * horizontalForce + (Math.random() - 0.5) * 6;
+                player.velocity.z += centerOffset.z * horizontalForce + (Math.random() - 0.5) * 6;
+                
+                // Add dramatic screen shake
+                this.cameraShake = Math.max(this.cameraShake, 1.0);
                 
                 // Apply damage
                 this.applyDamage(player, 8, null);
                 
-                console.log(`🔥 ${player.name} caught in lava burst!`);
+                console.log(`🌋🚀 ${player.name} LAUNCHED by volcano explosion! Launch force: ${launchForce}, Min velocity: ${minLaunchVelocity}`);
+            }
+        });
+    }
+    
+    // Update lava geyser hazard
+    updateLavaGeyser(hazard, deltaTime) {
+        if (hazard.timer >= hazard.interval) {
+            hazard.timer = 0;
+            this.triggerLavaGeyser(hazard);
+        }
+        
+        // Animate geyser spout
+        this.scene.traverse((child) => {
+            if (child.name === 'geyser_spout') {
+                const spoutDistance = child.position.distanceTo(hazard.position);
+                if (spoutDistance < 1) {
+                    const timeToErupt = hazard.interval - hazard.timer;
+                    const intensity = Math.max(0.4, 1 - (timeToErupt / hazard.interval));
+                    child.material.emissiveIntensity = intensity;
+                    
+                    // Pulsing scale effect
+                    const pulseScale = 1 + Math.sin(hazard.timer * 6) * 0.2 * intensity;
+                    child.scale.setScalar(pulseScale);
+                }
+            }
+        });
+    }
+    
+    // Update magma burst hazard
+    updateMagmaBurst(hazard, deltaTime) {
+        if (hazard.timer >= hazard.interval) {
+            hazard.timer = 0;
+            this.triggerMagmaBurst(hazard);
+        }
+        
+        // Animate magma bubbles
+        this.scene.traverse((child) => {
+            if (child.name === 'magma_bubble') {
+                const bubbleDistance = child.position.distanceTo(hazard.position);
+                if (bubbleDistance < hazard.radius * 1.2) {
+                    const timeToErupt = hazard.interval - hazard.timer;
+                    const intensity = Math.max(0.3, 1 - (timeToErupt / hazard.interval));
+                    child.material.emissiveIntensity = intensity;
+                    
+                    // Bubbling effect
+                    child.position.y = 0.2 + Math.sin(hazard.timer * 8 + bubbleDistance * 10) * 0.1 * intensity;
+                }
+            }
+        });
+    }
+    
+    // Trigger lava geyser
+    triggerLavaGeyser(hazard) {
+        console.log(`🌋💨 Lava geyser erupting at (${hazard.position.x}, ${hazard.position.z})`);
+        
+        // Create massive geyser eruption effect
+        const eruptionGeometry = new THREE.CylinderGeometry(hazard.radius * 2, hazard.radius * 0.5, 12, 16);
+        const eruptionMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0xFF6600,
+            emissive: 0xFF4400,
+            emissiveIntensity: 1.0,
+            transparent: true,
+            opacity: 0.9
+        });
+        const eruption = new THREE.Mesh(eruptionGeometry, eruptionMaterial);
+        eruption.position.copy(hazard.position);
+        eruption.position.y = 6;
+        eruption.name = 'geyser_eruption';
+        this.scene.add(eruption);
+        
+        // Add to hazard effects for cleanup
+        this.hazardEffects.push({
+            mesh: eruption,
+            life: 2.0,
+            maxLife: 2.0,
+            type: 'geyser_eruption'
+        });
+    }
+    
+    // Trigger magma burst
+    triggerMagmaBurst(hazard) {
+        console.log(`🌋🔥 Magma burst erupting at (${hazard.position.x}, ${hazard.position.z})`);
+        
+        // Create magma burst effect
+        const burstGeometry = new THREE.SphereGeometry(hazard.radius * 1.2, 12, 12);
+        const burstMaterial = new THREE.MeshLambertMaterial({ 
+            color: 0xFF3300,
+            emissive: 0xDD2200,
+            emissiveIntensity: 0.9,
+            transparent: true,
+            opacity: 0.8
+        });
+        const burst = new THREE.Mesh(burstGeometry, burstMaterial);
+        burst.position.copy(hazard.position);
+        burst.position.y = 1;
+        burst.name = 'magma_burst_effect';
+        this.scene.add(burst);
+        
+        // Add to hazard effects for cleanup
+        this.hazardEffects.push({
+            mesh: burst,
+            life: 1.2,
+            maxLife: 1.2,
+            type: 'magma_burst'
+        });
+    }
+    
+    // Update lava pool hazard
+    updateLavaPool(hazard, deltaTime) {
+        // Animate lava bubbles
+        this.scene.traverse((child) => {
+            if (child.name === 'lava_bubble') {
+                const bubbleDistance = child.position.distanceTo(hazard.position);
+                if (bubbleDistance < hazard.radius * 1.2) {
+                    // Bubbling animation
+                    child.position.y = 0.15 + Math.sin(hazard.timer * 4 + bubbleDistance * 8) * 0.05;
+                    
+                    // Pulsing glow
+                    const glowIntensity = 0.6 + Math.sin(hazard.timer * 6 + bubbleDistance * 12) * 0.2;
+                    child.material.emissiveIntensity = glowIntensity;
+                }
             }
         });
     }
@@ -3830,12 +4270,25 @@ export class LocalMultiplayerBattle {
             if (child.name === 'sinkhole_ring') {
                 const ringDistance = child.position.distanceTo(hazard.position);
                 if (ringDistance < 1) { // Ring should be very close to hazard center
-                    child.rotation.z += deltaTime * 2;
+                    child.rotation.z += deltaTime * 3; // Faster rotation for more dramatic effect
+                }
+            }
+            
+            // Animate sand particles for desert sinkholes
+            if (child.name === 'sand_particle_sinkhole') {
+                const particleDistance = child.position.distanceTo(hazard.position);
+                if (particleDistance < hazard.radius * 1.2) {
+                    // Spiral particles inward
+                    const angle = hazard.timer * 4 + particleDistance;
+                    const radius = particleDistance * 0.95; // Gradually spiral inward
+                    child.position.x = hazard.position.x + Math.cos(angle) * radius;
+                    child.position.z = hazard.position.z + Math.sin(angle) * radius;
+                    child.position.y = Math.max(0.1, child.position.y - deltaTime * 0.5); // Sink down
                 }
             }
         });
         
-        // Pull nearby players
+        // Pull nearby players with enhanced mechanics
         this.players.forEach(player => {
             if (!player.isAlive) return;
             
@@ -3847,17 +4300,36 @@ export class LocalMultiplayerBattle {
                     .subVectors(hazard.position, player.ball.position)
                     .normalize();
                 
-                // Apply pull force
-                const pullForce = direction.multiplyScalar(pullStrength);
-                player.force.add(pullForce);
+                // Apply much stronger horizontal pull force directly to velocity
+                const horizontalPull = direction.clone();
+                horizontalPull.y = 0; // Remove vertical component
+                horizontalPull.normalize();
                 
-                // Slight downward pull
-                player.velocity.y -= pullStrength * 0.1;
+                player.velocity.add(horizontalPull.multiplyScalar(pullStrength * 1.2)); // Increased from 0.5 to 1.2
+                
+                // Massive downward pull - make players sink into the map
+                const downwardPull = Math.max(15, pullStrength * 1.5); // Increased minimum from 8 to 15, multiplier from 0.8 to 1.5
+                player.velocity.y -= downwardPull;
+                
+                // If player is getting pulled down, accelerate the process
+                if (player.ball.position.y < 0) {
+                    player.velocity.y = Math.min(player.velocity.y, -30); // Increased from -25 to -30
+                    console.log(`🕳️💀 ${player.name} being sucked underground! Y: ${player.ball.position.y.toFixed(1)}`);
+                }
+                
+                // If player is deep enough, make them fall through the map completely
+                if (player.ball.position.y < -5) {
+                    player.velocity.y = Math.min(player.velocity.y, -50); // Massive acceleration
+                    console.log(`🕳️💀 ${player.name} falling through the map! Y: ${player.ball.position.y.toFixed(1)}`);
+                }
+                
+                // Add screen shake when players are being pulled
+                this.cameraShake = Math.max(this.cameraShake, 0.3);
                 
                 // Debug logging only on first contact
                 if (!hazard.affectedPlayers.has(player.id)) {
                     hazard.affectedPlayers.add(player.id);
-                    console.log(`🕳️ ${player.name} pulled by sinkhole! Force: ${pullStrength.toFixed(1)}`);
+                    console.log(`🕳️🌪️ ${player.name} pulled by sinkhole! Pull strength: ${pullStrength.toFixed(1)}, Downward: ${downwardPull.toFixed(1)}`);
                 }
             } else {
                 hazard.affectedPlayers.delete(player.id);
@@ -3998,18 +4470,70 @@ export class LocalMultiplayerBattle {
             this.triggerSandstorm(hazard);
         }
         
-        // Animate sand particles
+        // Animate vortex effects
         this.scene.traverse((child) => {
+            // Animate main vortex cone
+            if (child.name === 'sandstorm') {
+                const vortexDistance = child.position.distanceTo(hazard.position);
+                if (vortexDistance < 1) {
+                    // Rotate the vortex
+                    child.rotation.y += deltaTime * 4;
+                    
+                    // Pulse the vortex intensity
+                    const pulseIntensity = Math.sin(hazard.timer * 3) * 0.3 + 0.7;
+                    child.material.opacity = 0.5 * pulseIntensity;
+                    child.material.emissiveIntensity = 0.2 * pulseIntensity;
+                    
+                    // Scale pulsing
+                    const scaleMultiplier = 1 + Math.sin(hazard.timer * 2) * 0.1;
+                    child.scale.setScalar(scaleMultiplier);
+                }
+            }
+            
+            // Animate base swirl
+            if (child.name === 'sandstorm_base') {
+                const baseDistance = child.position.distanceTo(hazard.position);
+                if (baseDistance < 1) {
+                    // Rotate base in opposite direction
+                    child.rotation.y -= deltaTime * 6;
+                    
+                    // Pulse base intensity
+                    const pulseIntensity = Math.sin(hazard.timer * 4) * 0.4 + 0.6;
+                    child.material.emissiveIntensity = 0.3 * pulseIntensity;
+                }
+            }
+            
+            // Animate warning arrows
+            if (child.name === 'vortex_arrow') {
+                const arrowDistance = child.position.distanceTo(hazard.position);
+                if (arrowDistance < hazard.radius * 1.2) {
+                    // Bobbing animation
+                    const bobOffset = Math.sin(hazard.timer * 8 + child.position.x) * 0.2;
+                    child.position.y = 1.5 + bobOffset;
+                    
+                    // Pulsing glow
+                    const glowIntensity = Math.sin(hazard.timer * 6) * 0.4 + 0.6;
+                    child.material.emissiveIntensity = 0.6 * glowIntensity;
+                }
+            }
+            
+            // Animate sand particles in spiral
             if (child.name === 'sand_particle') {
                 const particleDistance = child.position.distanceTo(hazard.position);
                 if (particleDistance < hazard.radius * 1.5) {
-                    // Swirl particles around
-                    const angle = hazard.timer * 2 + child.position.x;
-                    const radius = particleDistance * 0.8;
+                    // Enhanced spiral motion
+                    const angle = hazard.timer * 5 + child.position.x + child.position.z;
+                    const radius = particleDistance * 0.9;
+                    const heightFactor = child.position.y / 6; // Higher particles move faster
+                    
                     child.position.x = hazard.position.x + Math.cos(angle) * radius;
                     child.position.z = hazard.position.z + Math.sin(angle) * radius;
-                    child.position.y = 0.5 + Math.sin(hazard.timer * 4) * 1.5;
-                    child.material.opacity = 0.7 + Math.sin(hazard.timer * 3) * 0.3;
+                    child.position.y = Math.max(0.5, child.position.y + Math.sin(hazard.timer * 3) * 0.3);
+                    
+                    // Pulsing opacity and glow
+                    const pulseIntensity = Math.sin(hazard.timer * 4 + child.position.y) * 0.3 + 0.7;
+                    child.material.opacity = 0.8 * pulseIntensity;
+                    child.material.emissiveIntensity = 0.1 * pulseIntensity;
                 }
             }
         });
@@ -4049,6 +4573,63 @@ export class LocalMultiplayerBattle {
                     if (chargeIntensity > 0.8) {
                         const pulse = Math.sin(hazard.timer * 20) * 0.3 + 0.7;
                         child.material.emissiveIntensity = pulse;
+                    }
+                }
+            }
+        });
+    }
+    
+    // Update launch pad hazard
+    updateLaunchPad(hazard, deltaTime) {
+        // Animate launch pad effects
+        this.scene.traverse((child) => {
+            if (child.name === 'launch_pad') {
+                const padDistance = child.position.distanceTo(hazard.position);
+                if (padDistance < 1) {
+                    // Pulsing intensity effect
+                    const pulseIntensity = Math.sin(hazard.timer * 4) * 0.3 + 0.7;
+                    child.material.emissiveIntensity = pulseIntensity;
+                    
+                    // Slight scale pulsing
+                    const scaleMultiplier = 1 + Math.sin(hazard.timer * 4) * 0.05;
+                    child.scale.setScalar(scaleMultiplier);
+                }
+            }
+            
+            // Animate launch arrows
+            if (child.name === 'launch_arrow') {
+                const arrowDistance = child.position.distanceTo(hazard.position);
+                if (arrowDistance < 2) {
+                    // Bobbing animation
+                    const bobOffset = Math.sin(hazard.timer * 6 + child.position.y) * 0.1;
+                    child.position.y = child.userData.originalY + bobOffset;
+                    
+                    // Store original Y position if not already stored
+                    if (!child.userData.originalY) {
+                        child.userData.originalY = child.position.y;
+                    }
+                    
+                    // Pulsing glow
+                    const glowIntensity = Math.sin(hazard.timer * 5) * 0.4 + 0.8;
+                    child.material.emissiveIntensity = glowIntensity;
+                }
+            }
+            
+            // Animate energy rings
+            if (child.name === 'launch_ring') {
+                const ringDistance = child.position.distanceTo(hazard.position);
+                if (ringDistance < 2) {
+                    // Rotating rings
+                    child.rotation.z += deltaTime * 2;
+                    
+                    // Pulsing opacity
+                    const pulseIntensity = Math.sin(hazard.timer * 3 + child.position.y * 10) * 0.3 + 0.7;
+                    child.material.opacity = child.userData.originalOpacity * pulseIntensity;
+                    child.material.emissiveIntensity = 0.6 + pulseIntensity * 0.4;
+                    
+                    // Store original opacity if not already stored
+                    if (!child.userData.originalOpacity) {
+                        child.userData.originalOpacity = child.material.opacity;
                     }
                 }
             }
@@ -4143,7 +4724,7 @@ export class LocalMultiplayerBattle {
      
      // Trigger sandstorm
      triggerSandstorm(hazard) {
-         console.log(`🌪️ Sandstorm activated at (${hazard.position.x}, ${hazard.position.z})`);
+         console.log(`🌪️ Sandstorm vortex activated at (${hazard.position.x}, ${hazard.position.z})`);
          
          // Apply sandstorm damage and force to all players in range
          this.players.forEach(player => {
@@ -4153,14 +4734,23 @@ export class LocalMultiplayerBattle {
              if (distance <= hazard.radius) {
                  const stormForce = hazard.force * (1 - distance / hazard.radius);
                  
-                 // Apply random directional force (chaotic sandstorm)
-                 const randomDirection = new THREE.Vector3(
-                     (Math.random() - 0.5) * 2,
-                     Math.random() * 0.5,
-                     (Math.random() - 0.5) * 2
-                 ).normalize();
+                 // Enhanced vortex launch effect - powerful upward spiral
+                 const launchForce = Math.max(35, stormForce * 1.5); // Minimum 35 force
+                 const minLaunchVelocity = 30; // Ensure minimum launch height
                  
-                 player.velocity.add(randomDirection.multiplyScalar(stormForce));
+                 // Create spiral vortex effect - players get launched up in a spiral
+                 const spiralAngle = hazard.timer * 5 + distance; // Spiral based on time and distance
+                 const spiralRadius = 8 + Math.random() * 4; // 8-12 horizontal force
+                 
+                 // Apply powerful upward launch
+                 player.velocity.y = Math.max(player.velocity.y + launchForce, minLaunchVelocity);
+                 
+                 // Apply spiral horizontal forces
+                 player.velocity.x += Math.cos(spiralAngle) * spiralRadius;
+                 player.velocity.z += Math.sin(spiralAngle) * spiralRadius;
+                 
+                 // Add dramatic screen shake
+                 this.cameraShake = Math.max(this.cameraShake, 0.9);
                  
                  // Apply sandstorm damage
                  this.applyDamage(player, hazard.damage, null);
@@ -4168,7 +4758,7 @@ export class LocalMultiplayerBattle {
                  // Temporary vision impairment (hitstun)
                  player.hitstunTimer = Math.max(player.hitstunTimer, 0.8);
                  
-                 console.log(`🌪️💨 ${player.name} caught in sandstorm! Force: ${stormForce.toFixed(1)}, Damage: ${hazard.damage}`);
+                 console.log(`🌪️🚀 ${player.name} LAUNCHED by sandstorm vortex! Launch force: ${launchForce}, Min velocity: ${minLaunchVelocity}`);
              }
          });
      }
@@ -4249,6 +4839,33 @@ export class LocalMultiplayerBattle {
                         if (!hazard.affectedPlayers.has(player.id)) {
                             hazard.affectedPlayers.add(player.id);
                             console.log(`🧊 ${player.name} stepped on ice! Friction: ${iceFriction.toFixed(3)}`);
+                        }
+                    } else {
+                        hazard.affectedPlayers.delete(player.id);
+                    }
+                    break;
+                    
+                case 'sinkhole':
+                    if (distance <= hazard.radius) {
+                        // Continuous sinkhole pull effect
+                        const pullStrength = hazard.strength * (1 - distance / hazard.radius);
+                        const direction = new THREE.Vector3()
+                            .subVectors(hazard.position, player.ball.position)
+                            .normalize();
+                        
+                        // Apply continuous horizontal pull
+                        const horizontalPull = direction.clone();
+                        horizontalPull.y = 0;
+                        horizontalPull.normalize();
+                        player.velocity.add(horizontalPull.multiplyScalar(pullStrength * 0.8));
+                        
+                        // Apply continuous downward pull
+                        const downwardPull = Math.max(12, pullStrength * 1.2);
+                        player.velocity.y -= downwardPull * 0.5; // Continuous pull
+                        
+                        if (!hazard.affectedPlayers.has(player.id)) {
+                            hazard.affectedPlayers.add(player.id);
+                            console.log(`🕳️ ${player.name} caught in sinkhole! Pull strength: ${pullStrength.toFixed(1)}`);
                         }
                     } else {
                         hazard.affectedPlayers.delete(player.id);
@@ -4368,17 +4985,30 @@ export class LocalMultiplayerBattle {
                     
                 case 'launch_pad':
                     if (distance <= hazard.radius) {
-                        // Apply powerful upward launch
-                        player.velocity.y = Math.max(player.velocity.y, hazard.force);
-                        
-                        // Add slight horizontal spread for variety
-                        player.velocity.x += (Math.random() - 0.5) * 3;
-                        player.velocity.z += (Math.random() - 0.5) * 3;
-                        
                         if (!hazard.affectedPlayers.has(player.id)) {
                             hazard.affectedPlayers.add(player.id);
+                            
+                            // Enhanced dramatic launch effect similar to volcano
+                            const launchForce = Math.max(50, hazard.force * 1.2); // Minimum 50 force, or 1.2x hazard force
+                            const minLaunchVelocity = 40; // Ensure minimum launch height for upper level
+                            
+                            // Apply powerful upward launch (additive, not max)
+                            player.velocity.y = Math.max(player.velocity.y + launchForce, minLaunchVelocity);
+                            
+                            // Add directional spread based on distance from center
+                            const centerOffset = new THREE.Vector3()
+                                .subVectors(player.ball.position, hazard.position)
+                                .normalize();
+                            const horizontalForce = 6 + (Math.random() * 3); // 6-9 horizontal force
+                            
+                            player.velocity.x += centerOffset.x * horizontalForce + (Math.random() - 0.5) * 4;
+                            player.velocity.z += centerOffset.z * horizontalForce + (Math.random() - 0.5) * 4;
+                            
+                            // Add dramatic screen shake
+                            this.cameraShake = Math.max(this.cameraShake, 0.8);
+                            
                             this.createBounceEffect(player.ball.position.clone());
-                            console.log(`🚀 ${player.name} launched to upper level! Force: ${hazard.force}`);
+                            console.log(`🚀💨 ${player.name} LAUNCHED to upper level! Launch force: ${launchForce}, Min velocity: ${minLaunchVelocity}`);
                         }
                     } else {
                         hazard.affectedPlayers.delete(player.id);
@@ -4454,11 +5084,126 @@ export class LocalMultiplayerBattle {
                     break;
                     
                 case 'sandstorm':
-                    // Sandstorm collision is handled by the trigger method
+                    if (distance <= hazard.radius) {
+                        if (!hazard.affectedPlayers.has(player.id)) {
+                            hazard.affectedPlayers.add(player.id);
+                            
+                            // Continuous vortex launch effect - always active
+                            const vortexForce = Math.max(40, hazard.force * 2.0); // Minimum 40 force, 2x hazard force
+                            const minLaunchVelocity = 35; // High launch velocity
+                            
+                            // Create powerful upward spiral launch
+                            const spiralAngle = hazard.timer * 8 + distance * 3; // Fast spiral
+                            const spiralRadius = 10 + Math.random() * 5; // 10-15 horizontal force
+                            
+                            // Apply massive upward launch
+                            player.velocity.y = Math.max(player.velocity.y + vortexForce, minLaunchVelocity);
+                            
+                            // Apply strong spiral horizontal forces
+                            player.velocity.x += Math.cos(spiralAngle) * spiralRadius;
+                            player.velocity.z += Math.sin(spiralAngle) * spiralRadius;
+                            
+                            // Apply damage
+                            this.applyDamage(player, hazard.damage, null);
+                            
+                            // Dramatic screen shake
+                            this.cameraShake = Math.max(this.cameraShake, 1.0);
+                            
+                            console.log(`🌪️🚀 ${player.name} LAUNCHED by sandstorm vortex! Force: ${vortexForce}, Min velocity: ${minLaunchVelocity}`);
+                        }
+                    } else {
+                        hazard.affectedPlayers.delete(player.id);
+                    }
                     break;
                     
                 case 'obelisk_blast':
                     // Obelisk blast collision is handled by the trigger method
+                    break;
+                    
+                case 'lava_geyser':
+                    if (distance <= hazard.radius) {
+                        if (!hazard.affectedPlayers.has(player.id)) {
+                            hazard.affectedPlayers.add(player.id);
+                            
+                            // Powerful geyser launch effect - even stronger than volcano
+                            const geyserForce = Math.max(60, hazard.force * 2.0); // Minimum 60 force, or 2x hazard force
+                            const minLaunchVelocity = 50; // Very high launch for geyser
+                            
+                            // Apply explosive upward launch
+                            player.velocity.y = Math.max(player.velocity.y + geyserForce, minLaunchVelocity);
+                            
+                            // Add dramatic horizontal spread
+                            const centerOffset = new THREE.Vector3()
+                                .subVectors(player.ball.position, hazard.position)
+                                .normalize();
+                            const horizontalForce = 12 + (Math.random() * 6); // 12-18 horizontal force
+                            
+                            player.velocity.x += centerOffset.x * horizontalForce + (Math.random() - 0.5) * 8;
+                            player.velocity.z += centerOffset.z * horizontalForce + (Math.random() - 0.5) * 8;
+                            
+                            // Apply geyser damage
+                            this.applyDamage(player, hazard.damage, null);
+                            
+                            // Massive screen shake for geyser
+                            this.cameraShake = Math.max(this.cameraShake, 1.2);
+                            
+                            console.log(`🌋💨 ${player.name} BLASTED by lava geyser! Force: ${geyserForce}, Min velocity: ${minLaunchVelocity}`);
+                        }
+                    } else {
+                        hazard.affectedPlayers.delete(player.id);
+                    }
+                    break;
+                    
+                case 'magma_burst':
+                    if (distance <= hazard.radius) {
+                        if (!hazard.affectedPlayers.has(player.id)) {
+                            hazard.affectedPlayers.add(player.id);
+                            
+                            // Magma burst launch effect - medium strength
+                            const magmaForce = Math.max(40, hazard.force * 1.5); // Minimum 40 force, or 1.5x hazard force
+                            const minLaunchVelocity = 30; // Good launch height
+                            
+                            // Apply upward launch
+                            player.velocity.y = Math.max(player.velocity.y + magmaForce, minLaunchVelocity);
+                            
+                            // Add horizontal spread
+                            const centerOffset = new THREE.Vector3()
+                                .subVectors(player.ball.position, hazard.position)
+                                .normalize();
+                            const horizontalForce = 8 + (Math.random() * 4); // 8-12 horizontal force
+                            
+                            player.velocity.x += centerOffset.x * horizontalForce + (Math.random() - 0.5) * 6;
+                            player.velocity.z += centerOffset.z * horizontalForce + (Math.random() - 0.5) * 6;
+                            
+                            // Apply magma damage
+                            this.applyDamage(player, hazard.damage, null);
+                            
+                            // Screen shake for magma burst
+                            this.cameraShake = Math.max(this.cameraShake, 0.8);
+                            
+                            console.log(`🌋🔥 ${player.name} hit by magma burst! Force: ${magmaForce}, Min velocity: ${minLaunchVelocity}`);
+                        }
+                    } else {
+                        hazard.affectedPlayers.delete(player.id);
+                    }
+                    break;
+                    
+                case 'lava_pool':
+                    if (distance <= hazard.radius) {
+                        // Continuous damage and slowing effect
+                        this.applyDamage(player, hazard.damage * deltaTime * 2, null); // Damage over time
+                        
+                        // Slow player movement in lava
+                        player.velocity.x *= 0.7;
+                        player.velocity.z *= 0.7;
+                        
+                        // Occasional small upward push from bubbling lava
+                        if (Math.random() < 0.1) {
+                            player.velocity.y += 5 + Math.random() * 3;
+                        }
+                        
+                        console.log(`🌋🔥 ${player.name} is burning in lava pool!`);
+                    }
                     break;
                     
                 case 'mirage_teleporter':
@@ -4729,7 +5474,7 @@ export class LocalMultiplayerBattle {
         const material = new THREE.MeshLambertMaterial({ 
             color: 0x00FF00,
             emissive: 0x00FF00,
-            emissiveIntensity: 0.5,
+            emissiveIntensity: 0.6,
             transparent: true,
             opacity: 0.9
         });
@@ -4740,34 +5485,38 @@ export class LocalMultiplayerBattle {
         this.scene.add(mesh);
         this.arenaObjects.push(mesh);
         
-        // Add launch arrow indicators
-        const arrowGeometry = new THREE.ConeGeometry(0.5, 1.5, 6);
-        const arrowMaterial = new THREE.MeshLambertMaterial({ 
-            color: 0xFFFF00,
-            emissive: 0xFFFF00,
-            emissiveIntensity: 0.6
-        });
-        const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
-        arrow.position.copy(hazard.position);
-        arrow.position.y = 2;
-        arrow.rotation.x = -Math.PI / 2;
-        arrow.name = 'launch_arrow';
-        this.scene.add(arrow);
-        this.arenaObjects.push(arrow);
-        
-        // Add energy ring effects
+        // Add multiple launch arrow indicators for better visibility
         for (let i = 0; i < 3; i++) {
-            const ringGeometry = new THREE.TorusGeometry(hazard.radius * (0.8 + i * 0.2), 0.05, 8, 16);
+            const arrowGeometry = new THREE.ConeGeometry(0.4, 1.2, 6);
+            const arrowMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0xFFFF00,
+                emissive: 0xFFFF00,
+                emissiveIntensity: 0.8,
+                transparent: true,
+                opacity: 0.9 - i * 0.2
+            });
+            const arrow = new THREE.Mesh(arrowGeometry, arrowMaterial);
+            arrow.position.copy(hazard.position);
+            arrow.position.y = 1.5 + i * 0.8;
+            arrow.rotation.x = -Math.PI / 2;
+            arrow.name = 'launch_arrow';
+            this.scene.add(arrow);
+            this.arenaObjects.push(arrow);
+        }
+        
+        // Add enhanced energy ring effects
+        for (let i = 0; i < 4; i++) {
+            const ringGeometry = new THREE.TorusGeometry(hazard.radius * (0.7 + i * 0.15), 0.08, 8, 16);
             const ringMaterial = new THREE.MeshLambertMaterial({ 
                 color: 0x00FFFF,
                 emissive: 0x00FFFF,
-                emissiveIntensity: 0.4 - i * 0.1,
+                emissiveIntensity: 0.6 - i * 0.1,
                 transparent: true,
-                opacity: 0.6 - i * 0.1
+                opacity: 0.8 - i * 0.15
             });
             const ring = new THREE.Mesh(ringGeometry, ringMaterial);
             ring.position.copy(hazard.position);
-            ring.position.y = 0.2 + i * 0.1;
+            ring.position.y = 0.2 + i * 0.08;
             ring.rotation.x = Math.PI / 2;
             ring.name = 'launch_ring';
             this.scene.add(ring);
