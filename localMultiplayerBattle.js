@@ -52,10 +52,10 @@ export class LocalMultiplayerBattle {
                 lighting: { ambient: 0x440000, directional: 0xFF4500 },
                 particles: { color: 0xFF6600, count: 6 },
                 hazards: [
-                    { type: 'lava_burst', position: { x: 4, z: 4 }, radius: 2, interval: 4, force: 25 },
-                    { type: 'lava_burst', position: { x: -4, z: -4 }, radius: 2, interval: 4, force: 25 },
-                    { type: 'lava_burst', position: { x: 4, z: -4 }, radius: 2, interval: 4, force: 25 },
-                    { type: 'lava_burst', position: { x: -4, z: 4 }, radius: 2, interval: 4, force: 25 },
+                    { type: 'lava_burst', position: { x: 4, z: 4 }, radius: 2, interval: 4, force: 60 },
+                    { type: 'lava_burst', position: { x: -4, z: -4 }, radius: 2, interval: 4, force: 60 },
+                    { type: 'lava_burst', position: { x: 4, z: -4 }, radius: 2, interval: 4, force: 60 },
+                    { type: 'lava_burst', position: { x: -4, z: 4 }, radius: 2, interval: 4, force: 60 },
                     { type: 'ramp', position: { x: 0, z: 8 }, angle: 25, force: 18 },
                     { type: 'ramp', position: { x: 0, z: -8 }, angle: 25, force: 18 }
                 ]
@@ -412,11 +412,11 @@ export class LocalMultiplayerBattle {
                 hazards: [
                     { type: 'ramp', position: { x: -7, z: 0 }, angle: 45, force: 35 },
                     { type: 'ramp', position: { x: 7, z: 0 }, angle: 45, force: 35 },
-                    { type: 'lava_geyser', position: { x: 0, z: 0 }, radius: 2, force: 45, interval: 5, damage: 30 },
+                    { type: 'lava_geyser', position: { x: 0, z: 0 }, radius: 2, force: 80, interval: 5, damage: 30 },
                     { type: 'lava_pool', position: { x: 4, z: 4 }, radius: 2.5, damage: 25 },
                     { type: 'lava_pool', position: { x: -4, z: -4 }, radius: 2.5, damage: 25 },
-                    { type: 'magma_burst', position: { x: 0, z: 6 }, radius: 2, damage: 20, interval: 4 },
-                    { type: 'magma_burst', position: { x: 0, z: -6 }, radius: 2, damage: 20, interval: 4 }
+                    { type: 'magma_burst', position: { x: 0, z: 6 }, radius: 2, damage: 20, interval: 4, force: 50 },
+                    { type: 'magma_burst', position: { x: 0, z: -6 }, radius: 2, damage: 20, interval: 4, force: 50 }
                 ]
             },
             {
@@ -4195,18 +4195,18 @@ export class LocalMultiplayerBattle {
             
             const distance = player.ball.position.distanceTo(hazard.position);
             if (distance <= hazard.radius) {
-                // Enhanced dramatic launch effect
-                const launchForce = Math.max(45, hazard.force * 1.8); // Minimum 45 force, or 1.8x hazard force
-                const minLaunchVelocity = 35; // Ensure minimum launch height
+                // Enhanced MEGA dramatic launch effect
+                const launchForce = Math.max(90, hazard.force * 2.5); // Minimum 90 force, or 2.5x hazard force
+                const minLaunchVelocity = 70; // Ensure VERY high minimum launch height
                 
-                // Apply powerful upward launch
+                // Apply SUPER powerful upward launch
                 player.velocity.y = Math.max(player.velocity.y + launchForce, minLaunchVelocity);
                 
                 // Add more dramatic horizontal spread based on distance from center
                 const centerOffset = new THREE.Vector3()
                     .subVectors(player.ball.position, hazard.position)
                     .normalize();
-                const horizontalForce = 8 + (Math.random() * 4); // 8-12 horizontal force
+                const horizontalForce = 15 + (Math.random() * 8); // 15-23 horizontal force
                 
                 player.velocity.x += centerOffset.x * horizontalForce + (Math.random() - 0.5) * 6;
                 player.velocity.z += centerOffset.z * horizontalForce + (Math.random() - 0.5) * 6;

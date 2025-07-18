@@ -92,10 +92,67 @@ class Game {
             this.uiManager.clearNotification();
         }
         
+        // Hide game elements
+        this.canvas.style.display = 'none';
+        const gameUI = document.getElementById('ui');
+        const crosshair = document.getElementById('crosshair');
+        const instructions = document.getElementById('instructions');
+        
+        if (gameUI) gameUI.style.display = 'none';
+        if (crosshair) crosshair.style.display = 'none';
+        if (instructions) instructions.style.display = 'none';
+        
+        // Hide all other menus
+        if (this.singlePlayerMenu) this.singlePlayerMenu.hide();
+        if (this.pacmanMenu) this.pacmanMenu.hide();
+        if (this.battleMenu) this.battleMenu.hide();
+        if (this.gameOverScreen) this.gameOverScreen.hide();
+        
+        // Show main menu
         this.mainMenu.show();
-        this.singlePlayerMenu.hide();
-        this.pacmanMenu.hide();
-        this.battleMenu.hide();
+    }
+    
+    showErrorAndReturnToMenu(errorMessage) {
+        console.error(errorMessage);
+        
+        // Hide game elements
+        this.canvas.style.display = 'none';
+        const gameUI = document.getElementById('ui');
+        const crosshair = document.getElementById('crosshair');
+        const instructions = document.getElementById('instructions');
+        
+        if (gameUI) gameUI.style.display = 'none';
+        if (crosshair) crosshair.style.display = 'none';
+        if (instructions) instructions.style.display = 'none';
+        
+        // Show error message overlay
+        const errorOverlay = document.createElement('div');
+        errorOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            font-family: Arial, sans-serif;
+        `;
+        
+        errorOverlay.innerHTML = `
+            <div style="background: #1a1a1a; padding: 30px; border-radius: 10px; text-align: center; color: #ff6b6b;">
+                <h2 style="margin: 0 0 20px 0;">Game Initialization Error</h2>
+                <p style="margin: 0 0 20px 0;">${errorMessage}</p>
+                <button onclick="this.parentElement.parentElement.remove(); window.game.showMainMenu();" 
+                        style="background: #4CAF50; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                    Return to Main Menu
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(errorOverlay);
     }
     
     showSinglePlayerMenu() {
@@ -721,8 +778,15 @@ class Game {
             
             // Initialize 3D environment if not already done
             if (!this.isGameInitialized) {
-                await this.init();
-                this.isGameInitialized = true;
+                try {
+                    await this.init();
+                    this.isGameInitialized = true;
+                } catch (error) {
+                    console.error('Failed to initialize game for bot battle:', error);
+                    // Show error message and return to main menu
+                    this.showErrorAndReturnToMenu('Failed to initialize the battle system. Please try again or restart the game.');
+                    return;
+                }
             }
             
             // Continue with battle system initialization below
@@ -735,7 +799,12 @@ class Game {
         if (mode === 'pacman_classic') {
             this.isClassicMode = true;
             this.currentLevel = 2; // Always use level 2 for classic mode
-            this.setClassicLives(3); // Reset lives using safe method
+            try {
+                this.setClassicLives(3); // Reset lives using safe method
+            } catch (error) {
+                console.warn('Failed to set classic lives, using default:', error);
+                this.classicLives = 3; // Fallback assignment
+            }
             this.classicWave = 1; // Reset wave counter
             this.classicPlayerSpeed = 12; // Reset speeds
             this.classicEnemySpeed = 8;
@@ -1196,7 +1265,13 @@ class Game {
         
         // Sync player lives with classic mode lives if in classic mode
         if (this.isClassicMode) {
-            this.player.setLives(this.classicLives);
+            try {
+                this.player.setLives(this.classicLives);
+            } catch (error) {
+                console.warn('Failed to set player lives in classic mode:', error);
+                // Fallback: set lives directly
+                this.player.lives = this.classicLives;
+            }
         }
         
         // Set level-specific player speed
@@ -1210,11 +1285,19 @@ class Game {
         
         // Enhance graphics and materials
         if (this.graphicsEnhancer) {
-            this.graphicsEnhancer.createEnvironmentMap(this.gameMode);
-            // Delay material enhancement to allow all objects to be created
-            setTimeout(() => {
-                this.graphicsEnhancer.enhanceSceneMaterials(this.gameMode);
-            }, 100);
+            try {
+                this.graphicsEnhancer.createEnvironmentMap(this.gameMode);
+                // Delay material enhancement to allow all objects to be created
+                setTimeout(() => {
+                    try {
+                        this.graphicsEnhancer.enhanceSceneMaterials(this.gameMode);
+                    } catch (error) {
+                        console.warn('Failed to enhance scene materials:', error);
+                    }
+                }, 100);
+            } catch (error) {
+                console.warn('Failed to create environment map:', error);
+            }
         }
         
         // Get spawn point from level
@@ -1240,18 +1323,27 @@ class Game {
         
         // Initialize battle system if in battle mode
         if (this.gameMode === 'battle') {
-            this.battleSystem = new BattleSystem(this.scene, this.player);
-            this.battleUI = new BattleUI();
-            
-            // Connect battle system and UI
-            this.battleSystem.setBattleUI(this.battleUI);
-            
-            // Setup battle system callbacks
-            this.battleSystem.setVictoryCallback(() => this.handleBattleVictory());
-            this.battleSystem.setDefeatCallback(() => this.handleBattleDefeat());
-            
-            // Start battle at specified level with bot count if available
-            this.battleSystem.startBattle(this.currentLevel, this.botCount);
+            try {
+                this.battleSystem = new BattleSystem(this.scene, this.player);
+                this.battleUI = new BattleUI();
+                
+                // Connect battle system and UI
+                this.battleSystem.setBattleUI(this.battleUI);
+                
+                // Setup battle system callbacks
+                this.battleSystem.setVictoryCallback(() => this.handleBattleVictory());
+                this.battleSystem.setDefeatCallback(() => this.handleBattleDefeat());
+                
+                // Start battle at specified level with bot count if available
+                this.battleSystem.startBattle(this.currentLevel, this.botCount);
+                
+                console.log('🥊 Battle system initialized successfully');
+            } catch (error) {
+                console.error('Failed to initialize battle system:', error);
+                // Show error message and return to main menu
+                this.showErrorAndReturnToMenu('Failed to start the battle system. Please try again or check your browser console for more details.');
+                return;
+            }
         }
 
         // Setup game loop
