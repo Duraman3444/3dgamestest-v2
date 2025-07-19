@@ -456,10 +456,18 @@ class Game {
     // Show score entry screen and handle completion
     async showScoreEntryScreen(scoreData, category) {
         return new Promise((resolve) => {
+            // Exit pointer lock to show mouse cursor for score entry interaction
+            if (document.pointerLockElement) {
+                document.exitPointerLock();
+                console.log('🏆 Pointer lock exited for score entry interaction');
+            }
+            
             // Hide game UI temporarily
             this.canvas.style.display = 'none';
             const gameUI = document.getElementById('ui');
+            const crosshair = document.getElementById('crosshair');
             if (gameUI) gameUI.style.display = 'none';
+            if (crosshair) crosshair.style.display = 'none';
             
             // Show score entry screen
             this.scoreEntry.show(scoreData, category, 
@@ -474,6 +482,7 @@ class Game {
                     // Restore game UI
                     this.canvas.style.display = 'block';
                     if (gameUI) gameUI.style.display = 'block';
+                    if (crosshair) crosshair.style.display = 'block';
                     
                     resolve();
                 }, 
@@ -484,6 +493,7 @@ class Game {
                     // Restore game UI
                     this.canvas.style.display = 'block';
                     if (gameUI) gameUI.style.display = 'block';
+                    if (crosshair) crosshair.style.display = 'block';
                     
                     resolve();
                 }
