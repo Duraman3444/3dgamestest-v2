@@ -1581,6 +1581,17 @@ class Game {
             this.multiplayerData = null;
             this.currentLevel = 1;
             
+            // Extract player count and rounds from level parameter
+            let playerCount, rounds;
+            if (typeof level === 'object') {
+                playerCount = level.playerCount || 2;
+                rounds = level.rounds || 4;
+                console.log(`🎯 Multiplayer settings - Players: ${playerCount}, Rounds to win: ${rounds}`);
+            } else {
+                playerCount = level || 2; // Legacy support for number parameter
+                rounds = 4; // Default to 4 rounds
+            }
+            
             // Show the game canvas
             this.canvas.style.display = 'block';
             
@@ -1614,9 +1625,8 @@ class Game {
                 this.cameraSystem = new CameraSystem(this.player);
             }
             
-            // Start local multiplayer battle with player count
-            const playerCount = level || 2; // level parameter contains player count
-            this.startLocalMultiplayerBattle(playerCount);
+            // Start local multiplayer battle with player count and rounds
+            this.startLocalMultiplayerBattle(playerCount, rounds);
             return; // Exit early since battle handles its own game loop
         } else if (mode === 'bot_battle') {
             console.log('🤖 Bot battle mode detected, setting up bot battle...');
@@ -1768,9 +1778,9 @@ class Game {
     
 
     
-    startLocalMultiplayerBattle(playerCount = 2) {
+    startLocalMultiplayerBattle(playerCount = 2, rounds = 4) {
         console.log(`🥊 Initializing ${playerCount}-Player Local Multiplayer Battle Arena...`);
-        console.log(`🎯 Player count parameter received: ${playerCount}`);
+        console.log(`🎯 Tournament settings - Players: ${playerCount}, Rounds to win: ${rounds}`);
         
         // Hide ALL menu elements
         if (this.mainMenu) {
@@ -1801,9 +1811,12 @@ class Game {
         // Create the local multiplayer battle system
         this.localMultiplayerBattle = new LocalMultiplayerBattle(this.scene, this.cameraSystem.camera, this.renderer);
         
-        // Set the player count
+        // Set the player count and rounds
         console.log(`🎯 Setting player count to: ${playerCount}`);
         this.localMultiplayerBattle.setPlayerCount(playerCount);
+        
+        console.log(`🏆 Setting round win target to: ${rounds}`);
+        this.localMultiplayerBattle.setRoundWinTarget(rounds);
         
         // Set up callbacks
         this.localMultiplayerBattle.onBackToMenu = () => {

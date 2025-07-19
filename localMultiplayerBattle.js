@@ -664,6 +664,17 @@ export class LocalMultiplayerBattle {
         }
     }
     
+    // Set round win target
+    setRoundWinTarget(rounds) {
+        if (rounds >= 1 && rounds <= 7) {
+            this.roundWinTarget = rounds;
+            this.maxRounds = (rounds * 2) - 1; // Maximum possible rounds in best-of series
+            console.log(`🏆 Round win target set to: ${this.roundWinTarget} (max rounds: ${this.maxRounds})`);
+        } else {
+            console.warn(`⚠️ Invalid round count: ${rounds}. Using default: ${this.roundWinTarget}`);
+        }
+    }
+    
     // Initialize the battle
     initialize() {
         this.selectArenaTheme();

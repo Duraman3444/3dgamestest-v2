@@ -10,6 +10,10 @@ export class MainMenu {
         this.currentOptionIndex = 0;
         this.menuButtons = [];
         this.keyboardListener = null;
+        
+        // Multiplayer settings
+        this.selectedPlayerCount = 2;
+        this.selectedMultiplayerRounds = 4; // Default to 4 rounds to win
 
         
         this.createMenu();
@@ -707,17 +711,20 @@ export class MainMenu {
         // Add event listeners for player count selection
         document.getElementById('player-count-2').addEventListener('click', () => {
             document.body.removeChild(countDialog);
-            this.startLocalMultiplayerBattle(2);
+            this.selectedPlayerCount = 2;
+            this.showMultiplayerRoundSelection();
         });
         
         document.getElementById('player-count-3').addEventListener('click', () => {
             document.body.removeChild(countDialog);
-            this.startLocalMultiplayerBattle(3);
+            this.selectedPlayerCount = 3;
+            this.showMultiplayerRoundSelection();
         });
         
         document.getElementById('player-count-4').addEventListener('click', () => {
             document.body.removeChild(countDialog);
-            this.startLocalMultiplayerBattle(4);
+            this.selectedPlayerCount = 4;
+            this.showMultiplayerRoundSelection();
         });
         
         document.getElementById('back-from-count-btn').addEventListener('click', () => {
@@ -726,12 +733,203 @@ export class MainMenu {
         });
     }
     
-    startLocalMultiplayerBattle(playerCount) {
-        console.log(`🥊 Starting ${playerCount}-Player Local Multiplayer Battle!`);
+    showMultiplayerRoundSelection() {
+        const roundsDialog = document.createElement('div');
+        roundsDialog.id = 'multiplayer-rounds-dialog';
+        roundsDialog.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            font-family: 'Courier New', monospace;
+            color: white;
+        `;
         
-        // Start the game in local multiplayer battle mode
+        roundsDialog.innerHTML = `
+            <div style="text-align: center; max-width: 700px; padding: 40px; background: rgba(0,0,0,0.3); border-radius: 20px; backdrop-filter: blur(10px);">
+                <h1 style="font-size: 48px; margin-bottom: 20px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+                    🥊 ${this.selectedPlayerCount}-PLAYER BATTLE
+                </h1>
+                
+                <h2 style="margin-bottom: 30px; font-size: 24px; color: #FFD700;">
+                    Select Rounds to Win
+                </h2>
+                
+                <div style="display: flex; gap: 20px; justify-content: center; margin-bottom: 30px; flex-wrap: wrap;">
+                    <button id="rounds-1" style="
+                        padding: 20px 30px;
+                        font-size: 18px;
+                        background: linear-gradient(45deg, #4CAF50, #45a049);
+                        color: white;
+                        border: none;
+                        border-radius: 15px;
+                        cursor: pointer;
+                        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                        transition: all 0.3s;
+                        font-family: 'Courier New', monospace;
+                        width: 140px;
+                        height: 100px;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                    ">
+                        <div style="font-size: 32px; margin-bottom: 5px;">1</div>
+                        <div style="font-size: 12px; text-align: center;">Quick Match</div>
+                    </button>
+                    
+                    <button id="rounds-3" style="
+                        padding: 20px 30px;
+                        font-size: 18px;
+                        background: linear-gradient(45deg, #2196F3, #1976D2);
+                        color: white;
+                        border: none;
+                        border-radius: 15px;
+                        cursor: pointer;
+                        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                        transition: all 0.3s;
+                        font-family: 'Courier New', monospace;
+                        width: 140px;
+                        height: 100px;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                    ">
+                        <div style="font-size: 32px; margin-bottom: 5px;">3</div>
+                        <div style="font-size: 12px; text-align: center;">Best of 5</div>
+                    </button>
+                    
+                    <button id="rounds-4" style="
+                        padding: 20px 30px;
+                        font-size: 18px;
+                        background: linear-gradient(45deg, #FF9800, #F57C00);
+                        color: white;
+                        border: none;
+                        border-radius: 15px;
+                        cursor: pointer;
+                        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                        transition: all 0.3s;
+                        font-family: 'Courier New', monospace;
+                        width: 140px;
+                        height: 100px;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                        border: 3px solid #FFD700;
+                    ">
+                        <div style="font-size: 32px; margin-bottom: 5px;">4</div>
+                        <div style="font-size: 12px; text-align: center;">Tournament</div>
+                    </button>
+                    
+                    <button id="rounds-5" style="
+                        padding: 20px 30px;
+                        font-size: 18px;
+                        background: linear-gradient(45deg, #9C27B0, #7B1FA2);
+                        color: white;
+                        border: none;
+                        border-radius: 15px;
+                        cursor: pointer;
+                        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                        transition: all 0.3s;
+                        font-family: 'Courier New', monospace;
+                        width: 140px;
+                        height: 100px;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: center;
+                        justify-content: center;
+                    ">
+                        <div style="font-size: 32px; margin-bottom: 5px;">5</div>
+                        <div style="font-size: 12px; text-align: center;">Championship</div>
+                    </button>
+                </div>
+                
+                <div style="margin-bottom: 30px; font-size: 16px; color: #ccc; text-align: center;">
+                    <p style="margin-bottom: 15px;">🏆 <strong>Tournament Format:</strong> First to reach selected rounds wins the match!</p>
+                    <p style="margin-bottom: 15px;">🎨 <strong>16 Themed Arenas:</strong> Each round takes place in a different arena</p>
+                    <p style="margin-bottom: 15px;">⚠️ <strong>Arena Hazards:</strong> Ice, lava, spikes, teleporters, and more!</p>
+                </div>
+                
+                <button id="back-from-rounds-btn" style="
+                    padding: 15px 30px;
+                    font-size: 18px;
+                    background: linear-gradient(45deg, #f44336, #d32f2f);
+                    color: white;
+                    border: none;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+                    transition: all 0.3s;
+                    font-family: 'Courier New', monospace;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                    width: 200px;
+                ">← Back</button>
+            </div>
+        `;
+        
+        document.body.appendChild(roundsDialog);
+        
+        // Add hover effects
+        const buttons = roundsDialog.querySelectorAll('button');
+        buttons.forEach(button => {
+            button.addEventListener('mouseenter', () => {
+                button.style.transform = 'translateY(-2px) scale(1.05)';
+                button.style.boxShadow = '0 6px 20px rgba(0,0,0,0.4)';
+            });
+            
+            button.addEventListener('mouseleave', () => {
+                button.style.transform = 'translateY(0) scale(1)';
+                button.style.boxShadow = '0 4px 15px rgba(0,0,0,0.3)';
+            });
+        });
+        
+        // Add event listeners for round selection
+        document.getElementById('rounds-1').addEventListener('click', () => {
+            document.body.removeChild(roundsDialog);
+            this.selectedMultiplayerRounds = 1;
+            this.startLocalMultiplayerBattle();
+        });
+        
+        document.getElementById('rounds-3').addEventListener('click', () => {
+            document.body.removeChild(roundsDialog);
+            this.selectedMultiplayerRounds = 3;
+            this.startLocalMultiplayerBattle();
+        });
+        
+        document.getElementById('rounds-4').addEventListener('click', () => {
+            document.body.removeChild(roundsDialog);
+            this.selectedMultiplayerRounds = 4;
+            this.startLocalMultiplayerBattle();
+        });
+        
+        document.getElementById('rounds-5').addEventListener('click', () => {
+            document.body.removeChild(roundsDialog);
+            this.selectedMultiplayerRounds = 5;
+            this.startLocalMultiplayerBattle();
+        });
+        
+        document.getElementById('back-from-rounds-btn').addEventListener('click', () => {
+            document.body.removeChild(roundsDialog);
+            this.showPlayerCountSelection();
+        });
+    }
+    
+    startLocalMultiplayerBattle() {
+        console.log(`🥊 Starting ${this.selectedPlayerCount}-Player Local Multiplayer Battle - ${this.selectedMultiplayerRounds} rounds to win!`);
+        
+        // Start the game in local multiplayer battle mode with player count and rounds
         if (this.onStartGame) {
-            this.onStartGame('local_multiplayer', playerCount);
+            this.onStartGame('local_multiplayer', { playerCount: this.selectedPlayerCount, rounds: this.selectedMultiplayerRounds });
         }
     }
     
