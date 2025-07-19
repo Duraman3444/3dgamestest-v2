@@ -702,16 +702,22 @@ class Game {
     }
     
     togglePause() {
+        console.log('🎮 togglePause() called');
+        
         // Prevent pausing during certain states
         if (this.gameOverScreen && this.gameOverScreen.isVisible) {
             console.log('Cannot pause during game over screen');
             return;
         }
         
+        console.log(`🎮 Current isPaused state: ${this.isPaused}`);
+        
         if (this.isPaused) {
+            console.log('🎮 Resuming game...');
             // Resume game
             this.isPaused = false;
             if (this.pauseOverlay) {
+                console.log('🎮 Removing pause overlay...');
                 document.body.removeChild(this.pauseOverlay);
                 this.pauseOverlay = null;
             }
@@ -728,6 +734,7 @@ class Game {
             
             // Resume game loop
             if (this.gameLoop) {
+                console.log('🎮 Starting game loop...');
                 this.gameLoop.start();
             }
             
@@ -741,6 +748,7 @@ class Game {
             
             console.log('Game resumed');
         } else {
+            console.log('🎮 Pausing game...');
             // Pause game
             this.isPaused = true;
             
@@ -756,6 +764,7 @@ class Game {
             
             // Pause game loop
             if (this.gameLoop) {
+                console.log('🎮 Stopping game loop...');
                 this.gameLoop.stop();
             }
             
@@ -770,8 +779,26 @@ class Game {
             }
             
             // Show pause overlay
+            console.log('🎮 Creating pause overlay...');
             this.pauseOverlay = this.createPauseOverlay();
             document.body.appendChild(this.pauseOverlay);
+            console.log('🎮 Pause overlay added to DOM');
+            
+            // Debug: Check overlay properties
+            setTimeout(() => {
+                if (this.pauseOverlay) {
+                    const computed = window.getComputedStyle(this.pauseOverlay);
+                    console.log('🎮 Pause overlay computed styles:');
+                    console.log(`   Display: ${computed.display}`);
+                    console.log(`   Visibility: ${computed.visibility}`);
+                    console.log(`   Z-index: ${computed.zIndex}`);
+                    console.log(`   Position: ${computed.position}`);
+                    console.log(`   Top: ${computed.top}`);
+                    console.log(`   Left: ${computed.left}`);
+                    console.log(`   Width: ${computed.width}`);
+                    console.log(`   Height: ${computed.height}`);
+                }
+            }, 100);
             
             console.log('Game paused');
         }
@@ -2189,6 +2216,9 @@ class Game {
                 event.preventDefault();
                 event.stopPropagation(); // Prevent other listeners from handling this
                 
+                console.log('🎮 O key pressed - checking pause conditions...');
+                console.log(`🎮 Game initialized: ${this.isGameInitialized}`);
+                
                 // Check if game is initialized and active
                 if (this.isGameInitialized) {
                     // Check if any menus are visible and prevent pause
@@ -2198,10 +2228,19 @@ class Game {
                                       this.battleMenu.isVisible ||
                                       this.gameOverScreen.isVisible;
                     
+                    console.log(`🎮 Menu visibility check: ${menuVisible}`);
+                    console.log(`🎮 Main menu: ${this.mainMenu.isVisible}, Single player: ${this.singlePlayerMenu.isVisible}, Pacman: ${this.pacmanMenu.isVisible}, Battle: ${this.battleMenu.isVisible}, Game over: ${this.gameOverScreen.isVisible}`);
+                    console.log(`🎮 Current pause state: ${this.isPaused}`);
+                    
                     // Only handle pause if no menus are visible and game is active
                     if (!menuVisible) {
+                        console.log('🎮 Conditions met - calling togglePause()');
                         this.togglePause();
+                    } else {
+                        console.log('🎮 Pause blocked - menu is visible');
                     }
+                } else {
+                    console.log('🎮 Pause blocked - game not initialized');
                 }
             }
             
