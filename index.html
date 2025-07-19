@@ -4,6 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Three.js 3D Game</title>
+    
+    <!-- Import map to resolve Three.js module specifiers -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.158.0/build/three.module.js",
+            "three/": "https://unpkg.com/three@0.158.0/"
+        }
+    }
+    </script>
+    
     <style>
         body {
             margin: 0;
