@@ -658,6 +658,9 @@ export class GraphicsEnhancer {
         // Update dynamic effects each frame
         this.updateDynamicEffects();
         
+        // Update animated mesh effects
+        this.updateAnimatedEffects();
+        
         if (this.composer && this.hasAnyEffectEnabled()) {
             // Render G-buffer for SSR if needed
             if (this.effects.ssr) {
@@ -717,88 +720,126 @@ export class GraphicsEnhancer {
         }
     }
 
-    // Create enhanced material for different surface types
-    createEnhancedMaterial(type, baseColor, options = {}) {
-        const materialKey = `${type}_${baseColor.toString(16)}`;
+    // Create enhanced material for different surface types with era theming
+    createEnhancedMaterial(type, baseColor, eraTheme = 'ps2', options = {}) {
+        const materialKey = `${type}_${baseColor.toString(16)}_${eraTheme}`;
         
         if (this.enhancedMaterials.has(materialKey)) {
             return this.enhancedMaterials.get(materialKey).clone();
         }
         
         let material;
+        const color = new THREE.Color(baseColor);
+        const eraSettings = this.getEraSettings(eraTheme, type);
         
         switch (type) {
             case 'metal':
                 material = new THREE.MeshStandardMaterial({
-                    color: baseColor,
-                    metalness: 0.9,
-                    roughness: 0.1,
-                    envMapIntensity: 1.0,
+                    color: color.multiplyScalar(eraSettings.colorMultiplier),
+                    metalness: eraSettings.metalness || 0.9,
+                    roughness: eraSettings.roughness || 0.1,
+                    envMapIntensity: eraSettings.envMapIntensity || 1.0,
+                    emissive: eraSettings.emissive ? color.clone().multiplyScalar(eraSettings.emissive) : new THREE.Color(0x000000),
+                    emissiveIntensity: eraSettings.emissiveIntensity || 0,
                     ...options
                 });
                 break;
                 
             case 'plastic':
                 material = new THREE.MeshStandardMaterial({
-                    color: baseColor,
-                    metalness: 0.0,
-                    roughness: 0.3,
-                    envMapIntensity: 0.5,
+                    color: color.multiplyScalar(eraSettings.colorMultiplier),
+                    metalness: eraSettings.metalness || 0.0,
+                    roughness: eraSettings.roughness || 0.3,
+                    envMapIntensity: eraSettings.envMapIntensity || 0.5,
+                    emissive: eraSettings.emissive ? color.clone().multiplyScalar(eraSettings.emissive) : new THREE.Color(0x000000),
+                    emissiveIntensity: eraSettings.emissiveIntensity || 0,
                     ...options
                 });
                 break;
                 
             case 'gem':
                 material = new THREE.MeshStandardMaterial({
-                    color: baseColor,
+                    color: color.multiplyScalar(eraSettings.colorMultiplier),
                     metalness: 0.0,
                     roughness: 0.0,
                     transparent: true,
-                    opacity: 0.8,
-                    envMapIntensity: 1.5,
+                    opacity: eraSettings.opacity || 0.8,
+                    envMapIntensity: eraSettings.envMapIntensity || 1.5,
+                    emissive: color.clone().multiplyScalar(eraSettings.emissive || 0.2),
+                    emissiveIntensity: eraSettings.emissiveIntensity || 0.4,
                     ...options
                 });
                 break;
                 
             case 'stone':
                 material = new THREE.MeshStandardMaterial({
-                    color: baseColor,
+                    color: color.multiplyScalar(eraSettings.colorMultiplier),
                     metalness: 0.0,
-                    roughness: 0.8,
-                    envMapIntensity: 0.3,
+                    roughness: eraSettings.roughness || 0.8,
+                    envMapIntensity: eraSettings.envMapIntensity || 0.3,
+                    emissive: eraSettings.emissive ? color.clone().multiplyScalar(eraSettings.emissive) : new THREE.Color(0x000000),
+                    emissiveIntensity: eraSettings.emissiveIntensity || 0,
                     ...options
                 });
                 break;
                 
             case 'glow':
                 material = new THREE.MeshStandardMaterial({
-                    color: baseColor,
-                    emissive: baseColor,
-                    emissiveIntensity: 0.3,
+                    color: color.multiplyScalar(eraSettings.colorMultiplier),
+                    emissive: color.clone().multiplyScalar(eraSettings.emissive || 0.5),
+                    emissiveIntensity: eraSettings.emissiveIntensity || 0.5,
                     metalness: 0.0,
-                    roughness: 0.5,
+                    roughness: eraSettings.roughness || 0.3,
+                    transparent: eraSettings.transparent || false,
+                    opacity: eraSettings.opacity || 1.0,
                     ...options
                 });
                 break;
                 
             case 'hologram':
                 material = new THREE.MeshStandardMaterial({
-                    color: baseColor,
+                    color: color.multiplyScalar(eraSettings.colorMultiplier),
                     transparent: true,
-                    opacity: 0.6,
-                    emissive: baseColor,
-                    emissiveIntensity: 0.2,
+                    opacity: eraSettings.opacity || 0.6,
+                    emissive: color.clone().multiplyScalar(eraSettings.emissive || 0.3),
+                    emissiveIntensity: eraSettings.emissiveIntensity || 0.4,
                     metalness: 0.0,
                     roughness: 0.0,
+                    side: THREE.DoubleSide,
+                    ...options
+                });
+                break;
+                
+            case 'neon':
+                material = new THREE.MeshStandardMaterial({
+                    color: color.multiplyScalar(eraSettings.colorMultiplier),
+                    emissive: color.clone().multiplyScalar(eraSettings.emissive || 0.8),
+                    emissiveIntensity: eraSettings.emissiveIntensity || 0.8,
+                    metalness: 0.0,
+                    roughness: 0.1,
+                    transparent: true,
+                    opacity: eraSettings.opacity || 0.9,
+                    ...options
+                });
+                break;
+                
+            case 'retro':
+                material = new THREE.MeshLambertMaterial({
+                    color: color.multiplyScalar(eraSettings.colorMultiplier),
+                    emissive: eraSettings.emissive ? color.clone().multiplyScalar(eraSettings.emissive) : new THREE.Color(0x000000),
+                    transparent: eraSettings.transparent || false,
+                    opacity: eraSettings.opacity || 1.0,
                     ...options
                 });
                 break;
                 
             default:
                 material = new THREE.MeshStandardMaterial({
-                    color: baseColor,
-                    metalness: 0.0,
-                    roughness: 0.5,
+                    color: color.multiplyScalar(eraSettings.colorMultiplier),
+                    metalness: eraSettings.metalness || 0.0,
+                    roughness: eraSettings.roughness || 0.5,
+                    emissive: eraSettings.emissive ? color.clone().multiplyScalar(eraSettings.emissive) : new THREE.Color(0x000000),
+                    emissiveIntensity: eraSettings.emissiveIntensity || 0,
                     ...options
                 });
         }
@@ -807,19 +848,298 @@ export class GraphicsEnhancer {
         return material.clone();
     }
 
-    // Enhance existing meshes in the scene
+    // Get era-specific material settings
+    getEraSettings(eraTheme, materialType) {
+        const settings = {
+            snes: {
+                colorMultiplier: 1.3, // Bright, saturated colors
+                metalness: 0.0,
+                roughness: 0.9,
+                envMapIntensity: 0.1,
+                emissive: materialType === 'glow' ? 0.2 : 0.05,
+                emissiveIntensity: materialType === 'glow' ? 0.3 : 0.1,
+                opacity: 1.0,
+                transparent: false
+            },
+            arcade: {
+                colorMultiplier: 1.6, // Very bright, neon-like
+                metalness: 0.1,
+                roughness: 0.2,
+                envMapIntensity: 0.8,
+                emissive: 0.4,
+                emissiveIntensity: 0.5,
+                opacity: materialType === 'glow' ? 0.85 : 1.0,
+                transparent: materialType === 'glow' || materialType === 'neon'
+            },
+            ps2: {
+                colorMultiplier: 1.0, // Realistic colors
+                metalness: materialType === 'metal' ? 0.8 : 0.1,
+                roughness: materialType === 'metal' ? 0.2 : 0.6,
+                envMapIntensity: 0.6,
+                emissive: materialType === 'glow' ? 0.4 : 0.02,
+                emissiveIntensity: materialType === 'glow' ? 0.3 : 0.05,
+                opacity: 1.0,
+                transparent: false
+            }
+        };
+        
+        return settings[eraTheme] || settings.ps2;
+    }
+
+    // Enhance existing meshes in the scene with comprehensive improvements
     enhanceSceneMaterials(gameMode = 'normal') {
         try {
+            // Clear any existing particles and effects
+            this.clearParticleEffects();
+            
+            // Enhance all mesh materials
             this.scene.traverse((child) => {
                 if (child.isMesh && child.material) {
                     this.enhanceMeshMaterial(child, gameMode);
                 }
             });
             
-            console.log(`🎨 Enhanced materials for ${gameMode} mode`);
+            // Add era-specific environmental effects
+            this.addEnvironmentalEffects(gameMode);
+            
+            console.log(`🎨 Enhanced materials and effects for ${gameMode} mode with ${this.getEraThemeForGameMode(gameMode)} era theme`);
         } catch (error) {
             console.warn('Failed to enhance scene materials:', error);
         }
+    }
+
+    // Add environmental effects based on game mode and era
+    addEnvironmentalEffects(gameMode) {
+        const eraTheme = this.getEraThemeForGameMode(gameMode);
+        
+        switch (gameMode) {
+            case 'pacman':
+                this.addPacmanEffects(eraTheme);
+                break;
+            case 'battle':
+                this.addBattleModeEffects(eraTheme);
+                break;
+            case 'normal':
+                this.addNormalModeEffects(eraTheme);
+                break;
+        }
+    }
+
+    // Add Pac-Man specific effects (Arcade era)
+    addPacmanEffects(eraTheme) {
+        // Add neon glow particles around the level
+        const glowPositions = [
+            new THREE.Vector3(0, 2, 0),
+            new THREE.Vector3(5, 2, 5),
+            new THREE.Vector3(-5, 2, 5),
+            new THREE.Vector3(5, 2, -5),
+            new THREE.Vector3(-5, 2, -5)
+        ];
+
+        glowPositions.forEach((pos, index) => {
+            this.createParticleEffect('neon', pos, {
+                count: 20,
+                color: [0x00FFFF, 0xFF00FF, 0xFFFF00, 0x00FF00, 0xFF0000][index % 5],
+                size: 0.3,
+                spread: 2,
+                height: 1,
+                opacity: 0.6,
+                duration: Infinity
+            });
+        });
+
+        // Add ambient lighting for arcade feel
+        if (!this.ambientLight) {
+            this.ambientLight = new THREE.AmbientLight(0x404080, 0.6);
+            this.scene.add(this.ambientLight);
+        }
+    }
+
+    // Add Battle mode specific effects (PS2 era)
+    addBattleModeEffects(eraTheme) {
+        // Add sparks and arena atmosphere
+        const arenaCenter = new THREE.Vector3(0, 1, 0);
+        
+        this.createParticleEffect('sparks', arenaCenter, {
+            count: 30,
+            color: 0xFFAA00,
+            size: 0.4,
+            spread: 8,
+            height: 3,
+            opacity: 0.7,
+            velocity: new THREE.Vector3(0, 2, 0),
+            duration: Infinity
+        });
+
+        // Add dramatic lighting
+        if (!this.spotLight) {
+            this.spotLight = new THREE.SpotLight(0xffffff, 1, 20, Math.PI / 6, 0.3, 1);
+            this.spotLight.position.set(0, 10, 0);
+            this.spotLight.target.position.set(0, 0, 0);
+            this.scene.add(this.spotLight);
+            this.scene.add(this.spotLight.target);
+        }
+    }
+
+    // Add Normal mode specific effects (SNES era)
+    addNormalModeEffects(eraTheme) {
+        // Add subtle magical sparkles
+        const sparklePositions = [
+            new THREE.Vector3(3, 3, 3),
+            new THREE.Vector3(-3, 3, 3),
+            new THREE.Vector3(3, 3, -3),
+            new THREE.Vector3(-3, 3, -3)
+        ];
+
+        sparklePositions.forEach(pos => {
+            this.createParticleEffect('sparkle', pos, {
+                count: 15,
+                color: 0xFFFFAA,
+                size: 0.2,
+                spread: 1.5,
+                height: 2,
+                opacity: 0.4,
+                duration: Infinity
+            });
+        });
+
+        // Add warm ambient lighting
+        if (!this.ambientLight) {
+            this.ambientLight = new THREE.AmbientLight(0x404040, 0.4);
+            this.scene.add(this.ambientLight);
+        }
+    }
+
+    // Clear existing particle effects
+    clearParticleEffects() {
+        if (this.particleSystems) {
+            this.particleSystems.forEach(particleData => {
+                if (particleData.system && particleData.system.parent) {
+                    this.scene.remove(particleData.system);
+                }
+            });
+            this.particleSystems = [];
+        }
+    }
+
+    // Apply comprehensive enhancements to all levels
+    enhanceAllLevels() {
+        console.log('🎨 Applying comprehensive graphics enhancements to all game modes...');
+        
+        // Add era-specific level enhancement presets
+        const gameModesToEnhance = ['normal', 'pacman', 'battle'];
+        
+        gameModesToEnhance.forEach(mode => {
+            console.log(`🌟 Pre-configuring enhancements for ${mode} mode (${this.getEraThemeForGameMode(mode)} era)`);
+            
+            // Pre-create common material presets for each era
+            this.preCreateMaterialPresets(mode);
+        });
+        
+        console.log('✅ All graphics enhancements configured and ready!');
+    }
+
+    // Pre-create material presets for better performance
+    preCreateMaterialPresets(gameMode) {
+        const eraTheme = this.getEraThemeForGameMode(gameMode);
+        const commonColors = [
+            0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF, 0x00FFFF,
+            0x888888, 0xFFFFFF, 0x000000, 0xFFA500, 0x800080, 0x008000
+        ];
+        const materialTypes = ['plastic', 'metal', 'gem', 'stone', 'glow', 'hologram', 'neon', 'retro'];
+        
+        materialTypes.forEach(type => {
+            commonColors.forEach(color => {
+                this.createEnhancedMaterial(type, color, eraTheme);
+            });
+        });
+    }
+
+    // Add advanced geometry enhancements
+    enhanceGeometry(mesh, eraTheme) {
+        if (!mesh || !mesh.geometry) return;
+        
+        try {
+            // Add normal and tangent attributes for better lighting
+            if (!mesh.geometry.attributes.normal) {
+                mesh.geometry.computeVertexNormals();
+            }
+            
+            // Era-specific geometry enhancements
+            switch (eraTheme) {
+                case 'snes':
+                    // SNES era: Keep simple geometry but enhance normals for better lighting
+                    this.enhanceForSNES(mesh);
+                    break;
+                case 'arcade':
+                    // Arcade era: Add glow and neon effects
+                    this.enhanceForArcade(mesh);
+                    break;
+                case 'ps2':
+                    // PS2 era: Add more detailed geometry and advanced lighting
+                    this.enhanceForPS2(mesh);
+                    break;
+            }
+        } catch (error) {
+            console.warn('Failed to enhance geometry for mesh:', mesh.name, error);
+        }
+    }
+
+    // SNES era enhancements (16-bit style)
+    enhanceForSNES(mesh) {
+        // Add subtle emissive effects to simulate 16-bit glow
+        if (mesh.material) {
+            mesh.material.emissiveIntensity = Math.min(mesh.material.emissiveIntensity + 0.1, 0.3);
+        }
+        
+        // Scale geometry slightly for that chunky 16-bit feel
+        if (mesh.name.toLowerCase().includes('player') || mesh.name.toLowerCase().includes('character')) {
+            mesh.scale.multiplyScalar(1.05);
+        }
+    }
+
+    // Arcade era enhancements (neon and glow)
+    enhanceForArcade(mesh) {
+        // Add pulsing effects to certain objects
+        if (mesh.material && (mesh.name.toLowerCase().includes('wall') || 
+                              mesh.name.toLowerCase().includes('collectible') ||
+                              mesh.name.toLowerCase().includes('enemy'))) {
+            
+            // Store original values for pulsing animation
+            mesh.userData.originalEmissiveIntensity = mesh.material.emissiveIntensity || 0;
+            mesh.userData.pulseAnimation = true;
+            
+            // Add to animation list for frame updates
+            if (!this.animatedMeshes) this.animatedMeshes = [];
+            this.animatedMeshes.push(mesh);
+        }
+    }
+
+    // PS2 era enhancements (realistic lighting and shadows)
+    enhanceForPS2(mesh) {
+        // Enable shadows for most objects
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        
+        // Add subtle detail enhancements
+        if (mesh.material) {
+            mesh.material.envMapIntensity = Math.max(mesh.material.envMapIntensity || 0, 0.3);
+        }
+    }
+
+    // Update animated effects each frame
+    updateAnimatedEffects() {
+        if (!this.animatedMeshes) return;
+        
+        const time = Date.now() * 0.002;
+        
+        this.animatedMeshes.forEach(mesh => {
+            if (mesh.userData.pulseAnimation && mesh.material) {
+                // Pulsing emissive effect for arcade style
+                const pulseIntensity = Math.sin(time * 2) * 0.2 + 0.3;
+                mesh.material.emissiveIntensity = mesh.userData.originalEmissiveIntensity + pulseIntensity;
+            }
+        });
     }
 
     enhanceMeshMaterial(mesh, gameMode) {
@@ -829,48 +1149,102 @@ export class GraphicsEnhancer {
             const baseColor = mesh.material.color.getHex();
             const meshName = mesh.name.toLowerCase();
             
+            // Determine era theme based on game mode
+            const eraTheme = this.getEraThemeForGameMode(gameMode);
+            
             // Determine material type based on mesh name and game mode
-            let materialType = 'plastic';
+            let materialType = this.determineMaterialType(meshName, gameMode);
             
-            if (meshName.includes('ground') || meshName.includes('platform') || meshName.includes('tile')) {
-                materialType = 'stone';
-            } else if (meshName.includes('metal') || meshName.includes('arena') || meshName.includes('obstacle')) {
-                materialType = 'metal';
-            } else if (meshName.includes('collectible') || meshName.includes('coin') || meshName.includes('pebble')) {
-                materialType = 'gem';
-            } else if (meshName.includes('glow') || meshName.includes('neon') || meshName.includes('light')) {
-                materialType = 'glow';
-            } else if (meshName.includes('ghost') || meshName.includes('hologram')) {
-                materialType = 'hologram';
-            } else if (meshName.includes('quicksand') || meshName.includes('sand')) {
-                materialType = 'stone'; // Use stone material for sand/mud effects
-            }
-            
-            // Special handling for different game modes
-            if (gameMode === 'pacman') {
-                if (meshName.includes('wall')) {
-                    materialType = 'glow';
-                } else if (meshName.includes('ground')) {
-                    materialType = 'metal';
-                }
-            } else if (gameMode === 'battle') {
-                if (meshName.includes('arena')) {
-                    materialType = 'metal';
-                } else if (meshName.includes('hazard')) {
-                    materialType = 'glow';
-                }
-            }
-            
-            // Apply enhanced material (without shadow properties)
-            const enhancedMaterial = this.createEnhancedMaterial(materialType, baseColor);
+            // Apply enhanced material with era theming
+            const enhancedMaterial = this.createEnhancedMaterial(materialType, baseColor, eraTheme);
             
             mesh.material = enhancedMaterial;
+            
+            // Apply geometry enhancements
+            this.enhanceGeometry(mesh, eraTheme);
+            
             // Set shadow properties on the mesh, not the material
             mesh.castShadow = true;
             mesh.receiveShadow = true;
         } catch (error) {
             console.warn(`Failed to enhance material for mesh ${mesh.name}:`, error);
         }
+    }
+
+    // Determine era theme based on game mode
+    getEraThemeForGameMode(gameMode) {
+        const themeMapping = {
+            'pacman': 'arcade',       // Retro arcade style for Pac-Man
+            'battle': 'ps2',          // PS2 era for battle mode
+            'normal': 'snes',         // SNES era for normal levels
+            'classic': 'arcade',      // Arcade style for classic modes
+            'retro': 'snes'           // SNES style for retro modes
+        };
+        
+        return themeMapping[gameMode] || 'ps2';
+    }
+
+    // Determine material type based on mesh name and game mode
+    determineMaterialType(meshName, gameMode) {
+        let materialType = 'plastic'; // Default
+        
+        // Basic material type detection
+        if (meshName.includes('ground') || meshName.includes('platform') || meshName.includes('floor')) {
+            materialType = 'stone';
+        } else if (meshName.includes('wall') || meshName.includes('ceiling')) {
+            materialType = gameMode === 'pacman' ? 'neon' : 'stone';
+        } else if (meshName.includes('metal') || meshName.includes('arena') || meshName.includes('frame')) {
+            materialType = 'metal';
+        } else if (meshName.includes('collectible') || meshName.includes('coin') || meshName.includes('pebble') || meshName.includes('gem')) {
+            materialType = 'gem';
+        } else if (meshName.includes('glow') || meshName.includes('neon') || meshName.includes('light')) {
+            materialType = 'glow';
+        } else if (meshName.includes('ghost') || meshName.includes('hologram') || meshName.includes('spirit')) {
+            materialType = 'hologram';
+        } else if (meshName.includes('quicksand') || meshName.includes('sand') || meshName.includes('mud')) {
+            materialType = 'stone';
+        } else if (meshName.includes('obstacle') || meshName.includes('block') || meshName.includes('barrier')) {
+            materialType = gameMode === 'pacman' ? 'neon' : 'stone';
+        } else if (meshName.includes('player') || meshName.includes('character')) {
+            materialType = gameMode === 'pacman' ? 'retro' : 'plastic';
+        } else if (meshName.includes('enemy') || meshName.includes('bot') || meshName.includes('ai')) {
+            materialType = gameMode === 'pacman' ? 'glow' : 'plastic';
+        }
+        
+        // Game mode specific overrides
+        switch (gameMode) {
+            case 'pacman':
+                if (meshName.includes('dot') || meshName.includes('pellet')) {
+                    materialType = 'glow';
+                } else if (meshName.includes('fruit') || meshName.includes('bonus')) {
+                    materialType = 'gem';
+                } else if (meshName.includes('maze') || meshName.includes('wall')) {
+                    materialType = 'neon';
+                }
+                break;
+                
+            case 'battle':
+                if (meshName.includes('arena') || meshName.includes('ring')) {
+                    materialType = 'metal';
+                } else if (meshName.includes('hazard') || meshName.includes('trap')) {
+                    materialType = 'glow';
+                } else if (meshName.includes('weapon') || meshName.includes('power')) {
+                    materialType = 'gem';
+                }
+                break;
+                
+            case 'normal':
+                if (meshName.includes('tile') || meshName.includes('brick')) {
+                    materialType = 'retro';
+                } else if (meshName.includes('water') || meshName.includes('liquid')) {
+                    materialType = 'gem';
+                } else if (meshName.includes('switch') || meshName.includes('button')) {
+                    materialType = 'plastic';
+                }
+                break;
+        }
+        
+        return materialType;
     }
 
     // Create particle effect for enhanced atmosphere

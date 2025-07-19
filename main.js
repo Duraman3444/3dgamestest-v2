@@ -1330,6 +1330,17 @@ class Game {
             this.audioManager.setGameMode(mode);
         }
         
+        // Update graphics enhancement for new game mode
+        if (this.graphicsEnhancer && this.scene) {
+            setTimeout(() => {
+                try {
+                    this.graphicsEnhancer.enhanceSceneMaterials(mode);
+                } catch (error) {
+                    console.warn('Failed to enhance scene materials for mode change:', error);
+                }
+            }, 200);
+        }
+        
         // Reset pacman timer state
         this.stopPacmanTimer();
         
@@ -1867,6 +1878,9 @@ class Game {
         
         this.graphicsEnhancer = new GraphicsEnhancer(this.scene, this.renderer, this.cameraSystem.camera);
         console.log('✨ Graphics enhancer initialized with SSR support');
+        
+        // Initialize comprehensive graphics enhancements for all game modes
+        this.graphicsEnhancer.enhanceAllLevels();
         
         // Sync player lives with classic mode lives if in classic mode
         if (this.isClassicMode) {
