@@ -80,8 +80,23 @@ export class Player {
         
         // Apply ball customization for single player and pacman modes
         if (customization) {
-            material = this.createCustomizedMaterial(customization, isPacmanMode);
-        } else if (isPacmanMode) {
+            try {
+                material = this.createCustomizedMaterial(customization, isPacmanMode);
+                console.log('🎨 Successfully created customized material:', customization);
+                
+                // Verify material was created properly
+                if (!material) {
+                    console.error('❌ Customized material creation failed, falling back to default');
+                    throw new Error('Material creation failed');
+                }
+            } catch (error) {
+                console.error('❌ Error creating customized material:', error);
+                console.log('🔄 Falling back to default material for level', currentLevel);
+                material = null; // Will fall through to default material creation
+            }
+        }
+        
+        if (!material && isPacmanMode) {
             // Create visible rotation pattern for Pacman mode
             const canvas = document.createElement('canvas');
             canvas.width = 512;
@@ -140,7 +155,7 @@ export class Player {
                 transparent: true,
                 opacity: 0.95
             });
-        } else if (isNormalMode) {
+        } else if (!material && isNormalMode) {
             // Enhanced PS2 materials with visible rotation patterns
             const ps2PlayerColors = {
                 1: 0x00FFFF, // Cyan
@@ -209,8 +224,8 @@ export class Player {
                 transparent: true,
                 opacity: 0.95
             });
-        } else {
-            // Enhanced procedural material with visible rotation patterns
+        } else if (!material) {
+            // Enhanced procedural material with visible rotation patterns (fallback)
             const canvas = document.createElement('canvas');
             canvas.width = 512;
             canvas.height = 512;
@@ -286,6 +301,17 @@ export class Player {
             });
         }
         
+        // Final safety check - ensure we always have a valid material
+        if (!material) {
+            console.warn('⚠️ No material created, using emergency fallback');
+            material = new THREE.MeshPhongMaterial({ 
+                color: 0xFF0000,
+                emissive: 0x440000,
+                emissiveIntensity: 0.3,
+                shininess: 100
+            });
+        }
+        
         this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.copy(this.position);
         this.mesh.castShadow = true;
@@ -322,9 +348,17 @@ export class Player {
         };
         
         const baseColor = new THREE.Color(colorMap[customization.color] || '#FF0000');
+        console.log(`🎨 Creating material - Color: ${customization.color}, Material: ${customization.material}, Design: ${customization.design}`);
         
         // Create texture based on design
         const texture = this.createCustomDesignTexture(customization, baseColor);
+        
+        // Verify texture was created successfully
+        if (!texture) {
+            console.error('❌ Texture creation failed for customization:', customization);
+            throw new Error('Texture creation failed');
+        }
+        console.log('✅ Texture created successfully');
         
         // Create material based on material type
         let material;
@@ -372,16 +406,22 @@ export class Player {
                 break;
                 
             case 'glow':
+                // Enhanced glow material that works in all lighting conditions
                 material = new THREE.MeshStandardMaterial({
                     map: texture,
                     color: baseColor,
-                    emissive: baseColor.clone().multiplyScalar(0.5),
-                    emissiveIntensity: isPacmanMode ? 0.8 : 0.5,
+                    emissive: baseColor.clone().multiplyScalar(0.6), // Increased emissive intensity
+                    emissiveIntensity: isPacmanMode ? 1.0 : 0.8, // Increased overall intensity
                     metalness: 0.0,
-                    roughness: 0.3,
+                    roughness: 0.2,
                     transparent: true,
-                    opacity: 0.95
+                    opacity: 0.95,
+                    // Add additional glow effect with environment mapping
+                    envMapIntensity: 1.2,
+                    // Ensure the material is always visible even without lighting
+                    toneMapped: false
                 });
+                console.log('🌟 Created enhanced glow material with high visibility');
                 break;
                 
             case 'stone':
@@ -408,16 +448,23 @@ export class Player {
     }
     
     createCustomDesignTexture(customization, baseColor) {
-        const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 512;
-        const ctx = canvas.getContext('2d');
-        
-        // Enable high-quality rendering
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        
-        const baseColorStr = `rgb(${Math.floor(baseColor.r * 255)}, ${Math.floor(baseColor.g * 255)}, ${Math.floor(baseColor.b * 255)})`;
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            
+            if (!ctx) {
+                console.error('❌ Failed to get 2D canvas context for texture creation');
+                throw new Error('Canvas context creation failed');
+            }
+            
+            // Enable high-quality rendering
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            
+            const baseColorStr = `rgb(${Math.floor(baseColor.r * 255)}, ${Math.floor(baseColor.g * 255)}, ${Math.floor(baseColor.b * 255)})`;
+            console.log(`🎨 Creating texture with base color: ${baseColorStr}, design: ${customization.design}`);
         
         // Fill base color
         ctx.fillStyle = baseColorStr;
@@ -606,14 +653,40 @@ export class Player {
                 break;
         }
         
-        const texture = new THREE.CanvasTexture(canvas);
-        texture.wrapS = THREE.RepeatWrapping;
-        texture.wrapT = THREE.RepeatWrapping;
-        texture.generateMipmaps = false;
-        texture.minFilter = THREE.LinearFilter;
-        texture.magFilter = THREE.LinearFilter;
-        
-        return texture;
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.generateMipmaps = false;
+            texture.minFilter = THREE.LinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            
+            console.log('✅ Canvas texture created successfully');
+            return texture;
+            
+        } catch (error) {
+            console.error('❌ Error creating custom design texture:', error);
+            console.log('🔄 Creating fallback solid texture');
+            
+            // Create a simple fallback texture
+            const fallbackCanvas = document.createElement('canvas');
+            fallbackCanvas.width = 256;
+            fallbackCanvas.height = 256;
+            const fallbackCtx = fallbackCanvas.getContext('2d');
+            
+            // Simple solid color fallback
+            const colorStr = `rgb(${Math.floor(baseColor.r * 255)}, ${Math.floor(baseColor.g * 255)}, ${Math.floor(baseColor.b * 255)})`;
+            fallbackCtx.fillStyle = colorStr;
+            fallbackCtx.fillRect(0, 0, 256, 256);
+            
+            const fallbackTexture = new THREE.CanvasTexture(fallbackCanvas);
+            fallbackTexture.wrapS = THREE.RepeatWrapping;
+            fallbackTexture.wrapT = THREE.RepeatWrapping;
+            fallbackTexture.generateMipmaps = false;
+            fallbackTexture.minFilter = THREE.LinearFilter;
+            fallbackTexture.magFilter = THREE.LinearFilter;
+            
+            return fallbackTexture;
+        }
     }
     
     setupInputHandlers() {
