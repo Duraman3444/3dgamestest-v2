@@ -716,27 +716,78 @@ export class BallCustomization {
                 break;
                 
             case 'stripes':
-                ctx.fillStyle = '#ffffff';
-                for (let i = 0; i < 512; i += 64) {
-                    ctx.fillRect(i, 0, 32, 512);
+                // Create diagonal racing stripes
+                ctx.save();
+                ctx.translate(256, 256);
+                ctx.rotate(-Math.PI / 6); // 30-degree angle
+                ctx.translate(-256, -256);
+                
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                const stripeWidth = 45;
+                const spacing = 90;
+                for (let i = -512; i < 1024; i += spacing) {
+                    ctx.fillRect(i, -512, stripeWidth, 1536);
                 }
+                
+                // Add black outline for each stripe
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.lineWidth = 2;
+                for (let i = -512; i < 1024; i += spacing) {
+                    ctx.strokeRect(i, -512, stripeWidth, 1536);
+                }
+                
+                ctx.restore();
                 break;
                 
             case 'dots':
-                ctx.fillStyle = '#ffffff';
-                for (let x = 50; x < 512; x += 100) {
-                    for (let y = 50; y < 512; y += 100) {
+                // Create polka dot pattern with better distribution
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.lineWidth = 2;
+                
+                const dotSize = 25;
+                const dotSpacing = 80;
+                const dotOffset = 40; // Offset every other row
+                
+                for (let x = dotSpacing / 2; x < 512; x += dotSpacing) {
+                    for (let y = dotSpacing / 2; y < 512; y += dotSpacing) {
+                        // Offset every other row for better coverage
+                        const xPos = y % (dotSpacing * 2) === dotSpacing / 2 ? x : x + dotOffset;
+                        
                         ctx.beginPath();
-                        ctx.arc(x, y, 20, 0, Math.PI * 2);
+                        ctx.arc(xPos, y, dotSize, 0, Math.PI * 2);
                         ctx.fill();
+                        ctx.stroke();
                     }
                 }
                 break;
                 
             case 'grid':
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 4;
-                for (let i = 0; i < 512; i += 32) {
+                // Create prominent grid pattern
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.lineWidth = 6;
+                const gridSpacing = 40;
+                
+                // Draw vertical lines
+                for (let i = 0; i <= 512; i += gridSpacing) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, 0);
+                    ctx.lineTo(i, 512);
+                    ctx.stroke();
+                }
+                
+                // Draw horizontal lines
+                for (let i = 0; i <= 512; i += gridSpacing) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, i);
+                    ctx.lineTo(512, i);
+                    ctx.stroke();
+                }
+                
+                // Add darker border for each grid cell
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.lineWidth = 2;
+                for (let i = 0; i <= 512; i += gridSpacing) {
                     ctx.beginPath();
                     ctx.moveTo(i, 0);
                     ctx.lineTo(i, 512);
@@ -750,79 +801,201 @@ export class BallCustomization {
                 break;
                 
             case 'beach':
-                const colors = ['#FF0000', '#FFFF00', '#00FF00', '#0000FF', '#FF00FF'];
-                const sectionWidth = 512 / colors.length;
-                colors.forEach((color, index) => {
+                // Create alternating color sections like a beach ball
+                const beachColors = ['#FF0000', '#FFFF00', '#00FF00', '#0066FF', '#FF00FF', '#FF8000'];
+                const centerX = 256;
+                const centerY = 256;
+                const sectionAngle = (Math.PI * 2) / beachColors.length;
+                
+                beachColors.forEach((color, index) => {
                     ctx.fillStyle = color;
-                    ctx.fillRect(index * sectionWidth, 0, sectionWidth, 512);
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, centerY);
+                    ctx.arc(centerX, centerY, 256, 
+                           sectionAngle * index, 
+                           sectionAngle * (index + 1));
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    // Add white border between sections
+                    ctx.strokeStyle = '#FFFFFF';
+                    ctx.lineWidth = 4;
+                    ctx.stroke();
                 });
                 break;
                 
             case 'soccer':
-                // White base
-                ctx.fillStyle = '#ffffff';
+                // Create realistic soccer ball pattern
+                ctx.fillStyle = '#FFFFFF';
                 ctx.fillRect(0, 0, 512, 512);
-                // Black pentagons pattern (simplified)
+                
+                // Draw black pentagonal sections
                 ctx.fillStyle = '#000000';
-                ctx.beginPath();
-                ctx.arc(256, 256, 80, 0, Math.PI * 2);
-                ctx.fill();
-                for (let i = 0; i < 6; i++) {
-                    const angle = (i * Math.PI * 2) / 6;
-                    const x = 256 + Math.cos(angle) * 150;
-                    const y = 256 + Math.sin(angle) * 150;
+                
+                // Central pentagon
+                this.drawPentagon(ctx, 256, 256, 45);
+                
+                // Surrounding pentagons in a pattern
+                const positions = [
+                    {x: 256, y: 140}, // top
+                    {x: 320, y: 180}, // top right
+                    {x: 340, y: 240}, // right
+                    {x: 320, y: 320}, // bottom right
+                    {x: 256, y: 360}, // bottom
+                    {x: 192, y: 320}, // bottom left
+                    {x: 172, y: 240}, // left
+                    {x: 192, y: 180}  // top left
+                ];
+                
+                positions.forEach(pos => {
+                    this.drawPentagon(ctx, pos.x, pos.y, 30);
+                });
+                
+                // Add connecting lines between pentagons
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 8;
+                ctx.lineCap = 'round';
+                
+                // Lines from center to surrounding pentagons
+                positions.forEach(pos => {
                     ctx.beginPath();
-                    ctx.arc(x, y, 40, 0, Math.PI * 2);
-                    ctx.fill();
-                }
+                    ctx.moveTo(256, 256);
+                    ctx.lineTo(pos.x, pos.y);
+                    ctx.stroke();
+                });
+                
                 break;
                 
             case 'basketball':
                 // Orange base (already set)
                 ctx.strokeStyle = '#000000';
-                ctx.lineWidth = 6;
-                // Curved lines
+                ctx.lineWidth = 8;
+                ctx.lineCap = 'round';
+                
+                // Main vertical line
                 ctx.beginPath();
-                ctx.arc(256, 0, 256, 0, Math.PI);
+                ctx.moveTo(256, 0);
+                ctx.lineTo(256, 512);
                 ctx.stroke();
-                ctx.beginPath();
-                ctx.arc(256, 512, 256, Math.PI, 0);
-                ctx.stroke();
+                
+                // Main horizontal line
                 ctx.beginPath();
                 ctx.moveTo(0, 256);
                 ctx.lineTo(512, 256);
                 ctx.stroke();
+                
+                // Curved lines for basketball seams
+                ctx.beginPath();
+                ctx.arc(256, 256, 180, -Math.PI/4, Math.PI/4);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.arc(256, 256, 180, 3*Math.PI/4, 5*Math.PI/4);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.arc(256, 256, 180, Math.PI/4, 3*Math.PI/4);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.arc(256, 256, 180, -3*Math.PI/4, -Math.PI/4);
+                ctx.stroke();
                 break;
                 
             case 'tennis':
-                // Yellow base (already set)
-                ctx.strokeStyle = '#ffffff';
-                ctx.lineWidth = 4;
-                // Curved lines
+                // Create fuzzy texture first
+                ctx.fillStyle = baseColor;
+                ctx.fillRect(0, 0, 512, 512);
+                
+                // Add fuzzy texture
+                for (let i = 0; i < 2000; i++) {
+                    const x = Math.random() * 512;
+                    const y = Math.random() * 512;
+                    const size = Math.random() * 2 + 1;
+                    ctx.fillStyle = `rgba(255, 255, 0, ${Math.random() * 0.3 + 0.1})`;
+                    ctx.fillRect(x, y, size, size);
+                }
+                
+                // Tennis ball characteristic curved lines
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 12;
+                ctx.lineCap = 'round';
+                
+                // Create the classic tennis ball seam pattern
                 ctx.beginPath();
-                ctx.arc(150, 256, 180, 0, Math.PI * 2, false);
+                // Left curve
+                ctx.arc(128, 256, 200, -Math.PI/3, Math.PI/3);
                 ctx.stroke();
+                
                 ctx.beginPath();
-                ctx.arc(362, 256, 180, 0, Math.PI * 2, false);
+                // Right curve
+                ctx.arc(384, 256, 200, 2*Math.PI/3, 4*Math.PI/3);
+                ctx.stroke();
+                
+                // Add shadow to the lines for depth
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                ctx.lineWidth = 4;
+                
+                ctx.beginPath();
+                ctx.arc(128, 256, 200, -Math.PI/3, Math.PI/3);
+                ctx.stroke();
+                
+                ctx.beginPath();
+                ctx.arc(384, 256, 200, 2*Math.PI/3, 4*Math.PI/3);
                 ctx.stroke();
                 break;
                 
             case 'marble':
-                // Create marble swirl pattern
-                const gradient = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
-                gradient.addColorStop(0, baseColor);
-                gradient.addColorStop(0.5, '#ffffff');
-                gradient.addColorStop(1, baseColor);
-                ctx.fillStyle = gradient;
+                // Create realistic marble pattern
+                // Base with subtle gradient
+                const marbleGrad = ctx.createLinearGradient(0, 0, 512, 512);
+                marbleGrad.addColorStop(0, baseColor);
+                marbleGrad.addColorStop(0.3, '#FFFFFF');
+                marbleGrad.addColorStop(0.7, baseColor);
+                marbleGrad.addColorStop(1, '#CCCCCC');
+                ctx.fillStyle = marbleGrad;
                 ctx.fillRect(0, 0, 512, 512);
                 
-                // Add swirl lines
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-                ctx.lineWidth = 8;
-                for (let i = 0; i < 10; i++) {
+                // Create realistic marble veins
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.lineWidth = 3;
+                ctx.lineCap = 'round';
+                
+                // Main veins
+                for (let i = 0; i < 5; i++) {
                     ctx.beginPath();
                     ctx.moveTo(Math.random() * 512, Math.random() * 512);
-                    ctx.quadraticCurveTo(Math.random() * 512, Math.random() * 512, Math.random() * 512, Math.random() * 512);
+                    
+                    let x = Math.random() * 512;
+                    let y = Math.random() * 512;
+                    
+                    for (let j = 0; j < 8; j++) {
+                        const newX = x + (Math.random() - 0.5) * 100;
+                        const newY = y + (Math.random() - 0.5) * 100;
+                        const controlX = x + (Math.random() - 0.5) * 80;
+                        const controlY = y + (Math.random() - 0.5) * 80;
+                        
+                        ctx.quadraticCurveTo(controlX, controlY, newX, newY);
+                        x = newX;
+                        y = newY;
+                    }
+                    ctx.stroke();
+                }
+                
+                // Smaller secondary veins
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < 15; i++) {
+                    ctx.beginPath();
+                    const startX = Math.random() * 512;
+                    const startY = Math.random() * 512;
+                    const endX = startX + (Math.random() - 0.5) * 150;
+                    const endY = startY + (Math.random() - 0.5) * 150;
+                    const controlX = (startX + endX) / 2 + (Math.random() - 0.5) * 50;
+                    const controlY = (startY + endY) / 2 + (Math.random() - 0.5) * 50;
+                    
+                    ctx.moveTo(startX, startY);
+                    ctx.quadraticCurveTo(controlX, controlY, endX, endY);
                     ctx.stroke();
                 }
                 break;
@@ -860,6 +1033,30 @@ export class BallCustomization {
         texture.magFilter = THREE.LinearFilter;
         
         return texture;
+    }
+
+    // Helper method to draw pentagon for soccer ball pattern
+    drawPentagon(ctx, centerX, centerY, radius) {
+        ctx.beginPath();
+        const angles = [];
+        for (let i = 0; i < 5; i++) {
+            angles.push((i * 2 * Math.PI) / 5 - Math.PI / 2);
+        }
+        
+        ctx.moveTo(
+            centerX + radius * Math.cos(angles[0]),
+            centerY + radius * Math.sin(angles[0])
+        );
+        
+        for (let i = 1; i < 5; i++) {
+            ctx.lineTo(
+                centerX + radius * Math.cos(angles[i]),
+                centerY + radius * Math.sin(angles[i])
+            );
+        }
+        
+        ctx.closePath();
+        ctx.fill();
     }
     
     setupKeyboardNavigation() {
