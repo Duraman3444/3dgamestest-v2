@@ -57,12 +57,12 @@ const SSRShader = {
 const GodRaysShader = {
     uniforms: {
         tDiffuse: { value: null },
-        lightPosition: { value: new THREE.Vector2(0.5, 0.5) },
-        exposure: { value: 0.58 },
-        decay: { value: 0.93 },
-        density: { value: 0.84 },
-        weight: { value: 0.4 },
-        samples: { value: 50 }
+        lightPosition: { value: new THREE.Vector2(0.8, 0.2) }, // More natural light position (top-right)
+        exposure: { value: 0.4 },
+        decay: { value: 0.96 },
+        density: { value: 0.6 },
+        weight: { value: 0.6 },
+        samples: { value: 40 }
     },
     
     vertexShader: `
@@ -84,22 +84,37 @@ const GodRaysShader = {
         
         void main() {
             vec2 texCoord = vUv;
-            vec2 lightDir = texCoord - lightPosition;
-            vec2 deltaTexCoord = (texCoord - lightPosition) / float(samples) * density;
+            vec2 lightVector = lightPosition - texCoord;
+            float lightDistance = length(lightVector);
+            vec2 deltaTexCoord = lightVector / float(samples) * density;
             
             vec3 color = texture2D(tDiffuse, texCoord).rgb;
             float illuminationDecay = 1.0;
             
+            // Add distance-based intensity falloff
+            float distanceIntensity = 1.0 - smoothstep(0.0, 1.0, lightDistance);
+            
             for(int i = 0; i < 50; i++) {
                 if(i >= samples) break;
-                texCoord -= deltaTexCoord;
+                texCoord += deltaTexCoord;
+                
+                // Sample the texture
                 vec3 texSample = texture2D(tDiffuse, texCoord).rgb;
-                texSample *= illuminationDecay * weight;
-                color += texSample;
+                
+                // Calculate brightness of the sample
+                float brightness = dot(texSample, vec3(0.299, 0.587, 0.114));
+                
+                // Apply volumetric scattering with brightness consideration
+                texSample *= illuminationDecay * weight * (1.0 + brightness * 2.0);
+                color += texSample * distanceIntensity;
                 illuminationDecay *= decay;
             }
             
-            gl_FragColor = vec4(color * exposure, 1.0);
+            // Enhanced color blending with better contrast
+            vec3 originalColor = texture2D(tDiffuse, vUv).rgb;
+            vec3 finalColor = mix(originalColor, color * exposure, 0.7);
+            
+            gl_FragColor = vec4(finalColor, 1.0);
         }`
 };
 
@@ -527,10 +542,19 @@ export class GraphicsEnhancer {
         
         const { intensity = 40, exposure = 25 } = settings;
         
-        this.godRaysPass.uniforms['weight'].value = intensity / 100;
-        this.godRaysPass.uniforms['exposure'].value = exposure / 100;
+        // Update shader uniforms with better scaling
+        this.godRaysPass.uniforms['weight'].value = (intensity / 100) * 0.8;
+        this.godRaysPass.uniforms['exposure'].value = (exposure / 100) * 0.6;
+        this.godRaysPass.uniforms['decay'].value = 0.94 + (intensity / 1000); // Slight decay variation
+        this.godRaysPass.uniforms['density'].value = 0.4 + (intensity / 200); // Density variation
         
-        console.log('☀️ God Rays settings updated:', settings);
+        // Dynamically update light position based on time for more natural effect
+        const time = Date.now() * 0.0005;
+        const lightX = 0.7 + Math.sin(time) * 0.2;
+        const lightY = 0.1 + Math.cos(time * 0.7) * 0.1;
+        this.godRaysPass.uniforms['lightPosition'].value.set(lightX, lightY);
+        
+        console.log('☀️ God Rays settings updated:', settings, 'Light position:', lightX.toFixed(2), lightY.toFixed(2));
     }
 
     updateMotionBlurSettings(settings = {}) {
@@ -631,6 +655,9 @@ export class GraphicsEnhancer {
 
     // Main render method
     render() {
+        // Update dynamic effects each frame
+        this.updateDynamicEffects();
+        
         if (this.composer && this.hasAnyEffectEnabled()) {
             // Render G-buffer for SSR if needed
             if (this.effects.ssr) {
@@ -641,6 +668,33 @@ export class GraphicsEnhancer {
         } else {
             // Fallback to regular rendering
             this.renderer.render(this.scene, this.camera);
+        }
+    }
+
+    // Update dynamic effects each frame
+    updateDynamicEffects() {
+        // Update God Rays light position dynamically
+        if (this.godRaysPass && this.effects.godRays) {
+            const time = Date.now() * 0.0003;
+            const lightX = 0.75 + Math.sin(time) * 0.15;
+            const lightY = 0.15 + Math.cos(time * 0.6) * 0.1;
+            this.godRaysPass.uniforms['lightPosition'].value.set(lightX, lightY);
+        }
+        
+        // Update motion blur based on camera movement (if camera system available)
+        if (this.motionBlurPass && this.effects.motionBlur && this.camera) {
+            // Simple camera-based motion blur
+            const velocity = new THREE.Vector2(0.005, 0.0);
+            this.motionBlurPass.uniforms['velocity'] = this.motionBlurPass.uniforms['velocity'] || { value: velocity };
+        }
+        
+        // Update color grading based on time (subtle day/night cycle effect)
+        if (this.colorGradingPass && this.effects.colorGrading) {
+            const time = Date.now() * 0.0001;
+            const warmth = 0.5 + Math.sin(time) * 0.1;
+            if (this.colorGradingPass.uniforms['temperature']) {
+                this.colorGradingPass.uniforms['temperature'].value = warmth;
+            }
         }
     }
 
@@ -952,6 +1006,64 @@ export class GraphicsEnhancer {
     applyPostProcessing(composer) {
         // This method would be used with EffectComposer for advanced post-processing
         console.log('Post-processing effects applied');
+    }
+
+    // Graphics settings diagnostic method
+    testAllGraphicsSettings() {
+        console.log('🔧 Testing all graphics settings...');
+        
+        const testResults = {
+            bloom: this.bloomPass && this.bloomPass.enabled,
+            ssao: this.ssaoPass && this.ssaoPass.enabled,
+            godRays: this.godRaysPass && this.godRaysPass.enabled,
+            motionBlur: this.motionBlurPass && this.motionBlurPass.enabled,
+            dof: this.dofPass && this.dofPass.enabled,
+            filmGrain: this.filmPass && this.filmPass.enabled,
+            vignette: this.vignettePass && this.vignettePass.enabled,
+            chromaticAberration: this.chromaticPass && this.chromaticPass.enabled,
+            colorGrading: this.colorGradingPass && this.colorGradingPass.enabled,
+            ssr: this.ssrPass && this.ssrPass.enabled
+        };
+        
+        console.log('📊 Graphics Settings Status:');
+        Object.entries(testResults).forEach(([effect, enabled]) => {
+            const status = enabled ? '✅ ENABLED' : '❌ DISABLED';
+            const pass = this[effect + 'Pass'];
+            const hasUniforms = pass && pass.uniforms ? Object.keys(pass.uniforms).length : 0;
+            console.log(`  ${effect}: ${status} (${hasUniforms} uniforms)`);
+        });
+        
+        return testResults;
+    }
+
+    // Cycle through effects for testing
+    cycleEffectsTest() {
+        const effects = ['bloom', 'ssao', 'godRays', 'motionBlur', 'dof', 'filmGrain', 'vignette', 'chromaticAberration', 'ssr'];
+        let currentIndex = 0;
+        
+        const cycleFn = () => {
+            // Disable all effects first
+            effects.forEach(effect => {
+                const methodName = `enable${effect.charAt(0).toUpperCase() + effect.slice(1)}`;
+                if (this[methodName]) {
+                    this[methodName](false);
+                }
+            });
+            
+            // Enable current effect
+            const currentEffect = effects[currentIndex];
+            const methodName = `enable${currentEffect.charAt(0).toUpperCase() + currentEffect.slice(1)}`;
+            if (this[methodName]) {
+                this[methodName](true);
+                console.log(`🎯 Testing: ${currentEffect}`);
+            }
+            
+            currentIndex = (currentIndex + 1) % effects.length;
+        };
+        
+        console.log('🔄 Starting effects cycle test (every 3 seconds)');
+        cycleFn();
+        return setInterval(cycleFn, 3000);
     }
 
     // Clean up resources

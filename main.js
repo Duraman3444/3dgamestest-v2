@@ -1058,6 +1058,31 @@ class Game {
         }
     }
 
+    // Test graphics settings - can be called from console
+    testGraphicsSettings() {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.testAllGraphicsSettings) {
+            return this.graphicsEnhancer.testAllGraphicsSettings();
+        }
+        return null;
+    }
+
+    // Cycle through graphics effects for testing
+    startGraphicsTest() {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.cycleEffectsTest) {
+            this.graphicsTestInterval = this.graphicsEnhancer.cycleEffectsTest();
+            return this.graphicsTestInterval;
+        }
+        return null;
+    }
+
+    stopGraphicsTest() {
+        if (this.graphicsTestInterval) {
+            clearInterval(this.graphicsTestInterval);
+            this.graphicsTestInterval = null;
+            console.log('🛑 Graphics test stopped');
+        }
+    }
+
     // Motion Blur methods
     applyMotionBlurSetting(enabled) {
         if (this.graphicsEnhancer && this.graphicsEnhancer.enableMotionBlur) {
