@@ -857,24 +857,46 @@ class Game {
             // Show pause overlay
             console.log('🎮 Creating pause overlay...');
             this.pauseOverlay = this.createPauseOverlay();
-            document.body.appendChild(this.pauseOverlay);
-            console.log('🎮 Pause overlay added to DOM');
             
-            // Debug: Check overlay properties
-            setTimeout(() => {
-                if (this.pauseOverlay) {
-                    const computed = window.getComputedStyle(this.pauseOverlay);
-                    console.log('🎮 Pause overlay computed styles:');
-                    console.log(`   Display: ${computed.display}`);
-                    console.log(`   Visibility: ${computed.visibility}`);
-                    console.log(`   Z-index: ${computed.zIndex}`);
-                    console.log(`   Position: ${computed.position}`);
-                    console.log(`   Top: ${computed.top}`);
-                    console.log(`   Left: ${computed.left}`);
-                    console.log(`   Width: ${computed.width}`);
-                    console.log(`   Height: ${computed.height}`);
-                }
-            }, 100);
+            // Ensure overlay is properly styled and visible
+            if (this.pauseOverlay) {
+                // Force high z-index and proper styling
+                this.pauseOverlay.style.zIndex = '9999';
+                this.pauseOverlay.style.position = 'fixed';
+                this.pauseOverlay.style.top = '0';
+                this.pauseOverlay.style.left = '0';
+                this.pauseOverlay.style.width = '100vw';
+                this.pauseOverlay.style.height = '100vh';
+                this.pauseOverlay.style.display = 'flex';
+                this.pauseOverlay.style.visibility = 'visible';
+                this.pauseOverlay.style.opacity = '1';
+                
+                document.body.appendChild(this.pauseOverlay);
+                console.log('🎮 Pause overlay added to DOM with forced visibility');
+                
+                // Force immediate reflow
+                this.pauseOverlay.offsetHeight;
+                
+                // Verify overlay is in DOM and visible
+                setTimeout(() => {
+                    if (document.getElementById('pauseOverlay')) {
+                        const computed = window.getComputedStyle(this.pauseOverlay);
+                        console.log('🎮 Pause overlay verification:');
+                        console.log(`   In DOM: ${document.getElementById('pauseOverlay') !== null}`);
+                        console.log(`   Display: ${computed.display}`);
+                        console.log(`   Visibility: ${computed.visibility}`);
+                        console.log(`   Z-index: ${computed.zIndex}`);
+                        console.log(`   Position: ${computed.position}`);
+                        console.log(`   Opacity: ${computed.opacity}`);
+                        console.log(`   Width: ${computed.width}`);
+                        console.log(`   Height: ${computed.height}`);
+                    } else {
+                        console.error('🎮 Pause overlay NOT found in DOM!');
+                    }
+                }, 50);
+            } else {
+                console.error('🎮 Failed to create pause overlay!');
+            }
             
             console.log('Game paused');
         }
