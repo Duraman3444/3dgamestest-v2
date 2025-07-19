@@ -1,8 +1,10 @@
 import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
-import { EffectComposer } from 'https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/RenderPass.js';
-import { ShaderPass } from 'https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/ShaderPass.js';
-import { CopyShader } from 'https://unpkg.com/three@0.158.0/examples/jsm/shaders/CopyShader.js';
+
+// Temporarily disable post-processing imports to fix the module resolution issue
+// import { EffectComposer } from 'https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/EffectComposer.js';
+// import { RenderPass } from 'https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/RenderPass.js';
+// import { ShaderPass } from 'https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/ShaderPass.js';
+// import { CopyShader } from 'https://unpkg.com/three@0.158.0/examples/jsm/shaders/CopyShader.js';
 
 // Screenspace Reflections Shader
 const SSRShader = {
@@ -170,6 +172,17 @@ export class GraphicsEnhancer {
             return;
         }
 
+        // Temporarily disable SSR due to module import issues
+        console.log('⚠️ Post-processing modules temporarily disabled to fix module resolution issues');
+        console.log('🔄 SSR functionality will be unavailable until imports are fixed');
+        
+        // Set SSR as unavailable
+        this.ssrEnabled = false;
+        this.composer = null;
+        
+        return;
+
+        /* DISABLED - SSR setup code temporarily commented out
         const size = this.renderer.getSize(new THREE.Vector2());
         
         // Create render targets for G-buffer
@@ -214,15 +227,22 @@ export class GraphicsEnhancer {
         this.composer.addPass(this.copyPass);
         
         console.log('🌊 Post-processing pipeline initialized with SSR');
+        */
     }
 
     // Enable/disable screenspace reflections
     enableSSR(enabled = true) {
+        // SSR is temporarily disabled due to module import issues
+        console.log('⚠️ SSR is temporarily disabled due to Three.js module import issues');
+        this.ssrEnabled = false;
+        
+        /* DISABLED - SSR enable code temporarily commented out
         this.ssrEnabled = enabled;
         if (this.ssrPass) {
             this.ssrPass.enabled = enabled;
             console.log(`🌊 Screenspace Reflections ${enabled ? 'enabled' : 'disabled'}`);
         }
+        */
     }
 
     // Update SSR settings
@@ -276,6 +296,10 @@ export class GraphicsEnhancer {
 
     // Main render method
     render() {
+        // Always use regular rendering for now (SSR temporarily disabled)
+        this.renderer.render(this.scene, this.camera);
+        
+        /* DISABLED - SSR rendering code temporarily commented out
         if (this.composer && this.ssrEnabled) {
             // Render G-buffer first
             this.renderGBuffer();
@@ -285,6 +309,7 @@ export class GraphicsEnhancer {
             // Fallback to regular rendering
             this.renderer.render(this.scene, this.camera);
         }
+        */
     }
 
     // Handle window resize
