@@ -1,0 +1,13 @@
+# Build artifacts
+build-*/
+*.zip
+
+# Node modules
+node_modules/
+
+# OS files
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/

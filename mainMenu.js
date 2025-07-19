@@ -937,14 +937,12 @@ export class MainMenu {
                 }
             );
             
-            // Configure for multiplayer mode
-            mapSelection.rounds = this.selectedMultiplayerRounds;
-            mapSelection.battleMode = 'local_multiplayer';
-            mapSelection.battleConfig = {
+            // Properly configure map selection via provided method
+            mapSelection.setBattleConfig({
                 playerCount: this.selectedPlayerCount,
                 rounds: this.selectedMultiplayerRounds,
                 mode: 'local_multiplayer'
-            };
+            });
             
             // Show the map selection menu
             mapSelection.show();
