@@ -960,7 +960,7 @@ export class BattleSystem {
         this.isActive = false;
         this.battleState = victory ? 'won' : 'lost';
         
-        console.log(`🏁 Sumo Battle ended - ${victory ? 'Victory' : 'Defeat'}`);
+        console.log(`🏁 Sumo Battle ended - ${victory ? 'Victory' : 'Defeat'} - immediately cleaning up UI`);
         
         // Play victory or defeat sound effect
         if (window.game && window.game.audioManager) {
@@ -971,38 +971,25 @@ export class BattleSystem {
             }
         }
         
-        // Immediately start cleanup process
+        // IMMEDIATE UI cleanup - no victory/defeat screens shown
+        if (this.battleUI) {
+            this.battleUI.hide();
+            this.battleUI.cleanup();
+        }
+        
+        // Immediate cleanup of battle system
         setTimeout(() => {
             this.cleanup();
         }, 100); // Small delay to allow sound to play
         
-        // Update UI with cleanup timer
-        if (this.battleUI) {
-            if (victory) {
-                this.battleUI.showVictory();
-                // Auto-cleanup victory screen after 3 seconds
-                setTimeout(() => {
-                    this.battleUI.hide();
-                    this.battleUI.cleanup();
-                }, 3000);
-            } else {
-                this.battleUI.showDefeat();
-                // Auto-cleanup defeat screen after 3 seconds
-                setTimeout(() => {
-                    this.battleUI.hide();
-                    this.battleUI.cleanup();
-                }, 3000);
-            }
-        }
-        
-        // Call appropriate callback with delayed cleanup
+        // Call appropriate callback immediately
         setTimeout(() => {
             if (victory && this.victoryCallback) {
                 this.victoryCallback();
             } else if (!victory && this.defeatCallback) {
                 this.defeatCallback();
             }
-        }, 3500); // Delay callback to allow UI cleanup first
+        }, 200); // Very short delay just for sound
     }
     
     // Clean up

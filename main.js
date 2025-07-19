@@ -2705,7 +2705,7 @@ class Game {
     
     // Handle battle victory
     async handleBattleVictory() {
-        console.log('Battle victory!');
+        console.log('🏆 Battle victory - immediately advancing (no UI shown)');
         if (this.battleSystem && this.battleUI) {
             const currentConfig = this.battleSystem.levelConfigs[this.battleSystem.currentLevel];
             const isLastLevel = this.battleSystem.currentLevel >= this.battleSystem.maxLevel;
@@ -2714,23 +2714,19 @@ class Game {
             if (isLastLevel) {
                 await this.checkForBattleHighScore();
                 
-                // Tournament complete - return to main menu with cleanup
-                setTimeout(() => {
-                    console.log('🏆 Tournament completed, returning to main menu');
-                    this.cleanupBattleMode();
-                    this.showMainMenu();
-                }, 2000);
+                // Tournament complete - immediate return to main menu
+                console.log('🏆 Tournament completed, returning to main menu');
+                this.cleanupBattleMode();
+                this.showMainMenu();
             } else {
-                // Clean up current battle UI before advancing
-                setTimeout(() => {
-                    if (this.battleUI) {
-                        this.battleUI.cleanup();
-                    }
-                    // Auto-advance to next level
-                    if (this.battleSystem) {
-                        this.battleSystem.startBattle(this.battleSystem.currentLevel + 1);
-                    }
-                }, 3000);
+                // Immediately clean up current battle UI and advance to next level
+                if (this.battleUI) {
+                    this.battleUI.cleanup();
+                }
+                // Immediate auto-advance to next level
+                if (this.battleSystem) {
+                    this.battleSystem.startBattle(this.battleSystem.currentLevel + 1);
+                }
             }
         }
     }
@@ -2768,14 +2764,11 @@ class Game {
     
     // Handle battle defeat
     async handleBattleDefeat() {
-        console.log('Battle defeat!');
+        console.log('💀 Battle defeated - immediately returning to main menu (no UI shown)');
         
-        // Clean up battle mode and return to main menu after defeat screen
-        setTimeout(() => {
-            console.log('💀 Battle defeated, returning to main menu');
-            this.cleanupBattleMode();
-            this.showMainMenu();
-        }, 2000);
+        // Immediate cleanup and return to main menu
+        this.cleanupBattleMode();
+        this.showMainMenu();
     }
     
     // Clean up battle mode completely

@@ -3409,78 +3409,20 @@ export class LocalMultiplayerBattle {
     
     // Show match results
     showMatchResults(winner) {
-        const resultsDiv = document.createElement('div');
-        resultsDiv.id = 'match-results';
-        resultsDiv.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
-            color: white;
-            padding: 40px;
-            border-radius: 20px;
-            font-family: 'Courier New', monospace;
-            font-size: 24px;
-            text-align: center;
-            border: 3px solid #FFD700;
-            z-index: 1000;
-        `;
+        // Skip showing results UI - immediately clean up and return to main menu
+        console.log(`🏆 Tournament completed - ${winner.name} wins! Immediately returning to main menu (no UI shown)`);
         
-        const colorHex = `#${winner.color.toString(16).padStart(6, '0')}`;
-        let resultHTML = '<h2 style="color: #FFD700;">🏆 TOURNAMENT CHAMPION! 🏆</h2>';
+        // Immediate cleanup
+        this.cleanup();
         
-        resultHTML += `
-            <div style="font-size: 48px; color: ${colorHex}; margin: 30px 0;">
-                ${winner.name} WINS!
-            </div>
-            <div style="font-size: 20px; color: #FFD700; margin-bottom: 30px;">
-                Champion across ${this.arenaThemes.length} themed arenas!
-            </div>
-        `;
-        
-        // Show final standings
-        resultHTML += '<div style="margin: 20px 0; font-size: 18px;">Final Tournament Standings:</div>';
-        
-        const sortedPlayers = [...this.players].sort((a, b) => b.roundWins - a.roundWins);
-        sortedPlayers.forEach((player, index) => {
-            const playerColorHex = `#${player.color.toString(16).padStart(6, '0')}`;
-            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
-            resultHTML += `
-                <div style="margin: 10px 0; color: ${playerColorHex}; font-size: 16px;">
-                    ${medal} ${index + 1}. ${player.name} - ${player.roundWins} wins
-                </div>
-            `;
-        });
-        
-        resultHTML += '<div style="margin-top: 30px; font-size: 16px;">Press SPACE to return to menu</div>';
-        
-        resultsDiv.innerHTML = resultHTML;
-        document.body.appendChild(resultsDiv);
-        
-        // Handle return to menu
-        const returnHandler = (event) => {
-            if (event.code === 'Space') {
-                document.removeEventListener('keydown', returnHandler);
-                
-                // Clean up results screen
-                if (resultsDiv && resultsDiv.parentNode) {
-                    resultsDiv.parentNode.removeChild(resultsDiv);
-                }
-                
-                // Immediate cleanup
-                this.cleanup();
-                
-                // Call the callback to return to main menu
-                if (this.onMatchEnd) {
-                    this.onMatchEnd();
-                } else {
-                    window.location.reload();
-                }
+        // Call the callback to return to main menu
+        setTimeout(() => {
+            if (this.onMatchEnd) {
+                this.onMatchEnd();
+            } else {
+                window.location.reload();
             }
-        };
-        
-        document.addEventListener('keydown', returnHandler);
+        }, 100); // Very short delay just for cleanup
     }
     
     // Cleanup
