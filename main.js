@@ -255,7 +255,7 @@ class Game {
     }
     
     // Show score entry screen for level completion
-    async showScoreEntryForCompletion() {
+    async showScoreEntryForCompletion(showLeaderboardAfter = false) {
         if (!this.leaderboardManager || !this.scoreEntry || !this.collisionSystem) {
             return;
         }
@@ -307,9 +307,37 @@ class Game {
             
             // Show score entry screen
             await this.showScoreEntryScreen(scoreData, category);
+            
+            // Optionally show leaderboard with next level options
+            if (showLeaderboardAfter && this.leaderboardUI) {
+                await this.showLeaderboardWithActions(category);
+            }
         }
     }
-
+    
+    // Show leaderboard with action buttons after level completion
+    async showLeaderboardWithActions(category) {
+        return new Promise((resolve) => {
+            this.leaderboardUI.show(category, {
+                onClose: () => {
+                    resolve();
+                },
+                onStartNextLevel: () => {
+                    this.leaderboardUI.hide();
+                    resolve('nextLevel');
+                },
+                onRestartLevel: () => {
+                    this.leaderboardUI.hide();
+                    resolve('restart');
+                },
+                onReturnToMenu: () => {
+                    this.leaderboardUI.hide();
+                    resolve('menu');
+                }
+            });
+        });
+    }
+    
     // Check for high score and show entry screen if qualified (legacy function - kept for battle mode)
     async checkForHighScore() {
         if (!this.leaderboardManager || !this.scoreEntry || !this.collisionSystem) {
@@ -2261,33 +2289,78 @@ class Game {
         // Show score entry for level completion
         await this.showScoreEntryForCompletion();
         
+        // Show leaderboard with action options
+        const category = this.isClassicMode ? 'classicMode' : 
+                        (this.gameMode === 'normal' && this.currentLevel === 6) ? 'fullRun' : 'individualLevel';
+        const userChoice = await this.showLeaderboardWithActions(category);
+        
         // Stop the game loop
         if (this.gameLoop) {
             this.gameLoop.stop();
         }
         
-        // Advance to next level
-        const hasNextLevel = this.nextLevel();
-        
-        if (hasNextLevel) {
+        // Handle user choice from leaderboard
+        if (userChoice === 'menu') {
+            // Return to main menu
+            this.returnToMainMenu();
+        } else if (userChoice === 'restart') {
+            // Restart current level
             try {
-                // Brief pause to show completion
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                // Reload the game with the new level
                 await this.restartCurrentLevel();
-                
-                console.log(`Started level ${this.currentLevel}`);
+                console.log(`🔄 Restarted level ${this.currentLevel}`);
             } catch (error) {
-                console.error('Error advancing to next level:', error);
-                // Fall back to game over if level loading fails
+                console.error('Error restarting level:', error);
                 this.handleGameOver();
             }
+        } else if (userChoice === 'nextLevel') {
+            // Advance to next level
+            const hasNextLevel = this.nextLevel();
+            
+            if (hasNextLevel) {
+                try {
+                    // Brief pause to show completion
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    // Reload the game with the new level
+                    await this.restartCurrentLevel();
+                    
+                    console.log(`🚀 Started level ${this.currentLevel}`);
+                } catch (error) {
+                    console.error('Error advancing to next level:', error);
+                    // Fall back to game over if level loading fails
+                    this.handleGameOver();
+                }
+            } else {
+                // No more levels - show game completion
+                console.log('🏁 All levels completed!');
+                this.clearSavedGameState(); // Clear save since game is completed
+                alert('🏁 Congratulations! You\'ve completed all available levels!');
+                this.returnToMainMenu();
+            }
         } else {
-            // No more levels - show game completion or return to menu
-            console.log('All levels completed!');
-            this.clearSavedGameState(); // Clear save since game is completed
-            this.handleGameOver(); // For now, treat as game over
+            // Default behavior (closed leaderboard without action) - auto-advance like before
+            const hasNextLevel = this.nextLevel();
+            
+            if (hasNextLevel) {
+                try {
+                    // Brief pause to show completion
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Reload the game with the new level
+                    await this.restartCurrentLevel();
+                    
+                    console.log(`Started level ${this.currentLevel}`);
+                } catch (error) {
+                    console.error('Error advancing to next level:', error);
+                    // Fall back to game over if level loading fails
+                    this.handleGameOver();
+                }
+            } else {
+                // No more levels - show game completion or return to menu
+                console.log('All levels completed!');
+                this.clearSavedGameState(); // Clear save since game is completed
+                this.handleGameOver(); // For now, treat as game over
+            }
         }
     }
     

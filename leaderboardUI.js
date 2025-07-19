@@ -7,6 +7,17 @@ export class LeaderboardUI {
         this.isVisible = false;
         this.onClose = null;
         
+        // Cursor navigation properties
+        this.currentOptionIndex = 0;
+        this.actionButtons = [];
+        this.categoryButtons = [];
+        this.keyboardListener = null;
+        
+        // Action callbacks
+        this.onStartNextLevel = null;
+        this.onRestartLevel = null;
+        this.onReturnToMenu = null;
+        
         this.categoryDisplayNames = {
             fullRun: 'Full Run (Levels 1-6)',
             classicMode: 'Classic Mode',
@@ -17,20 +28,25 @@ export class LeaderboardUI {
         console.log('🏆 Leaderboard UI initialized');
     }
     
-    // Show leaderboard UI
-    show(category = 'fullRun', onClose = null) {
+    // Show leaderboard UI with action callbacks
+    show(category = 'fullRun', callbacks = {}) {
         if (this.isVisible) {
             this.hide();
         }
         
         this.currentCategory = category;
-        this.onClose = onClose;
+        this.onClose = callbacks.onClose || null;
+        this.onStartNextLevel = callbacks.onStartNextLevel || null;
+        this.onRestartLevel = callbacks.onRestartLevel || null;
+        this.onReturnToMenu = callbacks.onReturnToMenu || null;
+        
         this.createUI();
         this.isVisible = true;
+        this.currentOptionIndex = 0;
         
-        // Add ESC key handler
-        this.handleKeyPress = this.handleKeyPress.bind(this);
-        document.addEventListener('keydown', this.handleKeyPress);
+        // Setup keyboard navigation
+        this.setupKeyboardNavigation();
+        this.updateSelection();
         
         console.log(`🏆 Leaderboard UI shown for category: ${category}`);
     }
@@ -44,8 +60,16 @@ export class LeaderboardUI {
         
         this.isVisible = false;
         
-        // Remove ESC key handler
-        document.removeEventListener('keydown', this.handleKeyPress);
+        // Remove keyboard event listeners
+        if (this.keyboardListener) {
+            document.removeEventListener('keydown', this.keyboardListener);
+            this.keyboardListener = null;
+        }
+        
+        // Reset navigation state
+        this.currentOptionIndex = 0;
+        this.actionButtons = [];
+        this.categoryButtons = [];
         
         if (this.onClose) {
             this.onClose();
@@ -54,8 +78,171 @@ export class LeaderboardUI {
         console.log('🏆 Leaderboard UI hidden');
     }
     
-    // Handle keyboard input
+    // Setup keyboard navigation
+    setupKeyboardNavigation() {
+        this.keyboardListener = (event) => {
+            if (!this.isVisible) return;
+            
+            switch(event.key) {
+                case 'ArrowUp':
+                    event.preventDefault();
+                    this.navigateUp();
+                    break;
+                case 'ArrowDown':
+                    event.preventDefault();
+                    this.navigateDown();
+                    break;
+                case 'ArrowLeft':
+                    event.preventDefault();
+                    this.navigateLeft();
+                    break;
+                case 'ArrowRight':
+                    event.preventDefault();
+                    this.navigateRight();
+                    break;
+                case 'Enter':
+                    event.preventDefault();
+                    this.selectCurrentOption();
+                    break;
+                case 'Escape':
+                    event.preventDefault();
+                    this.hide();
+                    break;
+            }
+        };
+        
+        document.addEventListener('keydown', this.keyboardListener);
+    }
+    
+    // Navigation methods
+    navigateUp() {
+        if (this.getCurrentNavigationArea() === 'actions') {
+            // If in action buttons, go to categories
+            this.currentOptionIndex = this.categoryButtons.length - 1;
+        } else {
+            // Navigate within current area
+            const totalOptions = this.getTotalNavigationOptions();
+            this.currentOptionIndex = (this.currentOptionIndex - 1 + totalOptions) % totalOptions;
+        }
+        this.updateSelection();
+    }
+    
+    navigateDown() {
+        if (this.getCurrentNavigationArea() === 'categories') {
+            // If in categories, go to action buttons
+            this.currentOptionIndex = this.categoryButtons.length;
+        } else {
+            // Navigate within current area
+            const totalOptions = this.getTotalNavigationOptions();
+            this.currentOptionIndex = (this.currentOptionIndex + 1) % totalOptions;
+        }
+        this.updateSelection();
+    }
+    
+    navigateLeft() {
+        if (this.getCurrentNavigationArea() === 'categories') {
+            // Navigate within categories horizontally
+            const categoryCount = this.categoryButtons.length;
+            this.currentOptionIndex = (this.currentOptionIndex - 1 + categoryCount) % categoryCount;
+        } else {
+            // Navigate within action buttons horizontally
+            const actionCount = this.actionButtons.length;
+            const actionIndex = this.currentOptionIndex - this.categoryButtons.length;
+            const newActionIndex = (actionIndex - 1 + actionCount) % actionCount;
+            this.currentOptionIndex = this.categoryButtons.length + newActionIndex;
+        }
+        this.updateSelection();
+    }
+    
+    navigateRight() {
+        if (this.getCurrentNavigationArea() === 'categories') {
+            // Navigate within categories horizontally
+            const categoryCount = this.categoryButtons.length;
+            this.currentOptionIndex = (this.currentOptionIndex + 1) % categoryCount;
+        } else {
+            // Navigate within action buttons horizontally
+            const actionCount = this.actionButtons.length;
+            const actionIndex = this.currentOptionIndex - this.categoryButtons.length;
+            const newActionIndex = (actionIndex + 1) % actionCount;
+            this.currentOptionIndex = this.categoryButtons.length + newActionIndex;
+        }
+        this.updateSelection();
+    }
+    
+    getCurrentNavigationArea() {
+        if (this.currentOptionIndex < this.categoryButtons.length) {
+            return 'categories';
+        } else {
+            return 'actions';
+        }
+    }
+    
+    getTotalNavigationOptions() {
+        return this.categoryButtons.length + this.actionButtons.length;
+    }
+    
+    selectCurrentOption() {
+        if (this.currentOptionIndex < this.categoryButtons.length) {
+            // Selecting a category
+            this.categoryButtons[this.currentOptionIndex].click();
+        } else {
+            // Selecting an action button
+            const actionIndex = this.currentOptionIndex - this.categoryButtons.length;
+            if (this.actionButtons[actionIndex]) {
+                this.actionButtons[actionIndex].click();
+            }
+        }
+    }
+    
+    updateSelection() {
+        // Update category buttons
+        this.categoryButtons.forEach((button, index) => {
+            if (index === this.currentOptionIndex && this.getCurrentNavigationArea() === 'categories') {
+                // Selected style for categories
+                button.style.background = 'linear-gradient(135deg, #ff6600 0%, #ff9900 100%)';
+                button.style.borderColor = '#ffff00';
+                button.style.color = '#000000';
+                button.style.transform = 'translateY(-2px)';
+                button.style.boxShadow = '6px 6px 0px #000000';
+            } else {
+                // Unselected style for categories - restore original logic
+                if (this.currentCategory === Object.keys(this.categoryDisplayNames)[index]) {
+                    button.style.background = '#00ffff';
+                    button.style.color = '#000000';
+                } else {
+                    button.style.background = 'transparent';
+                    button.style.color = '#00ffff';
+                }
+                button.style.borderColor = '#00ffff';
+                button.style.transform = 'translateY(0)';
+                button.style.boxShadow = 'none';
+            }
+        });
+        
+        // Update action buttons
+        this.actionButtons.forEach((button, index) => {
+            const actionIndex = this.categoryButtons.length + index;
+            if (actionIndex === this.currentOptionIndex && this.getCurrentNavigationArea() === 'actions') {
+                // Selected style for actions
+                button.style.background = 'linear-gradient(135deg, #ff6600 0%, #ff9900 100%)';
+                button.style.borderColor = '#ffff00';
+                button.style.color = '#000000';
+                button.style.transform = 'translateY(-2px)';
+                button.style.boxShadow = '6px 6px 0px #000000';
+            } else {
+                // Unselected style for actions
+                button.style.background = 'linear-gradient(135deg, #003366 0%, #0066cc 100%)';
+                button.style.borderColor = '#00ffff';
+                button.style.color = '#ffffff';
+                button.style.transform = 'translateY(0)';
+                button.style.boxShadow = '4px 4px 0px #000000';
+            }
+        });
+    }
+
+    // Handle keyboard input (legacy method - now using setupKeyboardNavigation)
     handleKeyPress(event) {
+        // This method is kept for backwards compatibility but functionality moved to keyboardListener
         if (event.key === 'Escape') {
             this.hide();
         }
@@ -160,7 +347,9 @@ export class LeaderboardUI {
             flex-wrap: wrap;
         `;
         
-        Object.keys(this.categoryDisplayNames).forEach(category => {
+        this.categoryButtons = []; // Reset category buttons array
+        
+        Object.keys(this.categoryDisplayNames).forEach((category, index) => {
             const button = document.createElement('button');
             button.textContent = this.categoryDisplayNames[category];
             button.style.cssText = `
@@ -194,9 +383,11 @@ export class LeaderboardUI {
                 this.currentCategory = category;
                 this.updateDisplay();
                 this.updateCategoryButtons();
+                this.updateSelection(); // Update cursor selection
             });
             
             selector.appendChild(button);
+            this.categoryButtons.push(button); // Store reference for cursor navigation
         });
         
         return selector;
@@ -229,8 +420,100 @@ export class LeaderboardUI {
             width: 100%;
         `;
         
+        // Create action buttons container
+        const actionContainer = document.createElement('div');
+        actionContainer.style.cssText = `
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        `;
+        
+        this.actionButtons = []; // Reset action buttons array
+        
+        // Action button data
+        const actionData = [
+            { 
+                text: '🚀 Start Next Level', 
+                action: () => {
+                    if (this.onStartNextLevel) {
+                        this.onStartNextLevel();
+                    }
+                },
+                condition: () => this.onStartNextLevel !== null
+            },
+            { 
+                text: '🔄 Restart Level', 
+                action: () => {
+                    if (this.onRestartLevel) {
+                        this.onRestartLevel();
+                    }
+                },
+                condition: () => this.onRestartLevel !== null
+            },
+            { 
+                text: '🏠 Return to Menu', 
+                action: () => {
+                    if (this.onReturnToMenu) {
+                        this.onReturnToMenu();
+                    } else {
+                        this.hide();
+                    }
+                },
+                condition: () => true // Always show
+            }
+        ];
+        
+        // Create action buttons
+        actionData.forEach((actionInfo, index) => {
+            if (actionInfo.condition()) {
+                const button = document.createElement('button');
+                button.textContent = actionInfo.text;
+                button.style.cssText = `
+                    padding: 15px 30px;
+                    font-size: 16px;
+                    font-weight: bold;
+                    border: 2px solid #00ffff;
+                    background: linear-gradient(135deg, #003366 0%, #0066cc 100%);
+                    color: #ffffff;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    font-family: 'Courier New', monospace;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                    border-radius: 5px;
+                    min-width: 180px;
+                    box-shadow: 4px 4px 0px #000000;
+                `;
+                
+                button.addEventListener('mouseenter', () => {
+                    if (this.getCurrentNavigationArea() !== 'actions' || 
+                        this.currentOptionIndex !== this.categoryButtons.length + this.actionButtons.indexOf(button)) {
+                        button.style.background = 'rgba(0, 255, 255, 0.2)';
+                    }
+                });
+                
+                button.addEventListener('mouseleave', () => {
+                    if (this.getCurrentNavigationArea() !== 'actions' || 
+                        this.currentOptionIndex !== this.categoryButtons.length + this.actionButtons.indexOf(button)) {
+                        button.style.background = 'linear-gradient(135deg, #003366 0%, #0066cc 100%)';
+                    }
+                });
+                
+                button.addEventListener('click', actionInfo.action);
+                
+                actionContainer.appendChild(button);
+                this.actionButtons.push(button); // Store reference for cursor navigation
+            }
+        });
+        
+        // Add action container to footer
+        footer.appendChild(actionContainer);
+        
+        // Create instructions
         const instructions = document.createElement('div');
-        instructions.textContent = 'Press ESC to close • Click category buttons to switch views';
+        instructions.textContent = 'Use ↑↓←→ arrows to navigate • ENTER to select • ESC to close';
         instructions.style.cssText = `
             color: #00ffff;
             font-size: 14px;
@@ -312,6 +595,7 @@ export class LeaderboardUI {
             });
             
             levelSelector.appendChild(button);
+            this.actionButtons.push(button); // Add to actionButtons array
         }
         
         container.appendChild(levelSelector);

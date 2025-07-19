@@ -746,11 +746,60 @@ export class MainMenu {
     showLeaderboards() {
         // Use the global game leaderboard UI if available
         if (window.game && window.game.leaderboardUI) {
-            window.game.leaderboardUI.show('fullRun', () => {
-                // Leaderboards closed - no additional action needed
+            window.game.leaderboardUI.show('fullRun', {
+                onClose: () => {
+                    // Leaderboards closed - no additional action needed
+                },
+                onStartNextLevel: () => {
+                    this.startNextLevel();
+                },
+                onRestartLevel: () => {
+                    this.restartCurrentLevel();
+                },
+                onReturnToMenu: () => {
+                    // Already in menu, just close leaderboard
+                    window.game.leaderboardUI.hide();
+                }
             });
         } else {
             console.error('Leaderboard system not available');
+        }
+    }
+    
+    // Start next level from leaderboard
+    startNextLevel() {
+        if (window.game) {
+            // Close leaderboard
+            window.game.leaderboardUI.hide();
+            
+            // Check if there is a next level available
+            const currentLevel = window.game.getCurrentLevel();
+            const hasNext = window.game.nextLevel();
+            
+            if (hasNext) {
+                // Hide main menu and start the game
+                this.hideMenu();
+                window.game.startGame();
+                console.log(`🚀 Starting level ${window.game.getCurrentLevel()} from leaderboard`);
+            } else {
+                // No more levels - show completion message
+                console.log('🏁 All levels completed! Congratulations!');
+                // Could show a completion screen here
+                alert('🏁 Congratulations! You\'ve completed all available levels!');
+            }
+        }
+    }
+    
+    // Restart current level from leaderboard
+    restartCurrentLevel() {
+        if (window.game) {
+            // Close leaderboard
+            window.game.leaderboardUI.hide();
+            
+            // Hide main menu and restart the game
+            this.hideMenu();
+            window.game.startGame();
+            console.log(`🔄 Restarting level ${window.game.getCurrentLevel()} from leaderboard`);
         }
     }
     
