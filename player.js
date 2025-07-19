@@ -58,9 +58,29 @@ export class Player {
         const isNormalMode = window.game && window.game.gameMode === 'normal';
         const currentLevel = window.game ? window.game.currentLevel : 1;
         
+        // Load ball customization for single player and pacman modes
+        let customization = null;
+        if (isPacmanMode || isNormalMode) {
+            try {
+                const saved = localStorage.getItem('ballCustomization');
+                if (saved) {
+                    customization = JSON.parse(saved);
+                    console.log('🎨 Applying ball customization:', customization);
+                } else {
+                    customization = { material: 'rubber', color: 'red', design: 'solid' };
+                }
+            } catch (error) {
+                console.error('Failed to load ball customization:', error);
+                customization = { material: 'rubber', color: 'red', design: 'solid' };
+            }
+        }
+        
         let material;
         
-        if (isPacmanMode) {
+        // Apply ball customization for single player and pacman modes
+        if (customization) {
+            material = this.createCustomizedMaterial(customization, isPacmanMode);
+        } else if (isPacmanMode) {
             // Create visible rotation pattern for Pacman mode
             const canvas = document.createElement('canvas');
             canvas.width = 512;
@@ -283,6 +303,314 @@ export class Player {
         this.rollRotation = new THREE.Vector3(0, 0, 0);
         
         console.log('🎨 Enhanced player mesh created with visible rotation patterns');
+    }
+    
+    createCustomizedMaterial(customization, isPacmanMode = false) {
+        // Color mapping
+        const colorMap = {
+            'red': '#FF0000',
+            'blue': '#0066FF', 
+            'green': '#00FF00',
+            'yellow': '#FFFF00',
+            'purple': '#8000FF',
+            'orange': '#FF8000',
+            'cyan': '#00FFFF',
+            'magenta': '#FF00FF',
+            'white': '#FFFFFF',
+            'black': '#333333'
+        };
+        
+        const baseColor = new THREE.Color(colorMap[customization.color] || '#FF0000');
+        
+        // Create texture based on design
+        const texture = this.createCustomDesignTexture(customization, baseColor);
+        
+        // Create material based on material type
+        let material;
+        switch (customization.material) {
+            case 'rubber':
+                material = new THREE.MeshLambertMaterial({
+                    map: texture,
+                    color: baseColor
+                });
+                break;
+                
+            case 'plastic':
+                material = new THREE.MeshPhongMaterial({
+                    map: texture,
+                    color: baseColor,
+                    shininess: 100,
+                    specular: 0xffffff,
+                    transparent: true,
+                    opacity: 0.95
+                });
+                break;
+                
+            case 'metal':
+                material = new THREE.MeshStandardMaterial({
+                    map: texture,
+                    color: baseColor,
+                    metalness: 0.9,
+                    roughness: 0.1,
+                    envMapIntensity: 1.0
+                });
+                break;
+                
+            case 'gem':
+                material = new THREE.MeshStandardMaterial({
+                    map: texture,
+                    color: baseColor,
+                    metalness: 0.0,
+                    roughness: 0.0,
+                    transparent: true,
+                    opacity: 0.8,
+                    envMapIntensity: 1.5,
+                    emissive: baseColor.clone().multiplyScalar(0.2),
+                    emissiveIntensity: 0.4
+                });
+                break;
+                
+            case 'glow':
+                material = new THREE.MeshStandardMaterial({
+                    map: texture,
+                    color: baseColor,
+                    emissive: baseColor.clone().multiplyScalar(0.5),
+                    emissiveIntensity: isPacmanMode ? 0.8 : 0.5,
+                    metalness: 0.0,
+                    roughness: 0.3,
+                    transparent: true,
+                    opacity: 0.95
+                });
+                break;
+                
+            case 'stone':
+                material = new THREE.MeshStandardMaterial({
+                    map: texture,
+                    color: baseColor,
+                    metalness: 0.0,
+                    roughness: 0.8,
+                    envMapIntensity: 0.3
+                });
+                break;
+                
+            default:
+                material = new THREE.MeshPhongMaterial({
+                    map: texture,
+                    color: baseColor,
+                    shininess: 100,
+                    specular: 0xffffff
+                });
+        }
+        
+        console.log(`🎨 Created customized ${customization.material} material with ${customization.color} color and ${customization.design} design`);
+        return material;
+    }
+    
+    createCustomDesignTexture(customization, baseColor) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const ctx = canvas.getContext('2d');
+        
+        // Enable high-quality rendering
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        
+        const baseColorStr = `rgb(${Math.floor(baseColor.r * 255)}, ${Math.floor(baseColor.g * 255)}, ${Math.floor(baseColor.b * 255)})`;
+        
+        // Fill base color
+        ctx.fillStyle = baseColorStr;
+        ctx.fillRect(0, 0, 512, 512);
+        
+        // Apply design pattern
+        switch (customization.design) {
+            case 'solid':
+                // Add rotation visibility pattern for solid colors
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 512; i += 64) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, 0);
+                    ctx.lineTo(i, 512);
+                    ctx.stroke();
+                }
+                break;
+                
+            case 'stripes':
+                ctx.fillStyle = '#ffffff';
+                for (let i = 0; i < 512; i += 64) {
+                    ctx.fillRect(i, 0, 32, 512);
+                }
+                // Add rotation dots
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+                for (let x = 32; x < 512; x += 64) {
+                    for (let y = 32; y < 512; y += 64) {
+                        ctx.beginPath();
+                        ctx.arc(x, y, 4, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+                break;
+                
+            case 'dots':
+                ctx.fillStyle = '#ffffff';
+                for (let x = 64; x < 512; x += 128) {
+                    for (let y = 64; y < 512; y += 128) {
+                        ctx.beginPath();
+                        ctx.arc(x, y, 30, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+                break;
+                
+            case 'grid':
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 6;
+                for (let i = 0; i < 512; i += 64) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, 0);
+                    ctx.lineTo(i, 512);
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(0, i);
+                    ctx.lineTo(512, i);
+                    ctx.stroke();
+                }
+                break;
+                
+            case 'beach':
+                const colors = ['#FF0000', '#FFFF00', '#00FF00', '#0066FF', '#FF00FF', '#FF8000'];
+                const sectionAngle = (Math.PI * 2) / colors.length;
+                colors.forEach((color, index) => {
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.moveTo(256, 256);
+                    ctx.arc(256, 256, 256, index * sectionAngle, (index + 1) * sectionAngle);
+                    ctx.closePath();
+                    ctx.fill();
+                });
+                break;
+                
+            case 'soccer':
+                // White base
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, 512, 512);
+                // Black pentagons pattern
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(256, 256, 60, 0, Math.PI * 2);
+                ctx.fill();
+                for (let i = 0; i < 5; i++) {
+                    const angle = (i * Math.PI * 2) / 5;
+                    const x = 256 + Math.cos(angle) * 120;
+                    const y = 256 + Math.sin(angle) * 120;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 30, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                break;
+                
+            case 'basketball':
+                // Orange color (already set as base)
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 8;
+                // Curved lines for basketball pattern
+                ctx.beginPath();
+                ctx.arc(256, 0, 256, 0, Math.PI);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(256, 512, 256, Math.PI, 0);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, 256);
+                ctx.lineTo(512, 256);
+                ctx.stroke();
+                break;
+                
+            case 'tennis':
+                // Create curved white lines on colored background
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 6;
+                ctx.beginPath();
+                ctx.arc(128, 256, 160, 0, Math.PI * 2, false);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(384, 256, 160, 0, Math.PI * 2, false);
+                ctx.stroke();
+                break;
+                
+            case 'marble':
+                // Create marble swirl pattern
+                const gradient = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+                gradient.addColorStop(0, baseColorStr);
+                gradient.addColorStop(0.3, '#ffffff');
+                gradient.addColorStop(0.7, baseColorStr);
+                gradient.addColorStop(1, '#888888');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, 512, 512);
+                
+                // Add swirl lines
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.lineWidth = 4;
+                for (let i = 0; i < 8; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(Math.random() * 512, Math.random() * 512);
+                    ctx.quadraticCurveTo(Math.random() * 512, Math.random() * 512, Math.random() * 512, Math.random() * 512);
+                    ctx.stroke();
+                }
+                break;
+                
+            case 'galaxy':
+                // Dark space background
+                ctx.fillStyle = '#000022';
+                ctx.fillRect(0, 0, 512, 512);
+                
+                // Add stars
+                ctx.fillStyle = '#ffffff';
+                for (let i = 0; i < 150; i++) {
+                    const x = Math.random() * 512;
+                    const y = Math.random() * 512;
+                    const size = Math.random() * 3 + 1;
+                    ctx.beginPath();
+                    ctx.arc(x, y, size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                // Add nebula effect with base color
+                const nebulaGradient = ctx.createRadialGradient(256, 256, 0, 256, 256, 200);
+                nebulaGradient.addColorStop(0, baseColorStr + 'CC');
+                nebulaGradient.addColorStop(0.5, baseColorStr + '44');
+                nebulaGradient.addColorStop(1, 'transparent');
+                ctx.fillStyle = nebulaGradient;
+                ctx.fillRect(0, 0, 512, 512);
+                
+                // Add spiral arms
+                ctx.strokeStyle = baseColorStr + 'AA';
+                ctx.lineWidth = 3;
+                for (let i = 0; i < 3; i++) {
+                    ctx.beginPath();
+                    let angle = (i * Math.PI * 2) / 3;
+                    ctx.moveTo(256, 256);
+                    for (let r = 0; r < 200; r += 5) {
+                        const x = 256 + Math.cos(angle) * r;
+                        const y = 256 + Math.sin(angle) * r;
+                        ctx.lineTo(x, y);
+                        angle += 0.05;
+                    }
+                    ctx.stroke();
+                }
+                break;
+        }
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.generateMipmaps = false;
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        
+        return texture;
     }
     
     setupInputHandlers() {

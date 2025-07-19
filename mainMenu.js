@@ -83,6 +83,7 @@ export class MainMenu {
             { text: 'Single Player', action: () => this.startSinglePlayer() },
             { text: 'Pacman Mode', action: () => this.startPacmanMode() },
             { text: 'Battle Mode', action: () => this.startBattleMode() },
+            { text: 'Ball Customization', action: () => this.showBallCustomization() },
             { text: 'Leaderboards', action: () => this.showLeaderboards() },
             { text: 'Multiplayer', action: () => this.showMultiplayerNotice() },
             { text: 'Settings', action: () => this.showSettings() },
@@ -731,7 +732,7 @@ export class MainMenu {
     
 
     
-    showSettings() {
+        showSettings() {
         // Use the global game settings manager if available
         if (window.game && window.game.settingsManager) {
             window.game.settingsManager.createSettingsPanel(() => {
@@ -742,7 +743,22 @@ export class MainMenu {
             this.createSettingsPanel();
         }
     }
-    
+
+    showBallCustomization() {
+        // Import and show ball customization menu
+        import('./ballCustomization.js').then(module => {
+            const BallCustomization = module.BallCustomization;
+            if (!this.ballCustomization) {
+                this.ballCustomization = new BallCustomization();
+            }
+            this.ballCustomization.show(() => {
+                // Ball customization closed - no additional action needed
+            });
+        }).catch(error => {
+            console.error('Failed to load ball customization:', error);
+        });
+    }
+
     showLeaderboards() {
         // Use the global game leaderboard UI if available
         if (window.game && window.game.leaderboardUI) {
