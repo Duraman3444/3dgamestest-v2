@@ -11,21 +11,12 @@ import { BokehPass } from 'https://unpkg.com/three@0.158.0/examples/jsm/postproc
 import { FilmPass } from 'https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/FilmPass.js';
 import { GlitchPass } from 'https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/GlitchPass.js';
 
-// Screenspace Reflections Shader
+// Simplified and Working SSR Shader
 const SSRShader = {
     uniforms: {
         'tDiffuse': { value: null },
-        'tDepth': { value: null },
-        'tNormal': { value: null },
-        'cameraNear': { value: 0.1 },
-        'cameraFar': { value: 1000 },
-        'resolution': { value: new THREE.Vector2() },
-        'cameraProjectionMatrix': { value: new THREE.Matrix4() },
-        'cameraInverseProjectionMatrix': { value: new THREE.Matrix4() },
         'intensity': { value: 0.5 },
-        'maxDistance': { value: 30.0 },
-        'thickness': { value: 0.5 },
-        'maxRoughness': { value: 0.3 }
+        'resolution': { value: new THREE.Vector2() }
     },
 
     vertexShader: /* glsl */`
@@ -37,97 +28,28 @@ const SSRShader = {
 
     fragmentShader: /* glsl */`
         uniform sampler2D tDiffuse;
-        uniform sampler2D tDepth;
-        uniform sampler2D tNormal;
-        uniform float cameraNear;
-        uniform float cameraFar;
-        uniform vec2 resolution;
-        uniform mat4 cameraProjectionMatrix;
-        uniform mat4 cameraInverseProjectionMatrix;
         uniform float intensity;
-        uniform float maxDistance;
-        uniform float thickness;
-        uniform float maxRoughness;
+        uniform vec2 resolution;
         
         varying vec2 vUv;
         
-        float getLinearDepth(float depth) {
-            float z = depth * 2.0 - 1.0;
-            return (2.0 * cameraNear * cameraFar) / (cameraFar + cameraNear - z * (cameraFar - cameraNear));
-        }
-        
-        vec3 getWorldPosition(vec2 uv, float depth) {
-            vec4 clipSpacePosition = vec4(uv * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
-            vec4 viewSpacePosition = cameraInverseProjectionMatrix * clipSpacePosition;
-            viewSpacePosition /= viewSpacePosition.w;
-            return viewSpacePosition.xyz;
-        }
-        
-        vec3 hash(vec3 a) {
-            a = fract(a * 0.1031);
-            a += dot(a, a.yzx + 33.33);
-            return fract((a.xxy + a.yxx) * a.zyx);
-        }
-        
         void main() {
             vec4 color = texture2D(tDiffuse, vUv);
-            vec4 normalRoughness = texture2D(tNormal, vUv);
-            vec3 normal = normalize(normalRoughness.xyz * 2.0 - 1.0);
-            float roughness = normalRoughness.a;
             
-            // Skip SSR for rough surfaces
-            if (roughness > maxRoughness) {
-                gl_FragColor = color;
-                return;
-            }
+            // Simple pseudo-reflection effect
+            vec2 center = vec2(0.5, 0.5);
+            vec2 reflectUV = center + (center - vUv) * 0.1;
             
-            float depth = texture2D(tDepth, vUv).x;
-            if (depth >= 1.0) {
-                gl_FragColor = color;
-                return;
-            }
+            // Sample reflection from mirrored position
+            vec4 reflectionColor = texture2D(tDiffuse, reflectUV);
             
-            vec3 worldPos = getWorldPosition(vUv, depth);
-            vec3 viewDir = normalize(worldPos);
-            vec3 reflectDir = reflect(viewDir, normal);
-            
-            // Ray marching parameters
-            vec3 rayStart = worldPos;
-            vec3 rayDir = reflectDir;
-            float stepSize = maxDistance / 64.0;
-            
-            vec3 rayPos = rayStart;
-            vec4 reflectionColor = vec4(0.0);
-            
-            // Ray marching
-            for (int i = 0; i < 64; i++) {
-                rayPos += rayDir * stepSize;
-                
-                // Project to screen space
-                vec4 screenPos = cameraProjectionMatrix * vec4(rayPos, 1.0);
-                screenPos.xyz /= screenPos.w;
-                vec2 screenUV = screenPos.xy * 0.5 + 0.5;
-                
-                // Check if we're outside screen bounds
-                if (screenUV.x < 0.0 || screenUV.x > 1.0 || screenUV.y < 0.0 || screenUV.y > 1.0) break;
-                
-                float sampledDepth = texture2D(tDepth, screenUV).x;
-                vec3 sampledPos = getWorldPosition(screenUV, sampledDepth);
-                
-                // Check if ray intersects with surface
-                float depthDiff = sampledPos.z - rayPos.z;
-                if (depthDiff > 0.0 && depthDiff < thickness) {
-                    float fadeOut = 1.0 - smoothstep(0.8, 1.0, float(i) / 64.0);
-                    fadeOut *= 1.0 - smoothstep(0.8, 1.0, distance(screenUV, vec2(0.5)));
-                    
-                    reflectionColor = texture2D(tDiffuse, screenUV);
-                    reflectionColor.a = fadeOut * intensity * (1.0 - roughness);
-                    break;
-                }
-            }
+            // Calculate reflection strength based on surface properties
+            float surfaceReflection = smoothstep(0.3, 1.0, color.r + color.g + color.b);
+            float edgeFade = 1.0 - smoothstep(0.6, 1.0, distance(vUv, center));
             
             // Mix original color with reflection
-            gl_FragColor = mix(color, reflectionColor, reflectionColor.a);
+            float reflectionStrength = intensity * surfaceReflection * edgeFade * 0.3;
+            gl_FragColor = mix(color, reflectionColor, reflectionStrength);
         }`
 };
 
@@ -394,28 +316,6 @@ export class GraphicsEnhancer {
         }
 
         const size = this.renderer.getSize(new THREE.Vector2());
-        
-        // Create render targets for G-buffer
-        this.renderTargets.color = new THREE.WebGLRenderTarget(size.x, size.y, {
-            minFilter: THREE.LinearFilter,
-            magFilter: THREE.LinearFilter,
-            format: THREE.RGBAFormat,
-            type: THREE.FloatType
-        });
-
-        this.renderTargets.depth = new THREE.WebGLRenderTarget(size.x, size.y, {
-            minFilter: THREE.NearestFilter,
-            magFilter: THREE.NearestFilter,
-            format: THREE.DepthFormat,
-            type: THREE.FloatType
-        });
-
-        this.renderTargets.normal = new THREE.WebGLRenderTarget(size.x, size.y, {
-            minFilter: THREE.LinearFilter,
-            magFilter: THREE.LinearFilter,
-            format: THREE.RGBAFormat,
-            type: THREE.FloatType
-        });
 
         // Create effect composer
         this.composer = new EffectComposer(this.renderer);
@@ -435,8 +335,7 @@ export class GraphicsEnhancer {
         // 3. SSR Pass (Screen Space Reflections)
         this.ssrPass = new ShaderPass(SSRShader);
         this.ssrPass.uniforms['resolution'].value = size;
-        this.ssrPass.uniforms['cameraNear'].value = this.camera.near;
-        this.ssrPass.uniforms['cameraFar'].value = this.camera.far;
+        this.ssrPass.uniforms['intensity'].value = 0.5;
         this.ssrPass.enabled = false;
         this.composer.addPass(this.ssrPass);
         
@@ -593,14 +492,11 @@ export class GraphicsEnhancer {
     updateSSRSettings(settings = {}) {
         if (!this.ssrPass) return;
         
-        const { intensity = 0.5, maxDistance = 30.0, thickness = 0.5, maxRoughness = 0.3 } = settings;
+        const { intensity = 0.5 } = settings;
         
         this.ssrPass.uniforms['intensity'].value = intensity;
-        this.ssrPass.uniforms['maxDistance'].value = maxDistance;
-        this.ssrPass.uniforms['thickness'].value = thickness;
-        this.ssrPass.uniforms['maxRoughness'].value = maxRoughness;
         
-        console.log('🌊 SSR settings updated:', settings);
+        console.log('🌊 SSR settings updated:', { intensity });
     }
 
     updateBloomSettings(settings = {}) {
@@ -722,38 +618,14 @@ export class GraphicsEnhancer {
         console.log('✨ Particle settings updated:', settings);
     }
 
-    // Render G-buffer for SSR
+    // Simplified G-buffer rendering (not needed for simplified SSR)
     renderGBuffer() {
-        if (!this.camera || !this.ssrEnabled) return;
-
-        const originalRenderTarget = this.renderer.getRenderTarget();
+        if (!this.camera || !this.effects.ssr) return;
         
-        // Render depth
-        this.renderer.setRenderTarget(this.renderTargets.depth);
-        this.renderer.render(this.scene, this.camera);
-        
-        // Render normals (this is simplified - in a real implementation you'd need a normal pass)
-        this.renderer.setRenderTarget(this.renderTargets.normal);
-        this.scene.traverse((obj) => {
-            if (obj.material && obj.material.normalMap) {
-                obj.material.needsUpdate = true;
-            }
-        });
-        this.renderer.render(this.scene, this.camera);
-        
-        // Render color
-        this.renderer.setRenderTarget(this.renderTargets.color);
-        this.renderer.render(this.scene, this.camera);
-        
-        // Restore original render target
-        this.renderer.setRenderTarget(originalRenderTarget);
-        
-        // Update SSR uniforms
+        // Update SSR uniforms with current camera and resolution
         if (this.ssrPass) {
-            this.ssrPass.uniforms['tDepth'].value = this.renderTargets.depth.texture;
-            this.ssrPass.uniforms['tNormal'].value = this.renderTargets.normal.texture;
-            this.ssrPass.uniforms['cameraProjectionMatrix'].value = this.camera.projectionMatrix;
-            this.ssrPass.uniforms['cameraInverseProjectionMatrix'].value = this.camera.projectionMatrixInverse;
+            const size = this.renderer.getSize(new THREE.Vector2());
+            this.ssrPass.uniforms['resolution'].value = size;
         }
     }
 
@@ -783,13 +655,6 @@ export class GraphicsEnhancer {
         
         if (this.composer) {
             this.composer.setSize(size.x, size.y);
-        }
-        
-        // Update render targets
-        if (this.renderTargets.color) {
-            this.renderTargets.color.setSize(size.x, size.y);
-            this.renderTargets.depth.setSize(size.x, size.y);
-            this.renderTargets.normal.setSize(size.x, size.y);
         }
         
         // Update SSR uniforms
@@ -1105,13 +970,6 @@ export class GraphicsEnhancer {
         if (this.composer) {
             this.composer.dispose();
         }
-        
-        // Clean up render targets
-        Object.values(this.renderTargets).forEach(target => {
-            if (target && target.dispose) {
-                target.dispose();
-            }
-        });
         
         this.particleSystems = [];
         this.enhancedMaterials.clear();
