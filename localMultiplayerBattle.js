@@ -1316,6 +1316,82 @@ export class LocalMultiplayerBattle {
         console.log(`👥 Created ${this.activePlayerCount} players with visible rotation patterns and rigidbody physics`);
     }
     
+    // Update player 1 ball customization in real-time
+    updatePlayerBallCustomization() {
+        console.log('🎨 Updating multiplayer ball customization...');
+        
+        if (!this.players || this.players.length === 0) {
+            console.warn('⚠️ No players found in multiplayer, cannot update customization');
+            return;
+        }
+        
+        const player1 = this.players[0]; // Only update player 1's ball
+        if (!player1 || !player1.ball) {
+            console.warn('⚠️ Player 1 ball not found, cannot update customization');
+            return;
+        }
+        
+        // Load ball customization settings
+        let customization = null;
+        try {
+            const saved = localStorage.getItem('ballCustomization');
+            if (saved) {
+                customization = JSON.parse(saved);
+                console.log('🎨 Updating multiplayer player 1 ball with customization:', customization);
+            }
+        } catch (error) {
+            console.error('Failed to load ball customization for multiplayer update:', error);
+            return;
+        }
+        
+        if (customization) {
+            try {
+                const newMaterial = this.createCustomizedMultiplayerMaterial(customization, player1.config);
+                
+                // Dispose of old material to free memory
+                if (player1.ball.material) {
+                    player1.ball.material.dispose();
+                }
+                
+                // Apply new material
+                player1.ball.material = newMaterial;
+                
+                console.log('✅ Multiplayer ball customization updated successfully:', customization);
+                
+                // Show quick confirmation
+                this.showCustomizationUpdateConfirmation();
+                
+            } catch (error) {
+                console.error('❌ Error updating multiplayer ball customization:', error);
+            }
+        }
+    }
+    
+    // Show brief confirmation that customization was applied
+    showCustomizationUpdateConfirmation() {
+        const confirmation = document.createElement('div');
+        confirmation.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 255, 0, 0.9);
+            color: black;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 2000;
+            text-align: center;
+            pointer-events: none;
+        `;
+        confirmation.textContent = '🎨 Ball updated!';
+        document.body.appendChild(confirmation);
+        
+        setTimeout(() => {
+            confirmation.remove();
+        }, 1500);
+    }
+    
     createCustomizedMultiplayerMaterial(customization, config) {
         // Color mapping
         const colorMap = {

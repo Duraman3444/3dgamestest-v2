@@ -222,6 +222,76 @@ export class BattleSystem {
         console.log('🟢 Player ball created with visible rotation pattern');
     }
     
+    // Update player ball customization in real-time
+    updatePlayerBallCustomization() {
+        console.log('🎨 Updating battle mode ball customization...');
+        
+        if (!this.playerBall) {
+            console.warn('⚠️ Player ball not found in battle mode, cannot update customization');
+            return;
+        }
+        
+        // Load ball customization settings
+        let customization = null;
+        try {
+            const saved = localStorage.getItem('ballCustomization');
+            if (saved) {
+                customization = JSON.parse(saved);
+                console.log('🎨 Updating battle ball with customization:', customization);
+            }
+        } catch (error) {
+            console.error('Failed to load ball customization for battle update:', error);
+            return;
+        }
+        
+        if (customization) {
+            try {
+                const newMaterial = this.createCustomizedBattleMaterial(customization);
+                
+                // Dispose of old material to free memory
+                if (this.playerBall.material) {
+                    this.playerBall.material.dispose();
+                }
+                
+                // Apply new material
+                this.playerBall.material = newMaterial;
+                
+                console.log('✅ Battle ball customization updated successfully:', customization);
+                
+                // Show quick confirmation
+                this.showCustomizationUpdateConfirmation();
+                
+            } catch (error) {
+                console.error('❌ Error updating battle ball customization:', error);
+            }
+        }
+    }
+    
+    // Show brief confirmation that customization was applied
+    showCustomizationUpdateConfirmation() {
+        const confirmation = document.createElement('div');
+        confirmation.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 255, 0, 0.9);
+            color: black;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 2000;
+            text-align: center;
+            pointer-events: none;
+        `;
+        confirmation.textContent = '🎨 Ball updated!';
+        document.body.appendChild(confirmation);
+        
+        setTimeout(() => {
+            confirmation.remove();
+        }, 1500);
+    }
+    
     createCustomizedBattleMaterial(customization) {
         // Color mapping
         const colorMap = {

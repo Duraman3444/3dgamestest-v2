@@ -332,6 +332,85 @@ export class Player {
         console.log('🎨 Enhanced player mesh created with visible rotation patterns');
     }
     
+    // Update player material with current customization settings
+    updateBallCustomization() {
+        console.log('🎨 Updating ball customization...');
+        
+        if (!this.mesh) {
+            console.warn('⚠️ Player mesh not found, cannot update customization');
+            return;
+        }
+        
+        // Check game mode and level for theming
+        const isPacmanMode = window.game && window.game.gameMode === 'pacman';
+        const isNormalMode = window.game && window.game.gameMode === 'normal';
+        
+        // Load ball customization for single player and pacman modes
+        let customization = null;
+        if (isPacmanMode || isNormalMode) {
+            try {
+                const saved = localStorage.getItem('ballCustomization');
+                if (saved) {
+                    customization = JSON.parse(saved);
+                    console.log('🎨 Updating with saved ball customization:', customization);
+                }
+            } catch (error) {
+                console.error('Failed to load ball customization for update:', error);
+                return;
+            }
+        }
+        
+        // Only update if we have valid customization
+        if (customization) {
+            try {
+                const newMaterial = this.createCustomizedMaterial(customization, isPacmanMode);
+                
+                // Dispose of old material to free memory
+                if (this.mesh.material) {
+                    this.mesh.material.dispose();
+                }
+                
+                // Apply new material
+                this.mesh.material = newMaterial;
+                
+                console.log('✅ Ball customization updated successfully:', customization);
+                
+                // Show quick confirmation
+                this.showCustomizationUpdateConfirmation();
+                
+            } catch (error) {
+                console.error('❌ Error updating ball customization:', error);
+            }
+        } else {
+            console.log('🔄 No valid customization found for current game mode');
+        }
+    }
+    
+    // Show brief confirmation that customization was applied
+    showCustomizationUpdateConfirmation() {
+        const confirmation = document.createElement('div');
+        confirmation.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 255, 0, 0.9);
+            color: black;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 2000;
+            text-align: center;
+            pointer-events: none;
+        `;
+        confirmation.textContent = '🎨 Ball updated!';
+        document.body.appendChild(confirmation);
+        
+        setTimeout(() => {
+            confirmation.remove();
+        }, 1500);
+    }
+    
     createCustomizedMaterial(customization, isPacmanMode = false) {
         // Color mapping
         const colorMap = {

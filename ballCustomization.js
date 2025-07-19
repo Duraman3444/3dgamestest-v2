@@ -1127,28 +1127,43 @@ export class BallCustomization {
     applyCustomization() {
         this.saveCustomization();
         
-        // Show confirmation message
-        const confirmation = document.createElement('div');
-        confirmation.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 255, 0, 0.9);
-            color: black;
-            padding: 20px 40px;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: bold;
-            z-index: 3000;
-            text-align: center;
-        `;
-        confirmation.textContent = '✅ Ball customization saved!';
-        document.body.appendChild(confirmation);
-        
-        setTimeout(() => {
-            confirmation.remove();
-        }, 2000);
+        // Update the player's ball in the current game if active
+        if (window.game && window.game.player && window.game.player.updateBallCustomization) {
+            console.log('🎨 Triggering player ball update...');
+            window.game.player.updateBallCustomization();
+        } else if (window.game && window.game.battleSystem && window.game.battleSystem.updatePlayerBallCustomization) {
+            console.log('🎨 Triggering battle mode ball update...');
+            window.game.battleSystem.updatePlayerBallCustomization();
+        } else if (window.game && window.game.localBattle && window.game.localBattle.updatePlayerBallCustomization) {
+            console.log('🎨 Triggering multiplayer ball update...');
+            window.game.localBattle.updatePlayerBallCustomization();
+        } else {
+            console.log('🔄 Game not active - customization will apply on next game start');
+            
+            // Show regular confirmation since we can't update immediately
+            const confirmation = document.createElement('div');
+            confirmation.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(0, 255, 0, 0.9);
+                color: black;
+                padding: 20px 40px;
+                border-radius: 10px;
+                font-size: 18px;
+                font-weight: bold;
+                z-index: 3000;
+                text-align: center;
+            `;
+            confirmation.textContent = '✅ Ball customization saved!\nWill apply when you start playing.';
+            confirmation.style.whiteSpace = 'pre-line';
+            document.body.appendChild(confirmation);
+            
+            setTimeout(() => {
+                confirmation.remove();
+            }, 3000);
+        }
         
         // Play success sound
         if (window.game && window.game.audioManager) {
