@@ -19,9 +19,9 @@ export class LeaderboardUI {
         this.onReturnToMenu = null;
         
         this.categoryDisplayNames = {
-            fullRun: 'Full Run (Levels 1-6)',
+            fullRun: 'Full Pacman Run (Levels 1-10)',
             classicMode: 'Classic Mode',
-            individualLevels: 'Individual Levels',
+            individualLevels: 'Individual Pacman Levels',
             battleTournament: 'Battle Tournament'
         };
         

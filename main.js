@@ -286,22 +286,21 @@ class Game {
         if (this.isClassicMode) {
             category = 'classicMode';
             scoreData.wave = this.classicWave;
-        } else if (this.gameMode === 'normal') {
-            // Check if this is a full run completion (level 6 is the last level)
-            if (this.currentLevel === 6) {
+        } else if (this.gameMode === 'pacman') {
+            // Check if this is a full pacman run completion (level 10 is the last pacman level)
+            if (this.currentLevel === 10) {
                 category = 'fullRun';
-                scoreData.levelsCompleted = 6;
+                scoreData.levelsCompleted = 10;
+                scoreData.gameMode = 'pacman';
             } else {
                 category = 'individualLevel';
                 scoreData.level = this.currentLevel;
+                scoreData.gameMode = 'pacman';
             }
-        } else if (this.gameMode === 'pacman') {
-            category = 'individualLevel';
-            scoreData.level = this.currentLevel;
-            scoreData.gameMode = 'pacman';
         }
+        // Normal mode (single player levels 1-6) doesn't use leaderboards - skip category assignment
         
-        // Always show score entry screen for level completion
+        // Show score entry screen for level completion only if category is set
         if (category) {
             console.log(`🏆 Level completed! Category: ${category}, Score: ${currentScore}`);
             
@@ -429,22 +428,21 @@ class Game {
         if (this.isClassicMode) {
             category = 'classicMode';
             scoreData.wave = this.classicWave;
-        } else if (this.gameMode === 'normal') {
-            // Check if this is a full run completion (level 6 is the last level)
-            if (this.currentLevel === 6) {
+        } else if (this.gameMode === 'pacman') {
+            // Check if this is a full pacman run completion (level 10 is the last pacman level)
+            if (this.currentLevel === 10) {
                 category = 'fullRun';
-                scoreData.levelsCompleted = 6;
+                scoreData.levelsCompleted = 10;
+                scoreData.gameMode = 'pacman';
             } else {
                 category = 'individualLevel';
                 scoreData.level = this.currentLevel;
+                scoreData.gameMode = 'pacman';
             }
-        } else if (this.gameMode === 'pacman') {
-            category = 'individualLevel';
-            scoreData.level = this.currentLevel;
-            scoreData.gameMode = 'pacman';
         }
+        // Normal mode (single player levels 1-6) doesn't use leaderboards - skip category assignment
         
-        // Check if score qualifies for leaderboard
+        // Check if score qualifies for leaderboard (only if category is set)
         if (category && this.leaderboardManager.qualifiesForLeaderboard(category, currentScore, scoreData.level, completionTime)) {
             console.log(`🏆 High score detected! Category: ${category}, Score: ${currentScore}`);
             
