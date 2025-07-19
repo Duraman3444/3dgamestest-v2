@@ -324,6 +324,27 @@ class Game {
                 console.log('🏆 Game loop stopped for leaderboard display');
             }
             
+            // Stop pacman timer to prevent time-based game over during leaderboard viewing
+            if (this.gameMode === 'pacman' || this.gameMode === 'pacman_classic') {
+                this.stopPacmanTimer();
+                console.log('🏆 Pacman timer stopped for leaderboard display');
+            }
+            
+            // Set pause state to prevent collision system updates and ghost interactions
+            this.isPaused = true;
+            console.log('🏆 Game paused for leaderboard display');
+            
+            // Exit pointer lock to show mouse cursor for leaderboard interaction
+            if (document.pointerLockElement) {
+                document.exitPointerLock();
+                console.log('🏆 Pointer lock exited for leaderboard interaction');
+            }
+            
+            // Disable player controls to prevent any input processing
+            if (this.player) {
+                this.player.disableControls();
+            }
+            
             // Hide game UI elements to prevent confusion
             const gameUI = document.getElementById('ui');
             const crosshair = document.getElementById('crosshair');
@@ -335,13 +356,32 @@ class Game {
             
             this.leaderboardUI.show(category, {
                 onClose: () => {
+                    // Restore game state when leaderboard closes
+                    this.isPaused = false;
+                    
+                    // Re-enable player controls
+                    if (this.player) {
+                        this.player.enableControls();
+                    }
+                    
+                    // Restart pacman timer if in pacman mode
+                    if (this.gameMode === 'pacman' && !this.isClassicMode) {
+                        this.pacmanTimerStarted = true;
+                        console.log('🏆 Pacman timer resumed after leaderboard');
+                    }
+                    
                     // Restore game UI when leaderboard closes
                     if (gameUI) gameUI.style.display = 'block';
                     if (crosshair) crosshair.style.display = 'block';
                     if (instructions) instructions.style.display = 'block';
                     
+                    // Request pointer lock again for gameplay
+                    if (this.canvas) {
+                        this.canvas.requestPointerLock();
+                    }
+                    
                     // Don't restart game loop here - let the calling function handle it
-                    console.log('🏆 Leaderboard closed');
+                    console.log('🏆 Leaderboard closed and game state restored');
                     resolve();
                 },
                 onStartNextLevel: () => {

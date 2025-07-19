@@ -83,6 +83,9 @@ export class CollisionSystem {
     update(deltaTime) {
         if (!this.player || !this.gridManager) return;
         
+        // Don't process collisions if game is paused (e.g., during leaderboard viewing)
+        if (window.game && window.game.isPaused) return;
+        
         // Check collision with obstacles
         this.checkObstacleCollisions();
         
