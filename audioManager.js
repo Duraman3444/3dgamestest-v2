@@ -144,7 +144,163 @@ export class AudioManager {
         const existingMessages = document.querySelectorAll('.audio-init-message');
         existingMessages.forEach(msg => msg.remove());
         
-        // Create new message
+        // For 'info' type (user interaction needed), create a more prominent modal-like message
+        if (type === 'info') {
+            const overlay = document.createElement('div');
+            overlay.className = 'audio-init-overlay';
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 20000;
+                pointer-events: all;
+            `;
+            
+            const modal = document.createElement('div');
+            modal.className = 'audio-init-modal';
+            modal.style.cssText = `
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                border: 3px solid #00ffff;
+                border-radius: 15px;
+                padding: 40px;
+                text-align: center;
+                box-shadow: 0 10px 30px rgba(0, 255, 255, 0.3);
+                animation: audioModalPulse 2s infinite;
+                max-width: 500px;
+                min-width: 400px;
+            `;
+            
+            const icon = document.createElement('div');
+            icon.textContent = '🎵';
+            icon.style.cssText = `
+                font-size: 60px;
+                margin-bottom: 20px;
+                animation: bounce 1.5s infinite;
+            `;
+            
+            const title = document.createElement('h2');
+            title.textContent = 'Audio System Ready';
+            title.style.cssText = `
+                color: #00ffff;
+                font-family: 'Courier New', monospace;
+                font-size: 24px;
+                margin-bottom: 20px;
+                text-shadow: 2px 2px 0px #000000;
+                letter-spacing: 2px;
+            `;
+            
+            const description = document.createElement('p');
+            description.textContent = 'Click the button below to enable immersive audio effects and background music';
+            description.style.cssText = `
+                color: #ffffff;
+                font-family: 'Courier New', monospace;
+                font-size: 16px;
+                line-height: 1.5;
+                margin-bottom: 30px;
+                text-shadow: 1px 1px 0px #000000;
+            `;
+            
+            const enableButton = document.createElement('button');
+            enableButton.textContent = 'ENABLE AUDIO';
+            enableButton.style.cssText = `
+                background: linear-gradient(135deg, #00cc00 0%, #00ff00 100%);
+                border: 3px solid #ffffff;
+                color: #000000;
+                padding: 15px 40px;
+                font-size: 20px;
+                font-weight: bold;
+                cursor: pointer;
+                border-radius: 5px;
+                font-family: 'Courier New', monospace;
+                text-transform: uppercase;
+                letter-spacing: 2px;
+                text-shadow: none;
+                box-shadow: 4px 4px 0px #000000;
+                transition: all 0.2s ease;
+            `;
+            
+            enableButton.addEventListener('mouseenter', () => {
+                enableButton.style.transform = 'scale(1.05)';
+                enableButton.style.boxShadow = '6px 6px 0px #000000';
+            });
+            
+            enableButton.addEventListener('mouseleave', () => {
+                enableButton.style.transform = 'scale(1)';
+                enableButton.style.boxShadow = '4px 4px 0px #000000';
+            });
+            
+            enableButton.addEventListener('click', async () => {
+                enableButton.disabled = true;
+                enableButton.textContent = 'ENABLING...';
+                enableButton.style.background = 'linear-gradient(135deg, #666666 0%, #999999 100%)';
+                
+                try {
+                    const success = await this.manualInitialize();
+                    if (success) {
+                        overlay.remove();
+                    }
+                } catch (error) {
+                    console.error('Failed to enable audio:', error);
+                    enableButton.textContent = 'ENABLE AUDIO';
+                    enableButton.disabled = false;
+                    enableButton.style.background = 'linear-gradient(135deg, #00cc00 0%, #00ff00 100%)';
+                }
+            });
+            
+            const skipText = document.createElement('p');
+            skipText.textContent = 'Press ESC to skip (audio will remain disabled)';
+            skipText.style.cssText = `
+                color: #888888;
+                font-family: 'Courier New', monospace;
+                font-size: 12px;
+                margin-top: 20px;
+                text-shadow: 1px 1px 0px #000000;
+            `;
+            
+            // Add escape key handler
+            const escapeHandler = (e) => {
+                if (e.key === 'Escape') {
+                    overlay.remove();
+                    document.removeEventListener('keydown', escapeHandler);
+                    console.log('🎵 Audio activation skipped by user');
+                    this.waitingForUserInteraction = false; // Stop waiting
+                }
+            };
+            document.addEventListener('keydown', escapeHandler);
+            
+            modal.appendChild(icon);
+            modal.appendChild(title);
+            modal.appendChild(description);
+            modal.appendChild(enableButton);
+            modal.appendChild(skipText);
+            overlay.appendChild(modal);
+            
+            // Add CSS animations
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes audioModalPulse {
+                    0%, 100% { transform: scale(1); box-shadow: 0 10px 30px rgba(0, 255, 255, 0.3); }
+                    50% { transform: scale(1.02); box-shadow: 0 15px 40px rgba(0, 255, 255, 0.5); }
+                }
+                @keyframes bounce {
+                    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+                    40% { transform: translateY(-10px); }
+                    60% { transform: translateY(-5px); }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            document.body.appendChild(overlay);
+            return;
+        }
+        
+        // For other types (success, error), use the smaller notification
         const messageEl = document.createElement('div');
         messageEl.className = 'audio-init-message';
         messageEl.textContent = message;

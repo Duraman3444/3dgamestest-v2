@@ -535,6 +535,39 @@ class Game {
             min-width: 250px;
         `;
         
+        // Audio enable button (only show if audio is not initialized)
+        let audioEnableButton = null;
+        if (this.audioManager && !this.audioManager.isInitialized && this.audioManager.waitingForUserInteraction) {
+            audioEnableButton = document.createElement('button');
+            audioEnableButton.textContent = '🎵 ENABLE AUDIO';
+            audioEnableButton.style.cssText = `
+                background: linear-gradient(135deg, #1a3300 0%, #336600 100%);
+                border: 2px solid #00ff88;
+                color: #00ff88;
+                padding: 15px 40px;
+                font-size: 18px;
+                font-weight: bold;
+                font-family: 'Courier New', monospace;
+                border-radius: 8px;
+                cursor: pointer;
+                text-shadow: 2px 2px 0px #000000;
+                letter-spacing: 2px;
+                transition: all 0.3s ease;
+                min-width: 250px;
+                animation: audioButtonPulse 2s infinite;
+            `;
+            
+            // Add pulsing animation for audio button
+            const audioButtonStyle = document.createElement('style');
+            audioButtonStyle.textContent = `
+                @keyframes audioButtonPulse {
+                    0%, 100% { box-shadow: 0 0 5px rgba(0, 255, 136, 0.5); }
+                    50% { box-shadow: 0 0 15px rgba(0, 255, 136, 0.8); }
+                }
+            `;
+            document.head.appendChild(audioButtonStyle);
+        }
+        
         // Quit button
         const quitButton = document.createElement('button');
         quitButton.textContent = 'QUIT GAME';
@@ -575,6 +608,9 @@ class Game {
         addHoverEffect(restartLevelButton, '#ff6600');
         addHoverEffect(mainMenuButton, '#ffff00');
         addHoverEffect(settingsButton, '#00ff00');
+        if (audioEnableButton) {
+            addHoverEffect(audioEnableButton, '#00ff88');
+        }
         addHoverEffect(quitButton, '#ff00ff');
         
         // Add event listeners
@@ -594,6 +630,28 @@ class Game {
             this.showPauseSettings();
         });
         
+        if (audioEnableButton) {
+            audioEnableButton.addEventListener('click', async () => {
+                audioEnableButton.disabled = true;
+                audioEnableButton.textContent = '🎵 ENABLING...';
+                audioEnableButton.style.background = 'linear-gradient(135deg, #666666 0%, #999999 100%)';
+                
+                try {
+                    const success = await this.audioManager.manualInitialize();
+                    if (success) {
+                        // Remove the audio button after successful initialization
+                        audioEnableButton.style.display = 'none';
+                        console.log('🎵 Audio successfully enabled from pause menu');
+                    }
+                } catch (error) {
+                    console.error('Failed to enable audio from pause menu:', error);
+                    audioEnableButton.textContent = '🎵 ENABLE AUDIO';
+                    audioEnableButton.disabled = false;
+                    audioEnableButton.style.background = 'linear-gradient(135deg, #1a3300 0%, #336600 100%)';
+                }
+            });
+        }
+        
         quitButton.addEventListener('click', () => {
             this.quitGame();
         });
@@ -603,6 +661,9 @@ class Game {
         buttonsContainer.appendChild(restartLevelButton);
         buttonsContainer.appendChild(mainMenuButton);
         buttonsContainer.appendChild(settingsButton);
+        if (audioEnableButton) {
+            buttonsContainer.appendChild(audioEnableButton);
+        }
         buttonsContainer.appendChild(quitButton);
         
         pauseOverlay.appendChild(pauseTitle);
