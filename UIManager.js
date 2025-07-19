@@ -465,14 +465,10 @@ export class UIManager {
         
 
         
-        // Update FPS - hide for pacman mode
+        // Update FPS - show for all modes
         if (this.elements.fpsElement && this.settings.showFPS) {
-            if (isPacmanMode) {
-                this.elements.fpsElement.style.display = 'none';
-            } else {
-                this.elements.fpsElement.style.display = 'block';
-                this.elements.fpsElement.textContent = `FPS: ${this.gameState.fps}`;
-            }
+            this.elements.fpsElement.style.display = 'block';
+            this.elements.fpsElement.textContent = `FPS: ${this.gameState.fps}`;
         }
         
         // Update position - hide for pacman mode
