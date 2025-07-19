@@ -4,7 +4,7 @@ export class CameraSystem {
     constructor(player) {
         this.player = player;
         this.camera = null;
-        this.cameraMode = 'firstPerson'; // 'firstPerson', 'thirdPerson', 'isometric'
+        this.cameraMode = 'thirdPerson'; // 'thirdPerson', 'isometric'
         
         // Camera properties
         this.fov = 75;
@@ -16,10 +16,6 @@ export class CameraSystem {
         this.thirdPersonDistance = 8;
         this.thirdPersonHeight = 3;
         this.thirdPersonSmoothness = 0.1;
-        
-        // First person camera settings (adjusted for sphere)
-        this.firstPersonHeight = 0.8; // Slightly above sphere center
-        this.firstPersonSmoothness = 0.05;
         
         // Isometric camera settings
         this.isometricHeight = 50;
@@ -106,20 +102,7 @@ export class CameraSystem {
         const playerPosition = this.player.getPosition();
         const playerRotation = this.player.getRotation();
         
-        if (this.cameraMode === 'firstPerson') {
-            // First person camera - position at player's eye level
-            this.targetPosition.copy(playerPosition);
-            this.targetPosition.y += this.firstPersonHeight;
-            
-            // Apply smooth movement
-            this.camera.position.lerp(this.targetPosition, this.firstPersonSmoothness);
-            
-            // Set camera rotation based on player input
-            this.camera.rotation.order = 'YXZ';
-            this.camera.rotation.y = playerRotation.yaw;
-            this.camera.rotation.x = playerRotation.pitch;
-            
-        } else if (this.cameraMode === 'thirdPerson') {
+        if (this.cameraMode === 'thirdPerson') {
             // Third person camera - position behind and above player
             const offset = new THREE.Vector3(0, this.thirdPersonHeight, this.thirdPersonDistance);
             
@@ -134,7 +117,7 @@ export class CameraSystem {
             
             // Look at player
             this.targetLookAt.copy(playerPosition);
-            this.targetLookAt.y += this.firstPersonHeight;
+            this.targetLookAt.y += this.thirdPersonHeight * 0.5; // Look at player center
             this.currentLookAt.lerp(this.targetLookAt, this.thirdPersonSmoothness);
             this.camera.lookAt(this.currentLookAt);
             
@@ -162,8 +145,8 @@ export class CameraSystem {
     
     updateCameraLook() {
         // Additional camera look updates can be added here
-        // For now, first person mode handles its own look direction
-        // and third person mode looks at the player
+        // Third person and isometric modes handle their own look directions
+        // in the updateCameraPosition function
     }
     
     updateCameraShake(deltaTime) {
@@ -188,23 +171,21 @@ export class CameraSystem {
     }
     
     toggleCameraMode() {
-        if (this.cameraMode === 'firstPerson') {
-            this.cameraMode = 'thirdPerson';
-            this.currentLookAt.copy(this.player.getPosition());
-        } else if (this.cameraMode === 'thirdPerson') {
+        if (this.cameraMode === 'thirdPerson') {
             this.cameraMode = 'isometric';
             this.currentLookAt.copy(this.player.getPosition());
             // Reset pan offset when switching to isometric
             this.isometricPanOffset.set(0, 0, 0);
         } else {
-            this.cameraMode = 'firstPerson';
+            this.cameraMode = 'thirdPerson';
+            this.currentLookAt.copy(this.player.getPosition());
         }
     }
     
     resetCamera() {
         // Reset camera to default position and settings
         this.camera.position.copy(this.player.getPosition());
-        this.camera.position.y += this.firstPersonHeight;
+        this.camera.position.y += this.thirdPersonHeight;
         this.camera.rotation.set(0, 0, 0);
         this.shakeIntensity = 0;
         this.shakeTimer = 0;
@@ -262,7 +243,7 @@ export class CameraSystem {
     
     // Set camera mode
     setCameraMode(mode) {
-        if (mode === 'firstPerson' || mode === 'thirdPerson' || mode === 'isometric') {
+        if (mode === 'thirdPerson' || mode === 'isometric') {
             this.cameraMode = mode;
             if (mode === 'isometric') {
                 // Reset pan offset when switching to isometric

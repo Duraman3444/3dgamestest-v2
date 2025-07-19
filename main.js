@@ -2084,6 +2084,15 @@ class Game {
         this.cameraSystem = new CameraSystem(this.player);
         console.log('📷 Camera system initialized');
         
+        // Set default camera mode based on game mode
+        if (this.gameMode === 'pacman' || this.gameMode === 'pacman_classic' || this.isClassicMode) {
+            this.cameraSystem.setCameraMode('isometric');
+            console.log('📷 Camera set to isometric for pacman mode');
+        } else {
+            this.cameraSystem.setCameraMode('thirdPerson');
+            console.log('📷 Camera set to third person for single player mode');
+        }
+        
         this.graphicsEnhancer = new GraphicsEnhancer(this.scene, this.renderer, this.cameraSystem.camera);
         console.log('✨ Graphics enhancer initialized with SSR support');
         

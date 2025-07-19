@@ -36,8 +36,8 @@ A comprehensive 3D game built with Three.js featuring multiple game modes, advan
 ## ✨ Features
 
 ### Core Gameplay
-- **Three Camera Modes**: First-person, third-person, and isometric (Press C to cycle)
-- **Isometric Map Panning**: Mouse control for exploring levels from above
+- **Two Camera Modes**: Third-person for single player, isometric for pacman (Press C to cycle)
+- **Isometric Map Panning**: Mouse control for exploring pacman levels from above
 - **Advanced Physics**: Gravity, jumping, collision detection, and response
 - **Dynamic Lighting**: Real-time shadows with 4K shadow mapping
 - **Particle Effects**: Environmental and combat effects
