@@ -579,14 +579,16 @@ export class Player {
                 
                 // Add nebula effect with base color
                 const nebulaGradient = ctx.createRadialGradient(256, 256, 0, 256, 256, 200);
-                nebulaGradient.addColorStop(0, baseColorStr + 'CC');
-                nebulaGradient.addColorStop(0.5, baseColorStr + '44');
+                // Convert to hex format for alpha blending
+                const hexColor = `#${Math.floor(baseColor.r * 255).toString(16).padStart(2, '0')}${Math.floor(baseColor.g * 255).toString(16).padStart(2, '0')}${Math.floor(baseColor.b * 255).toString(16).padStart(2, '0')}`;
+                nebulaGradient.addColorStop(0, hexColor + 'CC');
+                nebulaGradient.addColorStop(0.5, hexColor + '44');
                 nebulaGradient.addColorStop(1, 'transparent');
                 ctx.fillStyle = nebulaGradient;
                 ctx.fillRect(0, 0, 512, 512);
                 
                 // Add spiral arms
-                ctx.strokeStyle = baseColorStr + 'AA';
+                ctx.strokeStyle = hexColor + 'AA';
                 ctx.lineWidth = 3;
                 for (let i = 0; i < 3; i++) {
                     ctx.beginPath();
