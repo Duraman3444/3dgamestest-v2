@@ -3462,12 +3462,19 @@ export class LocalMultiplayerBattle {
         const returnHandler = (event) => {
             if (event.code === 'Space') {
                 document.removeEventListener('keydown', returnHandler);
-                document.body.removeChild(resultsDiv);
+                
+                // Clean up results screen
+                if (resultsDiv && resultsDiv.parentNode) {
+                    resultsDiv.parentNode.removeChild(resultsDiv);
+                }
+                
+                // Immediate cleanup
+                this.cleanup();
+                
                 // Call the callback to return to main menu
                 if (this.onMatchEnd) {
                     this.onMatchEnd();
                 } else {
-                    this.cleanup();
                     window.location.reload();
                 }
             }

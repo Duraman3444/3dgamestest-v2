@@ -2409,6 +2409,11 @@ class Game {
             // Clean up all game mode UI elements when going to main menu
             this.cleanupAllGameModeUI();
             
+            // If in battle mode, clean up battle systems
+            if (this.gameMode === 'battle') {
+                this.cleanupBattleMode();
+            }
+            
             this.mainMenu.show();
             this.canvas.style.display = 'none';
             
@@ -2708,15 +2713,24 @@ class Game {
             // Check for battle tournament high score if it's the last level
             if (isLastLevel) {
                 await this.checkForBattleHighScore();
-            }
-            
-            this.battleUI.showVictoryScreen(currentConfig, isLastLevel);
-            
-            if (!isLastLevel) {
-                // Auto-advance to next level after victory screen
+                
+                // Tournament complete - return to main menu with cleanup
                 setTimeout(() => {
-                    this.battleSystem.startBattle(this.battleSystem.currentLevel + 1);
-                }, 6000);
+                    console.log('🏆 Tournament completed, returning to main menu');
+                    this.cleanupBattleMode();
+                    this.showMainMenu();
+                }, 2000);
+            } else {
+                // Clean up current battle UI before advancing
+                setTimeout(() => {
+                    if (this.battleUI) {
+                        this.battleUI.cleanup();
+                    }
+                    // Auto-advance to next level
+                    if (this.battleSystem) {
+                        this.battleSystem.startBattle(this.battleSystem.currentLevel + 1);
+                    }
+                }, 3000);
             }
         }
     }
@@ -2753,11 +2767,42 @@ class Game {
     }
     
     // Handle battle defeat
-    handleBattleDefeat() {
+    async handleBattleDefeat() {
         console.log('Battle defeat!');
-        if (this.battleUI) {
-            this.battleUI.showDefeatScreen();
+        
+        // Clean up battle mode and return to main menu after defeat screen
+        setTimeout(() => {
+            console.log('💀 Battle defeated, returning to main menu');
+            this.cleanupBattleMode();
+            this.showMainMenu();
+        }, 2000);
+    }
+    
+    // Clean up battle mode completely
+    cleanupBattleMode() {
+        console.log('🧹 Cleaning up battle mode...');
+        
+        // Clean up battle system
+        if (this.battleSystem) {
+            this.battleSystem.cleanup();
+            this.battleSystem = null;
         }
+        
+        // Clean up battle UI
+        if (this.battleUI) {
+            this.battleUI.cleanup();
+            this.battleUI = null;
+        }
+        
+        // Clean up any remaining battle elements
+        this.cleanupAllGameModeUI();
+        
+        // Stop game loop
+        if (this.gameLoop) {
+            this.gameLoop.stop();
+        }
+        
+        console.log('🧹 Battle mode cleanup complete');
     }
     
     // Restart classic mode wave with increased speeds and more fruit

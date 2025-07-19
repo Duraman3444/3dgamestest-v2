@@ -971,48 +971,92 @@ export class BattleSystem {
             }
         }
         
-        // Update UI
+        // Immediately start cleanup process
+        setTimeout(() => {
+            this.cleanup();
+        }, 100); // Small delay to allow sound to play
+        
+        // Update UI with cleanup timer
         if (this.battleUI) {
             if (victory) {
                 this.battleUI.showVictory();
+                // Auto-cleanup victory screen after 3 seconds
+                setTimeout(() => {
+                    this.battleUI.hide();
+                    this.battleUI.cleanup();
+                }, 3000);
             } else {
                 this.battleUI.showDefeat();
+                // Auto-cleanup defeat screen after 3 seconds
+                setTimeout(() => {
+                    this.battleUI.hide();
+                    this.battleUI.cleanup();
+                }, 3000);
             }
         }
         
-        // Call appropriate callback
-        if (victory && this.victoryCallback) {
-            this.victoryCallback();
-        } else if (!victory && this.defeatCallback) {
-            this.defeatCallback();
-        }
+        // Call appropriate callback with delayed cleanup
+        setTimeout(() => {
+            if (victory && this.victoryCallback) {
+                this.victoryCallback();
+            } else if (!victory && this.defeatCallback) {
+                this.defeatCallback();
+            }
+        }, 3500); // Delay callback to allow UI cleanup first
     }
     
     // Clean up
     cleanup() {
         this.isActive = false;
+        this.battleState = 'inactive';
         this.enemyBalls = [];
         this.playersAlive = 0;
         this.enemiesAlive = 0;
         
+        // Clear any pending timeouts
+        if (this.victoryCallback) {
+            this.victoryCallback = null;
+        }
+        if (this.defeatCallback) {
+            this.defeatCallback = null;
+        }
+        
         // Show original player mesh
-        if (this.player.mesh) {
+        if (this.player && this.player.mesh) {
             this.player.mesh.visible = true;
         }
         
-        // Hide UI
+        // Clean up UI completely
         if (this.battleUI) {
-            this.battleUI.hide();
+            this.battleUI.cleanup();
         }
         
-        // Remove all battle objects
+        // Remove all battle objects from scene
         const battleObjects = this.scene.children.filter(child => 
             child.name?.includes('sumo_') || 
             child.name?.includes('arena_') ||
-            child.name?.includes('_ball')
+            child.name?.includes('_ball') ||
+            child.name?.includes('enemy_') ||
+            child.name?.includes('player_ball')
         );
-        battleObjects.forEach(obj => this.scene.remove(obj));
+        battleObjects.forEach(obj => {
+            this.scene.remove(obj);
+            // Dispose of geometry and materials to free memory
+            if (obj.geometry) obj.geometry.dispose();
+            if (obj.material) {
+                if (Array.isArray(obj.material)) {
+                    obj.material.forEach(mat => mat.dispose());
+                } else {
+                    obj.material.dispose();
+                }
+            }
+        });
         
-        console.log('🧹 Sumo battle system cleaned up');
+        // Reset timers
+        this.roundTimer = 0;
+        this.roundStartTime = 0;
+        this.battleStartTime = 0;
+        
+        console.log('🧹 Sumo battle system cleaned up completely');
     }
 } 

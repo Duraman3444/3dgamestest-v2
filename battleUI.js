@@ -301,9 +301,38 @@ export class BattleUI {
         
         // Remove UI elements
         if (this.elements.container) {
-            document.body.removeChild(this.elements.container);
+            if (this.elements.container.parentNode) {
+                this.elements.container.parentNode.removeChild(this.elements.container);
+            }
+            this.elements.container = null;
         }
         
-        console.log('🧹 Sumo Battle UI cleaned up');
+        // Remove any victory/defeat screens that might still be showing
+        const victoryScreen = document.getElementById('battle-victory-screen');
+        if (victoryScreen && victoryScreen.parentNode) {
+            victoryScreen.parentNode.removeChild(victoryScreen);
+        }
+        
+        const defeatScreen = document.getElementById('battle-defeat-screen');
+        if (defeatScreen && defeatScreen.parentNode) {
+            defeatScreen.parentNode.removeChild(defeatScreen);
+        }
+        
+        // Remove any battle result overlays
+        const battleResults = document.querySelectorAll('[id*="battle-result"], [class*="battle-result"], [id*="victory"], [id*="defeat"]');
+        battleResults.forEach(result => {
+            if (result.parentNode && result.id !== 'mainMenu') {
+                try {
+                    result.parentNode.removeChild(result);
+                } catch (e) {
+                    console.warn('Could not remove battle result element:', e);
+                }
+            }
+        });
+        
+        // Clear the elements object
+        this.elements = {};
+        
+        console.log('🧹 Sumo Battle UI cleaned up completely');
     }
 } 
