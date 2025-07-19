@@ -58,6 +58,8 @@ export class Player {
         const isNormalMode = window.game && window.game.gameMode === 'normal';
         const currentLevel = window.game ? window.game.currentLevel : 1;
         
+        console.log('🎨 Ball customization debug - gameMode:', window.game?.gameMode, 'isPacman:', isPacmanMode, 'isNormal:', isNormalMode);
+        
         // Load ball customization for single player and pacman modes
         let customization = null;
         if (isPacmanMode || isNormalMode) {
@@ -65,13 +67,12 @@ export class Player {
                 const saved = localStorage.getItem('ballCustomization');
                 if (saved) {
                     customization = JSON.parse(saved);
-                    console.log('🎨 Applying ball customization:', customization);
-                } else {
-                    customization = { material: 'rubber', color: 'red', design: 'solid' };
+                    console.log('🎨 Applying saved ball customization:', customization);
                 }
+                // If no saved customization, leave customization as null to use level-specific themes
             } catch (error) {
                 console.error('Failed to load ball customization:', error);
-                customization = { material: 'rubber', color: 'red', design: 'solid' };
+                // Leave customization as null to use default level themes
             }
         }
         
