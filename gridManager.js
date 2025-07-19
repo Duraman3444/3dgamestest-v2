@@ -34,6 +34,42 @@ export class GridManager {
         // Get current level number for PS2 theme variation
         const currentLevel = window.game ? window.game.currentLevel : 1;
         
+        // Enhanced material system - define material varieties for each object type
+        this.materialVarieties = {
+            obstacles: {
+                1: ['metal', 'stone', 'plastic'], // Level 1: Forest theme
+                2: ['stone', 'metal', 'plastic'], // Level 2: Desert theme  
+                3: ['plastic', 'metal', 'rubber'], // Level 3: Tech theme
+                4: ['gem', 'stone', 'glow'], // Level 4: Mystical theme
+                5: ['metal', 'stone', 'glow'], // Level 5: Volcanic theme
+                6: ['hologram', 'metal', 'neon'] // Level 6: Space theme
+            },
+            walls: {
+                1: ['stone', 'wood', 'metal'],
+                2: ['stone', 'sandstone', 'metal'], 
+                3: ['plastic', 'metal', 'glass'],
+                4: ['gem', 'crystal', 'magic'],
+                5: ['volcanic_rock', 'metal', 'obsidian'],
+                6: ['hologram', 'energy', 'metal']
+            },
+            grounds: {
+                1: ['stone', 'dirt', 'grass'],
+                2: ['sand', 'sandstone', 'rock'],
+                3: ['metal_grating', 'concrete', 'plastic'],
+                4: ['crystal', 'marble', 'magic_stone'],
+                5: ['volcanic_rock', 'lava_stone', 'obsidian'], 
+                6: ['energy_platform', 'metal', 'glass']
+            },
+            collectibles: {
+                1: ['gem', 'crystal', 'metal'],
+                2: ['gem', 'gold', 'crystal'],
+                3: ['hologram', 'energy', 'metal'],
+                4: ['magic_crystal', 'gem', 'glow'],
+                5: ['fire_crystal', 'ruby', 'metal'],
+                6: ['energy_core', 'hologram', 'plasma']
+            }
+        };
+        
         // PS2 Color Themes for Single Player Mode
         const ps2Themes = {
             1: { // Classic PS2 Blue
@@ -409,6 +445,149 @@ export class GridManager {
         
         this.generateLevel();
     }
+
+    // Enhanced material creation methods
+    getEnhancedMaterial(objectType, level = null, index = 0) {
+        if (!window.game || !window.game.graphicsEnhancer) {
+            // Fallback to basic materials if graphics enhancer not available
+            return this.getBasicFallbackMaterial(objectType);
+        }
+
+        const currentLevel = level || (window.game ? window.game.currentLevel : 1);
+        const varieties = this.materialVarieties[objectType];
+        
+        if (!varieties || !varieties[currentLevel]) {
+            // Use default material if no varieties defined
+            const materialType = this.getDefaultMaterialType(objectType);
+            const baseColor = this.getDefaultColor(objectType, currentLevel);
+            const eraTheme = this.getEraTheme();
+            
+            return window.game.graphicsEnhancer.createEnhancedMaterial(materialType, baseColor, eraTheme);
+        }
+
+        // Get material variety for this level
+        const availableMaterials = varieties[currentLevel];
+        const materialType = availableMaterials[index % availableMaterials.length];
+        
+        // Map special material types to supported ones
+        const mappedMaterialType = this.mapMaterialType(materialType);
+        const baseColor = this.getMaterialColor(materialType, currentLevel);
+        const eraTheme = this.getEraTheme();
+        
+        return window.game.graphicsEnhancer.createEnhancedMaterial(mappedMaterialType, baseColor, eraTheme);
+    }
+
+    // Map special material names to supported material types  
+    mapMaterialType(materialType) {
+        const materialMap = {
+            'wood': 'plastic',
+            'rubber': 'plastic', 
+            'glass': 'gem',
+            'crystal': 'gem',
+            'magic': 'glow',
+            'sandstone': 'stone',
+            'dirt': 'stone',
+            'grass': 'stone',
+            'sand': 'stone',
+            'concrete': 'stone',
+            'metal_grating': 'metal',
+            'marble': 'stone',
+            'magic_stone': 'glow',
+            'volcanic_rock': 'stone',
+            'lava_stone': 'glow',
+            'obsidian': 'stone',
+            'energy_platform': 'hologram',
+            'gold': 'metal',
+            'magic_crystal': 'gem',
+            'fire_crystal': 'gem',
+            'ruby': 'gem',
+            'energy_core': 'glow',
+            'plasma': 'hologram',
+            'energy': 'glow'
+        };
+        
+        return materialMap[materialType] || materialType;
+    }
+
+    // Get appropriate colors for different material types
+    getMaterialColor(materialType, level) {
+        const colorPalettes = {
+            1: { // Forest
+                'stone': 0x696969, 'wood': 0x8B4513, 'metal': 0x708090,
+                'gem': 0x32CD32, 'crystal': 0x98FB98, 'dirt': 0x8B4513,
+                'grass': 0x228B22, 'gold': 0xFFD700, 'magic_crystal': 0x7FFF00
+            },
+            2: { // Desert
+                'stone': 0xD2691E, 'sandstone': 0xF4A460, 'metal': 0xCD853F,
+                'gem': 0xFFD700, 'crystal': 0xFFFAF0, 'sand': 0xF4A460,
+                'rock': 0xA0522D, 'gold': 0xFFD700
+            },
+            3: { // Tech
+                'plastic': 0x4169E1, 'metal': 0x708090, 'rubber': 0x2F4F4F,
+                'metal_grating': 0x696969, 'concrete': 0x808080, 'glass': 0x87CEEB,
+                'hologram': 0x00CED1, 'energy': 0x00FFFF
+            },
+            4: { // Mystical
+                'gem': 0x9370DB, 'stone': 0x483D8B, 'glow': 0xDDA0DD,
+                'crystal': 0xE6E6FA, 'magic': 0xBA55D3, 'marble': 0xF5F5F5,
+                'magic_stone': 0x8A2BE2, 'magic_crystal': 0xDA70D6
+            },
+            5: { // Volcanic
+                'metal': 0x696969, 'stone': 0x2F4F4F, 'glow': 0xFF4500,
+                'volcanic_rock': 0x8B0000, 'lava_stone': 0xFF6347, 'obsidian': 0x1C1C1C,
+                'fire_crystal': 0xFF1493, 'ruby': 0xDC143C
+            },
+            6: { // Space
+                'hologram': 0x00FFFF, 'metal': 0x4682B4, 'neon': 0x00FF00,
+                'energy_platform': 0x1E90FF, 'glass': 0x87CEFA, 'energy_core': 0x7B68EE,
+                'plasma': 0xFF00FF
+            }
+        };
+        
+        const palette = colorPalettes[level] || colorPalettes[1];
+        return palette[materialType] || 0x808080;
+    }
+
+    // Get era theme based on game mode
+    getEraTheme() {
+        if (window.game && window.game.graphicsEnhancer) {
+            return window.game.graphicsEnhancer.getEraThemeForGameMode(window.game.gameMode || 'normal');
+        }
+        return 'ps2';
+    }
+
+    // Get default material type for object type
+    getDefaultMaterialType(objectType) {
+        const defaults = {
+            'obstacles': 'stone',
+            'walls': 'stone', 
+            'grounds': 'stone',
+            'collectibles': 'gem'
+        };
+        return defaults[objectType] || 'plastic';
+    }
+
+    // Get default color for object type
+    getDefaultColor(objectType, level) {
+        const defaults = {
+            'obstacles': 0x8B4513,
+            'walls': 0x0000FF,
+            'grounds': 0x228B22, 
+            'collectibles': 0xFFD700
+        };
+        return defaults[objectType] || 0x808080;
+    }
+
+    // Fallback to basic materials if enhanced system not available
+    getBasicFallbackMaterial(objectType) {
+        const materials = {
+            'obstacles': new THREE.MeshLambertMaterial({ color: 0x8B4513 }),
+            'walls': new THREE.MeshLambertMaterial({ color: 0x0000FF }),
+            'grounds': new THREE.MeshLambertMaterial({ color: 0x228B22 }),
+            'collectibles': new THREE.MeshLambertMaterial({ color: 0xFFD700 })
+        };
+        return materials[objectType] || new THREE.MeshLambertMaterial({ color: 0x808080 });
+    }
     
     // Clean up all existing scene objects before generating new level
     cleanupLevel() {
@@ -539,12 +718,14 @@ export class GridManager {
     generateLevelFromData() {
         const levelData = this.levelLoader.getCurrentLevel();
         
-        // Create ground plane
+        // Create ground plane with enhanced materials
         const planeGeometry = new THREE.PlaneGeometry(levelData.size.width * this.tileSize, levelData.size.height * this.tileSize);
-        const planeMesh = new THREE.Mesh(planeGeometry, this.groundMaterial);
+        const enhancedGroundMaterial = this.getEnhancedMaterial('grounds', null, 0);
+        const planeMesh = new THREE.Mesh(planeGeometry, enhancedGroundMaterial);
         planeMesh.rotation.x = -Math.PI / 2;
         planeMesh.position.y = 0;
         planeMesh.receiveShadow = true;
+        planeMesh.name = 'ground_plane';
         this.scene.add(planeMesh);
         
         // Add border for Pacman mode
@@ -620,12 +801,14 @@ export class GridManager {
     }
     
     generateDefaultLevel() {
-        // Create ground plane
+        // Create ground plane with enhanced materials
         const planeGeometry = new THREE.PlaneGeometry(this.gridSize * this.tileSize, this.gridSize * this.tileSize);
-        const planeMesh = new THREE.Mesh(planeGeometry, this.groundMaterial);
+        const enhancedGroundMaterial = this.getEnhancedMaterial('grounds', null, 0);
+        const planeMesh = new THREE.Mesh(planeGeometry, enhancedGroundMaterial);
         planeMesh.rotation.x = -Math.PI / 2;
         planeMesh.position.y = 0;
         planeMesh.receiveShadow = true;
+        planeMesh.name = 'ground_plane_default';
         this.scene.add(planeMesh);
         
         // Generate individual tiles for more detailed control
@@ -709,7 +892,7 @@ export class GridManager {
         const levelData = this.levelLoader.getCurrentLevel();
         const groundTiles = levelData.tiles || [];
         
-        obstaclesData.forEach(obstacleData => {
+        obstaclesData.forEach((obstacleData, index) => {
             // Check if there's a ground tile at this position
             const hasGroundTile = groundTiles.some(tile => 
                 tile.x === obstacleData.x && tile.z === obstacleData.z && tile.type === 'ground'
@@ -728,10 +911,13 @@ export class GridManager {
                 obstacleData.depth || 2
             );
             
-            const obstacle = new THREE.Mesh(obstacleGeometry, this.obstacleMaterial);
+            // Use enhanced materials with variety
+            const enhancedMaterial = this.getEnhancedMaterial('obstacles', null, index);
+            const obstacle = new THREE.Mesh(obstacleGeometry, enhancedMaterial);
             obstacle.position.set(worldPos.x, (obstacleData.height || 3) / 2, worldPos.z);
             obstacle.castShadow = true;
             obstacle.receiveShadow = true;
+            obstacle.name = `obstacle_${index}`;
             
             this.scene.add(obstacle);
             this.obstacles.push({
@@ -753,7 +939,7 @@ export class GridManager {
         const levelData = this.levelLoader.getCurrentLevel();
         const groundTiles = levelData.tiles || [];
         
-        wallsData.forEach(wallData => {
+        wallsData.forEach((wallData, index) => {
             // Check if there's a ground tile at this position
             const hasGroundTile = groundTiles.some(tile => 
                 tile.x === wallData.x && tile.z === wallData.z && tile.type === 'ground'
@@ -772,10 +958,13 @@ export class GridManager {
                 this.tileSize * 0.8
             );
             
-            const wall = new THREE.Mesh(wallGeometry, this.wallMaterial);
+            // Use enhanced materials with variety for walls
+            const enhancedMaterial = this.getEnhancedMaterial('walls', null, index);
+            const wall = new THREE.Mesh(wallGeometry, enhancedMaterial);
             wall.position.set(worldPos.x, (wallData.height || 3) / 2, worldPos.z);
             wall.castShadow = true;
             wall.receiveShadow = true;
+            wall.name = `wall_${index}`;
             
             this.scene.add(wall);
             this.walls.push({
@@ -844,7 +1033,7 @@ export class GridManager {
     
     // Generate bounce pads from level data
     generateBouncePadsFromData(bouncePadsData) {
-        bouncePadsData.forEach(padData => {
+        bouncePadsData.forEach((padData, index) => {
             const worldPos = this.levelLoader.gridToWorld(padData.x, padData.z, this.tileSize);
             
             // Create bounce pad geometry - cylinder for vertical, box for horizontal
@@ -855,10 +1044,20 @@ export class GridManager {
                 geometry = new THREE.BoxGeometry(2, 0.5, 2);
             }
             
-            const pad = new THREE.Mesh(geometry, this.bouncePadMaterial);
+            // Use enhanced rubber/plastic material for bounce pads
+            let padMaterial;
+            if (window.game && window.game.graphicsEnhancer) {
+                const eraTheme = this.getEraTheme();
+                padMaterial = window.game.graphicsEnhancer.createEnhancedMaterial('plastic', 0x00FF00, eraTheme);
+            } else {
+                padMaterial = this.bouncePadMaterial;
+            }
+            
+            const pad = new THREE.Mesh(geometry, padMaterial);
             pad.position.set(worldPos.x, padData.y || 0.5, worldPos.z);
             pad.castShadow = true;
             pad.receiveShadow = true;
+            pad.name = `bouncepad_${index}`;
             
             this.scene.add(pad);
             
@@ -963,10 +1162,13 @@ export class GridManager {
             const tile = this.tiles.get(tileKey);
             
             if (tile && !tile.occupied) {
-                const obstacle = new THREE.Mesh(obstacleGeometry, this.obstacleMaterial);
+                // Use enhanced materials with variety for default obstacles
+                const enhancedMaterial = this.getEnhancedMaterial('obstacles', null, i);
+                const obstacle = new THREE.Mesh(obstacleGeometry, enhancedMaterial);
                 obstacle.position.set(tile.worldX, 1.5, tile.worldZ);
                 obstacle.castShadow = true;
                 obstacle.receiveShadow = true;
+                obstacle.name = `obstacle_default_${i}`;
                 
                 this.scene.add(obstacle);
                 this.obstacles.push({
@@ -993,7 +1195,7 @@ export class GridManager {
         
         const collectibleGeometry = new THREE.SphereGeometry(0.3, 8, 8);
         
-        coinsData.forEach(coinData => {
+        coinsData.forEach((coinData, index) => {
             // Check if there's a ground tile at this position
             const hasGroundTile = groundTiles.some(tile => 
                 tile.x === coinData.x && tile.z === coinData.z && tile.type === 'ground'
@@ -1012,9 +1214,12 @@ export class GridManager {
             const tile = this.tiles.get(tileKey);
             const tileHeight = tile ? tile.height : 0;
             
-            const collectible = new THREE.Mesh(collectibleGeometry, this.collectibleMaterial);
+            // Use enhanced materials with variety for collectibles
+            const enhancedMaterial = this.getEnhancedMaterial('collectibles', null, index);
+            const collectible = new THREE.Mesh(collectibleGeometry, enhancedMaterial);
             collectible.position.set(worldPos.x, tileHeight + (coinData.y || 1), worldPos.z);
             collectible.castShadow = true;
+            collectible.name = `collectible_${index}`;
             
             this.scene.add(collectible);
             this.collectibles.push({
