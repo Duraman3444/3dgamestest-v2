@@ -692,7 +692,12 @@ export class LeaderboardUI {
         const hasPacmanMode = scores.some(score => score.gameMode === 'pacman');
         const timeHeaderText = hasPacmanMode ? 'Time Left' : 'Time';
         
-        const headers = ['Rank', 'Initials', 'Score', timeHeaderText, 'Date'];
+        // Check if this is classic mode to include wave information
+        const isClassicMode = this.currentCategory === 'classicMode';
+        
+        const headers = isClassicMode ? 
+            ['Rank', 'Initials', 'Score', 'Wave', 'Date'] : 
+            ['Rank', 'Initials', 'Score', timeHeaderText, 'Date'];
         headers.forEach(headerText => {
             const th = document.createElement('th');
             th.textContent = headerText;
@@ -777,31 +782,61 @@ export class LeaderboardUI {
                 color: #ffff00;
             `;
             
-            // Time
-            const timeCell = document.createElement('td');
-            timeCell.textContent = this.leaderboardManager.formatTime(score.completionTime);
-            timeCell.style.cssText = `
-                padding: 12px;
-                text-align: center;
-                font-size: 16px;
-                color: #ff00ff;
-            `;
-            
-            // Date
-            const dateCell = document.createElement('td');
-            dateCell.textContent = score.date;
-            dateCell.style.cssText = `
-                padding: 12px;
-                text-align: center;
-                font-size: 14px;
-                color: #cccccc;
-            `;
-            
-            row.appendChild(rankCell);
-            row.appendChild(initialsCell);
-            row.appendChild(scoreCell);
-            row.appendChild(timeCell);
-            row.appendChild(dateCell);
+            // Time or Wave (depending on mode)
+            if (isClassicMode) {
+                // Wave information for classic mode
+                const waveCell = document.createElement('td');
+                waveCell.textContent = score.wave ? `Wave ${score.wave}` : 'Wave 1';
+                waveCell.style.cssText = `
+                    padding: 12px;
+                    text-align: center;
+                    font-size: 16px;
+                    color: #ff00ff;
+                    font-weight: bold;
+                `;
+                
+                // Date
+                const dateCell = document.createElement('td');
+                dateCell.textContent = score.date;
+                dateCell.style.cssText = `
+                    padding: 12px;
+                    text-align: center;
+                    font-size: 14px;
+                    color: #cccccc;
+                `;
+                
+                row.appendChild(rankCell);
+                row.appendChild(initialsCell);
+                row.appendChild(scoreCell);
+                row.appendChild(waveCell);
+                row.appendChild(dateCell);
+            } else {
+                // Time information for other modes
+                const timeCell = document.createElement('td');
+                timeCell.textContent = this.leaderboardManager.formatTime(score.completionTime);
+                timeCell.style.cssText = `
+                    padding: 12px;
+                    text-align: center;
+                    font-size: 16px;
+                    color: #ff00ff;
+                `;
+                
+                // Date
+                const dateCell = document.createElement('td');
+                dateCell.textContent = score.date;
+                dateCell.style.cssText = `
+                    padding: 12px;
+                    text-align: center;
+                    font-size: 14px;
+                    color: #cccccc;
+                `;
+                
+                row.appendChild(rankCell);
+                row.appendChild(initialsCell);
+                row.appendChild(scoreCell);
+                row.appendChild(timeCell);
+                row.appendChild(dateCell);
+            }
             
             table.appendChild(row);
         });
