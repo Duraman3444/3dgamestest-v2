@@ -767,19 +767,29 @@ export class MainMenu {
     showLeaderboards() {
         // Use the global game leaderboard UI if available
         if (window.game && window.game.leaderboardUI) {
+            // Hide main menu while showing leaderboards to prevent UI conflicts
+            this.menuElement.style.display = 'none';
+            
             window.game.leaderboardUI.show('fullRun', {
                 onClose: () => {
-                    // Leaderboards closed - no additional action needed
+                    // Show main menu again when leaderboards close
+                    this.menuElement.style.display = 'flex';
+                    console.log('🏆 Returned to main menu from leaderboards');
                 },
                 onStartNextLevel: () => {
+                    // Hide main menu and start next level
+                    this.hideMenu();
                     this.startNextLevel();
                 },
                 onRestartLevel: () => {
+                    // Hide main menu and restart current level
+                    this.hideMenu();
                     this.restartCurrentLevel();
                 },
                 onReturnToMenu: () => {
-                    // Already in menu, just close leaderboard
+                    // Close leaderboard and show main menu
                     window.game.leaderboardUI.hide();
+                    this.menuElement.style.display = 'flex';
                 }
             });
         } else {

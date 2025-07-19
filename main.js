@@ -318,20 +318,48 @@ class Game {
     // Show leaderboard with action buttons after level completion
     async showLeaderboardWithActions(category) {
         return new Promise((resolve) => {
+            // Stop the game loop when showing leaderboard to prevent background gameplay
+            if (this.gameLoop) {
+                this.gameLoop.stop();
+                console.log('🏆 Game loop stopped for leaderboard display');
+            }
+            
+            // Hide game UI elements to prevent confusion
+            const gameUI = document.getElementById('ui');
+            const crosshair = document.getElementById('crosshair');
+            const instructions = document.getElementById('instructions');
+            
+            if (gameUI) gameUI.style.display = 'none';
+            if (crosshair) crosshair.style.display = 'none';
+            if (instructions) instructions.style.display = 'none';
+            
             this.leaderboardUI.show(category, {
                 onClose: () => {
+                    // Restore game UI when leaderboard closes
+                    if (gameUI) gameUI.style.display = 'block';
+                    if (crosshair) crosshair.style.display = 'block';
+                    if (instructions) instructions.style.display = 'block';
+                    
+                    // Don't restart game loop here - let the calling function handle it
+                    console.log('🏆 Leaderboard closed');
                     resolve();
                 },
                 onStartNextLevel: () => {
+                    // Hide leaderboard and continue with next level
                     this.leaderboardUI.hide();
+                    console.log('🏆 Starting next level from leaderboard');
                     resolve('nextLevel');
                 },
                 onRestartLevel: () => {
+                    // Hide leaderboard and restart current level
                     this.leaderboardUI.hide();
+                    console.log('🏆 Restarting level from leaderboard');
                     resolve('restart');
                 },
                 onReturnToMenu: () => {
+                    // Hide leaderboard and return to menu
                     this.leaderboardUI.hide();
+                    console.log('🏆 Returning to menu from leaderboard');
                     resolve('menu');
                 }
             });
@@ -2668,35 +2696,55 @@ class Game {
     
     // Add a random fruit to an empty tile
     addRandomFruit() {
-        if (!this.gridManager) return;
-        
+        if (!this.gridManager) {
+            console.warn('Cannot add random fruit - gridManager not available');
+            return;
+        }
+
         const levelData = this.levelLoader.getCurrentLevel();
-        if (!levelData) return;
-        
+        if (!levelData || !levelData.size) {
+            console.warn('Cannot add random fruit - level data not available');
+            return;
+        }
+
         // Find empty ground tiles
         const emptyTiles = [];
-        for (let x = 0; x < levelData.size.width; x++) {
-            for (let z = 0; z < levelData.size.height; z++) {
-                const tile = this.gridManager.getTile(x, z);
-                if (tile && tile.type === 'ground' && !tile.occupied) {
-                    emptyTiles.push({ x, z });
+        try {
+            for (let x = 0; x < levelData.size.width; x++) {
+                for (let z = 0; z < levelData.size.height; z++) {
+                    const tile = this.gridManager.getTile(x, z);
+                    if (tile && tile.type === 'ground' && !tile.occupied) {
+                        emptyTiles.push({ x, z });
+                    }
                 }
             }
-        }
-        
-        if (emptyTiles.length > 0) {
-            const randomTile = emptyTiles[Math.floor(Math.random() * emptyTiles.length)];
-            const fruitTypes = ['cherry', 'apple', 'banana', 'bonus'];
-            const randomType = fruitTypes[Math.floor(Math.random() * fruitTypes.length)];
-            
-            const fruit = {
-                x: randomTile.x,
-                z: randomTile.z,
-                type: randomType,
-                points: 500 + (this.classicWave * 100) // More points for higher waves
-            };
-            
-            this.gridManager.generateFruitFromData([fruit]);
+
+            if (emptyTiles.length > 0) {
+                const randomTile = emptyTiles[Math.floor(Math.random() * emptyTiles.length)];
+                const fruitTypes = ['cherry', 'apple', 'banana', 'bonus'];
+                const randomType = fruitTypes[Math.floor(Math.random() * fruitTypes.length)];
+
+                const fruit = {
+                    x: randomTile.x,
+                    z: randomTile.z,
+                    y: 1.2, // Add y position to prevent positioning issues
+                    type: randomType,
+                    points: 500 + (this.classicWave * 100) // More points for higher waves
+                };
+
+                console.log(`Adding ${randomType} fruit at (${fruit.x}, ${fruit.z}) for wave ${this.classicWave}`);
+                this.gridManager.generateFruitFromData([fruit]);
+                
+                // Mark tile as occupied
+                const tile = this.gridManager.getTile(randomTile.x, randomTile.z);
+                if (tile) {
+                    tile.occupied = true;
+                }
+            } else {
+                console.warn(`No empty tiles available for fruit placement in wave ${this.classicWave}`);
+            }
+        } catch (error) {
+            console.error('Error adding random fruit:', error);
         }
     }
     
