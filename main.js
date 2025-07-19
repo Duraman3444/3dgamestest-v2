@@ -2564,80 +2564,114 @@ class Game {
             this.clearSavedGameState();
         }
         
-        // Show score entry for level completion
+        // Show score entry for level completion (only for pacman modes)
         await this.showScoreEntryForCompletion();
         
-        // Show leaderboard with action options
-        const category = this.isClassicMode ? 'classicMode' : 
-                        (this.gameMode === 'normal' && this.currentLevel === 6) ? 'fullRun' : 'individualLevel';
-        const userChoice = await this.showLeaderboardWithActions(category);
-        
-        // Stop the game loop
-        if (this.gameLoop) {
-            this.gameLoop.stop();
-        }
-        
-        // Handle user choice from leaderboard
-        if (userChoice === 'menu') {
-            // Return to main menu
-            this.returnToMainMenu();
-        } else if (userChoice === 'restart') {
-            // Restart current level
-            try {
-                await this.restartCurrentLevel();
-                console.log(`🔄 Restarted level ${this.currentLevel}`);
-            } catch (error) {
-                console.error('Error restarting level:', error);
-                this.handleGameOver();
+        // Only show leaderboards for pacman modes and classic mode
+        if (this.gameMode === 'pacman' || this.gameMode === 'pacman_classic' || this.isClassicMode) {
+            // Show leaderboard with action options
+            const category = this.isClassicMode ? 'classicMode' : 
+                            (this.gameMode === 'pacman' && this.currentLevel === 10) ? 'fullRun' : 'individualLevel';
+            const userChoice = await this.showLeaderboardWithActions(category);
+            
+            // Stop the game loop
+            if (this.gameLoop) {
+                this.gameLoop.stop();
             }
-        } else if (userChoice === 'nextLevel') {
+            
+            // Handle user choice from leaderboard
+            if (userChoice === 'menu') {
+                // Return to main menu
+                this.returnToMainMenu();
+            } else if (userChoice === 'restart') {
+                // Restart current level
+                try {
+                    await this.restartCurrentLevel();
+                    console.log(`🔄 Restarted level ${this.currentLevel}`);
+                } catch (error) {
+                    console.error('Error restarting level:', error);
+                    this.handleGameOver();
+                }
+            } else if (userChoice === 'nextLevel') {
+                // Advance to next level
+                const hasNextLevel = this.nextLevel();
+                
+                if (hasNextLevel) {
+                    try {
+                        // Brief pause to show completion
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        // Reload the game with the new level
+                        await this.restartCurrentLevel();
+                        
+                        console.log(`🚀 Started level ${this.currentLevel}`);
+                    } catch (error) {
+                        console.error('Error advancing to next level:', error);
+                        // Fall back to game over if level loading fails
+                        this.handleGameOver();
+                    }
+                } else {
+                    // No more levels - show game completion
+                    console.log('🏁 All levels completed!');
+                    this.clearSavedGameState(); // Clear save since game is completed
+                    alert('🏁 Congratulations! You\'ve completed all available levels!');
+                    this.returnToMainMenu();
+                }
+            } else {
+                // Default behavior (closed leaderboard without action) - auto-advance like before
+                const hasNextLevel = this.nextLevel();
+                
+                if (hasNextLevel) {
+                    try {
+                        // Brief pause to show completion
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        
+                        // Reload the game with the new level
+                        await this.restartCurrentLevel();
+                        
+                        console.log(`Started level ${this.currentLevel}`);
+                    } catch (error) {
+                        console.error('Error advancing to next level:', error);
+                        // Fall back to game over if level loading fails
+                        this.handleGameOver();
+                    }
+                } else {
+                    // No more levels - show game completion or return to menu
+                    console.log('All levels completed!');
+                    this.clearSavedGameState(); // Clear save since game is completed
+                    this.handleGameOver(); // For now, treat as game over
+                }
+            }
+        } else {
+            // Single player mode - go directly to next level without leaderboards
+            console.log('🎮 Single player mode: Skipping leaderboards and advancing to next level');
+            
+            // Stop the game loop
+            if (this.gameLoop) {
+                this.gameLoop.stop();
+            }
+            
+            // Brief pause to show completion
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
             // Advance to next level
             const hasNextLevel = this.nextLevel();
             
             if (hasNextLevel) {
                 try {
-                    // Brief pause to show completion
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    
                     // Reload the game with the new level
                     await this.restartCurrentLevel();
-                    
                     console.log(`🚀 Started level ${this.currentLevel}`);
                 } catch (error) {
                     console.error('Error advancing to next level:', error);
-                    // Fall back to game over if level loading fails
                     this.handleGameOver();
                 }
             } else {
                 // No more levels - show game completion
-                console.log('🏁 All levels completed!');
+                console.log('🏁 All single player levels completed!');
                 this.clearSavedGameState(); // Clear save since game is completed
-                alert('🏁 Congratulations! You\'ve completed all available levels!');
+                alert('🏁 Congratulations! You\'ve completed all single player levels!');
                 this.returnToMainMenu();
-            }
-        } else {
-            // Default behavior (closed leaderboard without action) - auto-advance like before
-            const hasNextLevel = this.nextLevel();
-            
-            if (hasNextLevel) {
-                try {
-                    // Brief pause to show completion
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    
-                    // Reload the game with the new level
-                    await this.restartCurrentLevel();
-                    
-                    console.log(`Started level ${this.currentLevel}`);
-                } catch (error) {
-                    console.error('Error advancing to next level:', error);
-                    // Fall back to game over if level loading fails
-                    this.handleGameOver();
-                }
-            } else {
-                // No more levels - show game completion or return to menu
-                console.log('All levels completed!');
-                this.clearSavedGameState(); // Clear save since game is completed
-                this.handleGameOver(); // For now, treat as game over
             }
         }
     }
