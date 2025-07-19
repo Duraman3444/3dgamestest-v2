@@ -14,7 +14,34 @@ export class SettingsManager {
                 enableSSR: false,
                 ssrIntensity: 50,
                 ssrMaxDistance: 30,
-                ssrThickness: 0.5
+                ssrThickness: 0.5,
+                // Advanced Graphics Effects
+                enableBloom: false,
+                bloomIntensity: 30,
+                bloomThreshold: 85,
+                bloomRadius: 40,
+                enableSSAO: false,
+                ssaoIntensity: 50,
+                ssaoRadius: 20,
+                enableGodRays: false,
+                godRaysIntensity: 40,
+                godRaysExposure: 25,
+                enableMotionBlur: false,
+                motionBlurStrength: 30,
+                enableDOF: false,
+                dofFocus: 50,
+                dofBlur: 20,
+                enableFilmGrain: false,
+                filmGrainIntensity: 15,
+                enableVignette: false,
+                vignetteIntensity: 25,
+                enableChromaticAberration: false,
+                chromaticIntensity: 10,
+                enableColorGrading: false,
+                colorGradingPreset: 'cinematic',
+                enableParticleEffects: true,
+                particleQuality: 'medium',
+                enableDynamicLighting: false
             },
             controls: {
                 mouseSensitivity: 50,
@@ -221,6 +248,217 @@ export class SettingsManager {
                 min: 10,
                 max: 200,
                 onChange: (value) => this.setSetting('graphics', 'ssrThickness', value / 100)
+            },
+            
+            // Advanced Graphics Effects with Difficulty Indicators
+            { 
+                type: 'header',
+                label: '🌟 ADVANCED GRAPHICS EFFECTS 🌟'
+            },
+            { 
+                type: 'checkbox', 
+                label: '🌸 Bloom Effect (Difficulty: ⭐⭐☆) - Beautiful glow around bright objects', 
+                value: this.settings.graphics.enableBloom,
+                onChange: (value) => this.setSetting('graphics', 'enableBloom', value)
+            },
+            { 
+                type: 'slider', 
+                label: 'Bloom Intensity', 
+                value: this.settings.graphics.bloomIntensity,
+                min: 0,
+                max: 100,
+                onChange: (value) => this.setSetting('graphics', 'bloomIntensity', value)
+            },
+            { 
+                type: 'slider', 
+                label: 'Bloom Threshold', 
+                value: this.settings.graphics.bloomThreshold,
+                min: 50,
+                max: 100,
+                onChange: (value) => this.setSetting('graphics', 'bloomThreshold', value)
+            },
+            { 
+                type: 'slider', 
+                label: 'Bloom Radius', 
+                value: this.settings.graphics.bloomRadius,
+                min: 10,
+                max: 100,
+                onChange: (value) => this.setSetting('graphics', 'bloomRadius', value)
+            },
+            
+            { 
+                type: 'checkbox', 
+                label: '🌫️ Screen Space Ambient Occlusion (Difficulty: ⭐⭐⭐) - Realistic shadows', 
+                value: this.settings.graphics.enableSSAO,
+                onChange: (value) => this.setSetting('graphics', 'enableSSAO', value)
+            },
+            { 
+                type: 'slider', 
+                label: 'SSAO Intensity', 
+                value: this.settings.graphics.ssaoIntensity,
+                min: 0,
+                max: 100,
+                onChange: (value) => this.setSetting('graphics', 'ssaoIntensity', value)
+            },
+            { 
+                type: 'slider', 
+                label: 'SSAO Radius', 
+                value: this.settings.graphics.ssaoRadius,
+                min: 5,
+                max: 50,
+                onChange: (value) => this.setSetting('graphics', 'ssaoRadius', value)
+            },
+            
+            { 
+                type: 'checkbox', 
+                label: '☀️ God Rays/Volumetric Light (Difficulty: ⭐⭐⭐) - Dramatic light shafts', 
+                value: this.settings.graphics.enableGodRays,
+                onChange: (value) => this.setSetting('graphics', 'enableGodRays', value)
+            },
+            { 
+                type: 'slider', 
+                label: 'God Rays Intensity', 
+                value: this.settings.graphics.godRaysIntensity,
+                min: 0,
+                max: 100,
+                onChange: (value) => this.setSetting('graphics', 'godRaysIntensity', value)
+            },
+            { 
+                type: 'slider', 
+                label: 'God Rays Exposure', 
+                value: this.settings.graphics.godRaysExposure,
+                min: 0,
+                max: 100,
+                onChange: (value) => this.setSetting('graphics', 'godRaysExposure', value)
+            },
+            
+            { 
+                type: 'checkbox', 
+                label: '💨 Motion Blur (Difficulty: ⭐⭐☆) - Speed blur effects', 
+                value: this.settings.graphics.enableMotionBlur,
+                onChange: (value) => this.setSetting('graphics', 'enableMotionBlur', value)
+            },
+            { 
+                type: 'slider', 
+                label: 'Motion Blur Strength', 
+                value: this.settings.graphics.motionBlurStrength,
+                min: 0,
+                max: 100,
+                onChange: (value) => this.setSetting('graphics', 'motionBlurStrength', value)
+            },
+            
+            { 
+                type: 'checkbox', 
+                label: '🎯 Depth of Field (Difficulty: ⭐⭐☆) - Camera focus effects', 
+                value: this.settings.graphics.enableDOF,
+                onChange: (value) => this.setSetting('graphics', 'enableDOF', value)
+            },
+            { 
+                type: 'slider', 
+                label: 'DOF Focus Distance', 
+                value: this.settings.graphics.dofFocus,
+                min: 0,
+                max: 100,
+                onChange: (value) => this.setSetting('graphics', 'dofFocus', value)
+            },
+            { 
+                type: 'slider', 
+                label: 'DOF Blur Strength', 
+                value: this.settings.graphics.dofBlur,
+                min: 0,
+                max: 100,
+                onChange: (value) => this.setSetting('graphics', 'dofBlur', value)
+            },
+            
+            { 
+                type: 'checkbox', 
+                label: '📺 Film Grain (Difficulty: ⭐☆☆) - Vintage film texture', 
+                value: this.settings.graphics.enableFilmGrain,
+                onChange: (value) => this.setSetting('graphics', 'enableFilmGrain', value)
+            },
+            { 
+                type: 'slider', 
+                label: 'Film Grain Intensity', 
+                value: this.settings.graphics.filmGrainIntensity,
+                min: 0,
+                max: 100,
+                onChange: (value) => this.setSetting('graphics', 'filmGrainIntensity', value)
+            },
+            
+            { 
+                type: 'checkbox', 
+                label: '⚫ Vignette (Difficulty: ⭐☆☆) - Screen edge darkening', 
+                value: this.settings.graphics.enableVignette,
+                onChange: (value) => this.setSetting('graphics', 'enableVignette', value)
+            },
+            { 
+                type: 'slider', 
+                label: 'Vignette Intensity', 
+                value: this.settings.graphics.vignetteIntensity,
+                min: 0,
+                max: 100,
+                onChange: (value) => this.setSetting('graphics', 'vignetteIntensity', value)
+            },
+            
+            { 
+                type: 'checkbox', 
+                label: '🌈 Chromatic Aberration (Difficulty: ⭐☆☆) - Color fringing effect', 
+                value: this.settings.graphics.enableChromaticAberration,
+                onChange: (value) => this.setSetting('graphics', 'enableChromaticAberration', value)
+            },
+            { 
+                type: 'slider', 
+                label: 'Chromatic Intensity', 
+                value: this.settings.graphics.chromaticIntensity,
+                min: 0,
+                max: 50,
+                onChange: (value) => this.setSetting('graphics', 'chromaticIntensity', value)
+            },
+            
+            { 
+                type: 'checkbox', 
+                label: '🎨 Color Grading/Tone Mapping (Difficulty: ⭐⭐☆) - Cinematic colors', 
+                value: this.settings.graphics.enableColorGrading,
+                onChange: (value) => this.setSetting('graphics', 'enableColorGrading', value)
+            },
+            { 
+                type: 'select', 
+                label: 'Color Grading Preset', 
+                value: this.settings.graphics.colorGradingPreset,
+                options: [
+                    { value: 'cinematic', text: 'Cinematic' },
+                    { value: 'vibrant', text: 'Vibrant' },
+                    { value: 'warm', text: 'Warm' },
+                    { value: 'cool', text: 'Cool' },
+                    { value: 'noir', text: 'Film Noir' }
+                ],
+                onChange: (value) => this.setSetting('graphics', 'colorGradingPreset', value)
+            },
+            
+            { 
+                type: 'checkbox', 
+                label: '✨ Enhanced Particle Effects (Difficulty: ⭐⭐☆) - Beautiful particles', 
+                value: this.settings.graphics.enableParticleEffects,
+                onChange: (value) => this.setSetting('graphics', 'enableParticleEffects', value)
+            },
+            { 
+                type: 'select', 
+                label: 'Particle Quality', 
+                value: this.settings.graphics.particleQuality,
+                options: [
+                    { value: 'low', text: 'Low' },
+                    { value: 'medium', text: 'Medium' },
+                    { value: 'high', text: 'High' },
+                    { value: 'ultra', text: 'Ultra' }
+                ],
+                onChange: (value) => this.setSetting('graphics', 'particleQuality', value)
+            },
+            
+            { 
+                type: 'checkbox', 
+                label: '💡 Dynamic Lighting (Difficulty: ⭐⭐⭐) - Advanced light physics', 
+                value: this.settings.graphics.enableDynamicLighting,
+                onChange: (value) => this.setSetting('graphics', 'enableDynamicLighting', value)
             }
         ]);
         
@@ -472,6 +710,26 @@ export class SettingsManager {
                 checkboxContainer.appendChild(label);
                 container.appendChild(checkboxContainer);
                 break;
+                
+            case 'header':
+                const headerElement = document.createElement('h4');
+                headerElement.textContent = control.label;
+                headerElement.style.cssText = `
+                    color: #ffff00;
+                    margin: 20px 0 15px 0;
+                    font-size: 16px;
+                    font-weight: bold;
+                    text-shadow: 3px 3px 0px #ff00ff, 5px 5px 0px #000000;
+                    letter-spacing: 2px;
+                    text-align: center;
+                    background: rgba(255, 255, 0, 0.1);
+                    padding: 10px;
+                    border-radius: 8px;
+                    border: 2px solid rgba(255, 255, 0, 0.3);
+                `;
+                
+                container.appendChild(headerElement);
+                break;
         }
         
         return container;
@@ -592,7 +850,34 @@ export class SettingsManager {
                 enableSSR: false,
                 ssrIntensity: 50,
                 ssrMaxDistance: 30,
-                ssrThickness: 0.5
+                ssrThickness: 0.5,
+                // Advanced Graphics Effects
+                enableBloom: false,
+                bloomIntensity: 30,
+                bloomThreshold: 85,
+                bloomRadius: 40,
+                enableSSAO: false,
+                ssaoIntensity: 50,
+                ssaoRadius: 20,
+                enableGodRays: false,
+                godRaysIntensity: 40,
+                godRaysExposure: 25,
+                enableMotionBlur: false,
+                motionBlurStrength: 30,
+                enableDOF: false,
+                dofFocus: 50,
+                dofBlur: 20,
+                enableFilmGrain: false,
+                filmGrainIntensity: 15,
+                enableVignette: false,
+                vignetteIntensity: 25,
+                enableChromaticAberration: false,
+                chromaticIntensity: 10,
+                enableColorGrading: false,
+                colorGradingPreset: 'cinematic',
+                enableParticleEffects: true,
+                particleQuality: 'medium',
+                enableDynamicLighting: false
             },
             controls: {
                 mouseSensitivity: 50,

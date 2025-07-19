@@ -852,6 +852,8 @@ class Game {
             case 'enableAntiAliasing':
                 this.applyAntiAliasing(value);
                 break;
+                
+            // SSR Settings
             case 'enableSSR':
                 this.applySSRSetting(value);
                 break;
@@ -859,6 +861,96 @@ class Game {
             case 'ssrMaxDistance':
             case 'ssrThickness':
                 this.updateSSRSettings();
+                break;
+                
+            // Bloom Settings
+            case 'enableBloom':
+                this.applyBloomSetting(value);
+                break;
+            case 'bloomIntensity':
+            case 'bloomThreshold':
+            case 'bloomRadius':
+                this.updateBloomSettings();
+                break;
+                
+            // SSAO Settings
+            case 'enableSSAO':
+                this.applySSAOSetting(value);
+                break;
+            case 'ssaoIntensity':
+            case 'ssaoRadius':
+                this.updateSSAOSettings();
+                break;
+                
+            // God Rays Settings
+            case 'enableGodRays':
+                this.applyGodRaysSetting(value);
+                break;
+            case 'godRaysIntensity':
+            case 'godRaysExposure':
+                this.updateGodRaysSettings();
+                break;
+                
+            // Motion Blur Settings
+            case 'enableMotionBlur':
+                this.applyMotionBlurSetting(value);
+                break;
+            case 'motionBlurStrength':
+                this.updateMotionBlurSettings();
+                break;
+                
+            // Depth of Field Settings
+            case 'enableDOF':
+                this.applyDOFSetting(value);
+                break;
+            case 'dofFocus':
+            case 'dofBlur':
+                this.updateDOFSettings();
+                break;
+                
+            // Film Grain Settings
+            case 'enableFilmGrain':
+                this.applyFilmGrainSetting(value);
+                break;
+            case 'filmGrainIntensity':
+                this.updateFilmGrainSettings();
+                break;
+                
+            // Vignette Settings
+            case 'enableVignette':
+                this.applyVignetteSetting(value);
+                break;
+            case 'vignetteIntensity':
+                this.updateVignetteSettings();
+                break;
+                
+            // Chromatic Aberration Settings
+            case 'enableChromaticAberration':
+                this.applyChromaticSetting(value);
+                break;
+            case 'chromaticIntensity':
+                this.updateChromaticSettings();
+                break;
+                
+            // Color Grading Settings
+            case 'enableColorGrading':
+                this.applyColorGradingSetting(value);
+                break;
+            case 'colorGradingPreset':
+                this.updateColorGradingSettings();
+                break;
+                
+            // Particle Effects Settings
+            case 'enableParticleEffects':
+                this.applyParticleEffectsSetting(value);
+                break;
+            case 'particleQuality':
+                this.updateParticleSettings();
+                break;
+                
+            // Dynamic Lighting Settings
+            case 'enableDynamicLighting':
+                this.applyDynamicLightingSetting(value);
                 break;
         }
     }
@@ -880,6 +972,189 @@ class Game {
                 maxRoughness: 0.3 // Keep this constant for now
             };
             this.graphicsEnhancer.updateSSRSettings(ssrSettings);
+        }
+    }
+
+    // Bloom effect methods
+    applyBloomSetting(enabled) {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.enableBloom) {
+            this.graphicsEnhancer.enableBloom(enabled);
+            console.log(`🌸 Bloom Effect ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    updateBloomSettings() {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.updateBloomSettings && this.settingsManager) {
+            const settings = this.settingsManager.getSettings();
+            this.graphicsEnhancer.updateBloomSettings({
+                intensity: settings.graphics.bloomIntensity,
+                threshold: settings.graphics.bloomThreshold,
+                radius: settings.graphics.bloomRadius
+            });
+        }
+    }
+
+    // SSAO methods
+    applySSAOSetting(enabled) {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.enableSSAO) {
+            this.graphicsEnhancer.enableSSAO(enabled);
+            console.log(`🌫️ SSAO ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    updateSSAOSettings() {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.updateSSAOSettings && this.settingsManager) {
+            const settings = this.settingsManager.getSettings();
+            this.graphicsEnhancer.updateSSAOSettings({
+                intensity: settings.graphics.ssaoIntensity,
+                radius: settings.graphics.ssaoRadius
+            });
+        }
+    }
+
+    // God Rays methods
+    applyGodRaysSetting(enabled) {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.enableGodRays) {
+            this.graphicsEnhancer.enableGodRays(enabled);
+            console.log(`☀️ God Rays ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    updateGodRaysSettings() {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.updateGodRaysSettings && this.settingsManager) {
+            const settings = this.settingsManager.getSettings();
+            this.graphicsEnhancer.updateGodRaysSettings({
+                intensity: settings.graphics.godRaysIntensity,
+                exposure: settings.graphics.godRaysExposure
+            });
+        }
+    }
+
+    // Motion Blur methods
+    applyMotionBlurSetting(enabled) {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.enableMotionBlur) {
+            this.graphicsEnhancer.enableMotionBlur(enabled);
+            console.log(`💨 Motion Blur ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    updateMotionBlurSettings() {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.updateMotionBlurSettings && this.settingsManager) {
+            const settings = this.settingsManager.getSettings();
+            this.graphicsEnhancer.updateMotionBlurSettings({
+                strength: settings.graphics.motionBlurStrength
+            });
+        }
+    }
+
+    // Depth of Field methods
+    applyDOFSetting(enabled) {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.enableDOF) {
+            this.graphicsEnhancer.enableDOF(enabled);
+            console.log(`🎯 Depth of Field ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    updateDOFSettings() {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.updateDOFSettings && this.settingsManager) {
+            const settings = this.settingsManager.getSettings();
+            this.graphicsEnhancer.updateDOFSettings({
+                focus: settings.graphics.dofFocus,
+                blur: settings.graphics.dofBlur
+            });
+        }
+    }
+
+    // Film Grain methods
+    applyFilmGrainSetting(enabled) {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.enableFilmGrain) {
+            this.graphicsEnhancer.enableFilmGrain(enabled);
+            console.log(`📺 Film Grain ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    updateFilmGrainSettings() {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.updateFilmGrainSettings && this.settingsManager) {
+            const settings = this.settingsManager.getSettings();
+            this.graphicsEnhancer.updateFilmGrainSettings({
+                intensity: settings.graphics.filmGrainIntensity
+            });
+        }
+    }
+
+    // Vignette methods
+    applyVignetteSetting(enabled) {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.enableVignette) {
+            this.graphicsEnhancer.enableVignette(enabled);
+            console.log(`⚫ Vignette ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    updateVignetteSettings() {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.updateVignetteSettings && this.settingsManager) {
+            const settings = this.settingsManager.getSettings();
+            this.graphicsEnhancer.updateVignetteSettings({
+                intensity: settings.graphics.vignetteIntensity
+            });
+        }
+    }
+
+    // Chromatic Aberration methods
+    applyChromaticSetting(enabled) {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.enableChromaticAberration) {
+            this.graphicsEnhancer.enableChromaticAberration(enabled);
+            console.log(`🌈 Chromatic Aberration ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    updateChromaticSettings() {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.updateChromaticSettings && this.settingsManager) {
+            const settings = this.settingsManager.getSettings();
+            this.graphicsEnhancer.updateChromaticSettings({
+                intensity: settings.graphics.chromaticIntensity
+            });
+        }
+    }
+
+    // Color Grading methods
+    applyColorGradingSetting(enabled) {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.enableColorGrading) {
+            this.graphicsEnhancer.enableColorGrading(enabled);
+            console.log(`🎨 Color Grading ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    updateColorGradingSettings() {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.updateColorGradingSettings && this.settingsManager) {
+            const settings = this.settingsManager.getSettings();
+            this.graphicsEnhancer.updateColorGradingSettings({
+                preset: settings.graphics.colorGradingPreset
+            });
+        }
+    }
+
+    // Particle Effects methods
+    applyParticleEffectsSetting(enabled) {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.enableParticleEffects) {
+            this.graphicsEnhancer.enableParticleEffects(enabled);
+            console.log(`✨ Particle Effects ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    updateParticleSettings() {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.updateParticleSettings && this.settingsManager) {
+            const settings = this.settingsManager.getSettings();
+            this.graphicsEnhancer.updateParticleSettings({
+                quality: settings.graphics.particleQuality
+            });
+        }
+    }
+
+    // Dynamic Lighting methods
+    applyDynamicLightingSetting(enabled) {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.enableDynamicLighting) {
+            this.graphicsEnhancer.enableDynamicLighting(enabled);
+            console.log(`💡 Dynamic Lighting ${enabled ? 'enabled' : 'disabled'}`);
         }
     }
     

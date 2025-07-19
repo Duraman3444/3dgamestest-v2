@@ -1,10 +1,15 @@
 import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
 
-// Post-processing imports for SSR
+// Post-processing imports for advanced effects
 import { EffectComposer } from 'https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from 'https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/ShaderPass.js';
 import { CopyShader } from 'https://unpkg.com/three@0.158.0/examples/jsm/shaders/CopyShader.js';
+import { UnrealBloomPass } from 'https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/UnrealBloomPass.js';
+import { SSAOPass } from 'https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/SSAOPass.js';
+import { BokehPass } from 'https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/BokehPass.js';
+import { FilmPass } from 'https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/FilmPass.js';
+import { GlitchPass } from 'https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/GlitchPass.js';
 
 // Screenspace Reflections Shader
 const SSRShader = {
@@ -126,6 +131,193 @@ const SSRShader = {
         }`
 };
 
+// God Rays Shader
+const GodRaysShader = {
+    uniforms: {
+        tDiffuse: { value: null },
+        lightPosition: { value: new THREE.Vector2(0.5, 0.5) },
+        exposure: { value: 0.58 },
+        decay: { value: 0.93 },
+        density: { value: 0.84 },
+        weight: { value: 0.4 },
+        samples: { value: 50 }
+    },
+    
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+        
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform vec2 lightPosition;
+        uniform float exposure;
+        uniform float decay;
+        uniform float density;
+        uniform float weight;
+        uniform int samples;
+        varying vec2 vUv;
+        
+        void main() {
+            vec2 texCoord = vUv;
+            vec2 lightDir = texCoord - lightPosition;
+            vec2 deltaTexCoord = (texCoord - lightPosition) / float(samples) * density;
+            
+            vec3 color = texture2D(tDiffuse, texCoord).rgb;
+            float illuminationDecay = 1.0;
+            
+            for(int i = 0; i < 50; i++) {
+                if(i >= samples) break;
+                texCoord -= deltaTexCoord;
+                vec3 sample = texture2D(tDiffuse, texCoord).rgb;
+                sample *= illuminationDecay * weight;
+                color += sample;
+                illuminationDecay *= decay;
+            }
+            
+            gl_FragColor = vec4(color * exposure, 1.0);
+        }`
+};
+
+// Motion Blur Shader
+const MotionBlurShader = {
+    uniforms: {
+        tDiffuse: { value: null },
+        velocityFactor: { value: 1.0 },
+        samples: { value: 32 }
+    },
+    
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+        
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float velocityFactor;
+        uniform int samples;
+        varying vec2 vUv;
+        
+        void main() {
+            vec4 color = vec4(0.0);
+            vec2 velocity = vec2(0.005, 0.0) * velocityFactor; // Simulate motion
+            
+            for(int i = 0; i < 32; i++) {
+                if(i >= samples) break;
+                float t = float(i) / float(samples - 1);
+                vec2 offset = velocity * (t - 0.5);
+                color += texture2D(tDiffuse, vUv + offset);
+            }
+            
+            gl_FragColor = color / float(samples);
+        }`
+};
+
+// Vignette Shader
+const VignetteShader = {
+    uniforms: {
+        tDiffuse: { value: null },
+        intensity: { value: 0.5 }
+    },
+    
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+        
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float intensity;
+        varying vec2 vUv;
+        
+        void main() {
+            vec4 color = texture2D(tDiffuse, vUv);
+            vec2 center = vec2(0.5, 0.5);
+            float dist = distance(vUv, center);
+            float vignette = 1.0 - smoothstep(0.2, 1.0, dist * intensity);
+            gl_FragColor = vec4(color.rgb * vignette, color.a);
+        }`
+};
+
+// Chromatic Aberration Shader
+const ChromaticAberrationShader = {
+    uniforms: {
+        tDiffuse: { value: null },
+        amount: { value: 0.005 }
+    },
+    
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+        
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform float amount;
+        varying vec2 vUv;
+        
+        void main() {
+            vec2 coord = vUv;
+            vec3 color;
+            color.r = texture2D(tDiffuse, coord + vec2(amount, 0.0)).r;
+            color.g = texture2D(tDiffuse, coord).g;
+            color.b = texture2D(tDiffuse, coord - vec2(amount, 0.0)).b;
+            gl_FragColor = vec4(color, 1.0);
+        }`
+};
+
+// Color Grading Shader
+const ColorGradingShader = {
+    uniforms: {
+        tDiffuse: { value: null },
+        preset: { value: 0 }, // 0=cinematic, 1=vibrant, 2=warm, 3=cool, 4=noir
+        intensity: { value: 1.0 }
+    },
+    
+    vertexShader: `
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+        
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform int preset;
+        uniform float intensity;
+        varying vec2 vUv;
+        
+        vec3 applyColorGrading(vec3 color, int preset) {
+            if(preset == 0) { // Cinematic
+                return color * vec3(1.1, 0.9, 0.8) + vec3(0.05, 0.02, 0.0);
+            } else if(preset == 1) { // Vibrant
+                return pow(color, vec3(0.8)) * 1.2;
+            } else if(preset == 2) { // Warm
+                return color * vec3(1.2, 1.05, 0.8);
+            } else if(preset == 3) { // Cool
+                return color * vec3(0.8, 0.95, 1.2);
+            } else if(preset == 4) { // Noir
+                vec3 gray = vec3(dot(color, vec3(0.299, 0.587, 0.114)));
+                return mix(gray, color * vec3(0.8, 0.8, 1.2), 0.3);
+            }
+            return color;
+        }
+        
+        void main() {
+            vec3 color = texture2D(tDiffuse, vUv).rgb;
+            vec3 graded = applyColorGrading(color, preset);
+            gl_FragColor = vec4(mix(color, graded, intensity), 1.0);
+        }`
+};
+
 export class GraphicsEnhancer {
     constructor(scene, renderer, camera) {
         this.scene = scene;
@@ -137,8 +329,37 @@ export class GraphicsEnhancer {
         
         // Post-processing setup
         this.composer = null;
-        this.ssrEnabled = false;
         this.renderTargets = {};
+        
+        // Effect passes
+        this.renderPass = null;
+        this.ssrPass = null;
+        this.bloomPass = null;
+        this.ssaoPass = null;
+        this.godRaysPass = null;
+        this.motionBlurPass = null;
+        this.dofPass = null;
+        this.filmPass = null;
+        this.vignettePass = null;
+        this.chromaticPass = null;
+        this.colorGradingPass = null;
+        this.copyPass = null;
+        
+        // Effect states
+        this.effects = {
+            ssr: false,
+            bloom: false,
+            ssao: false,
+            godRays: false,
+            motionBlur: false,
+            dof: false,
+            filmGrain: false,
+            vignette: false,
+            chromaticAberration: false,
+            colorGrading: false,
+            particleEffects: true,
+            dynamicLighting: false
+        };
         
         // Initialize enhanced renderer settings
         this.setupEnhancedRenderer();
@@ -199,35 +420,176 @@ export class GraphicsEnhancer {
         // Create effect composer
         this.composer = new EffectComposer(this.renderer);
         
-        // Add render pass
+        // 1. Base render pass
         this.renderPass = new RenderPass(this.scene, this.camera);
         this.composer.addPass(this.renderPass);
         
-        // Create SSR pass
+        // 2. SSAO Pass (Screen Space Ambient Occlusion)
+        this.ssaoPass = new SSAOPass(this.scene, this.camera, size.x, size.y);
+        this.ssaoPass.kernelRadius = 8;
+        this.ssaoPass.minDistance = 0.005;
+        this.ssaoPass.maxDistance = 0.1;
+        this.ssaoPass.enabled = false;
+        this.composer.addPass(this.ssaoPass);
+        
+        // 3. SSR Pass (Screen Space Reflections)
         this.ssrPass = new ShaderPass(SSRShader);
         this.ssrPass.uniforms['resolution'].value = size;
         this.ssrPass.uniforms['cameraNear'].value = this.camera.near;
         this.ssrPass.uniforms['cameraFar'].value = this.camera.far;
+        this.ssrPass.enabled = false;
         this.composer.addPass(this.ssrPass);
         
-        // Final copy pass
+        // 4. Bloom Pass
+        this.bloomPass = new UnrealBloomPass(size, 1.5, 0.4, 0.85);
+        this.bloomPass.threshold = 0.85;
+        this.bloomPass.strength = 0.3;
+        this.bloomPass.radius = 0.4;
+        this.bloomPass.enabled = false;
+        this.composer.addPass(this.bloomPass);
+        
+        // 5. God Rays Pass
+        this.godRaysPass = new ShaderPass(GodRaysShader);
+        this.godRaysPass.uniforms['lightPosition'].value = new THREE.Vector2(0.5, 0.5);
+        this.godRaysPass.enabled = false;
+        this.composer.addPass(this.godRaysPass);
+        
+        // 6. Motion Blur Pass
+        this.motionBlurPass = new ShaderPass(MotionBlurShader);
+        this.motionBlurPass.enabled = false;
+        this.composer.addPass(this.motionBlurPass);
+        
+        // 7. Depth of Field Pass
+        this.dofPass = new BokehPass(this.scene, this.camera, {
+            focus: 10.0,
+            aperture: 0.025,
+            maxblur: 0.01,
+            width: size.x,
+            height: size.y
+        });
+        this.dofPass.enabled = false;
+        this.composer.addPass(this.dofPass);
+        
+        // 8. Film Grain Pass
+        this.filmPass = new FilmPass(0.35, 0.5, 2048, false);
+        this.filmPass.enabled = false;
+        this.composer.addPass(this.filmPass);
+        
+        // 9. Vignette Pass
+        this.vignettePass = new ShaderPass(VignetteShader);
+        this.vignettePass.enabled = false;
+        this.composer.addPass(this.vignettePass);
+        
+        // 10. Chromatic Aberration Pass
+        this.chromaticPass = new ShaderPass(ChromaticAberrationShader);
+        this.chromaticPass.enabled = false;
+        this.composer.addPass(this.chromaticPass);
+        
+        // 11. Color Grading Pass
+        this.colorGradingPass = new ShaderPass(ColorGradingShader);
+        this.colorGradingPass.enabled = false;
+        this.composer.addPass(this.colorGradingPass);
+        
+        // 12. Final copy pass
         this.copyPass = new ShaderPass(CopyShader);
         this.copyPass.renderToScreen = true;
         this.composer.addPass(this.copyPass);
         
-        console.log('🌊 Post-processing pipeline initialized with SSR');
+        console.log('🎨 Advanced post-processing pipeline initialized with 10+ effects!');
     }
 
-    // Enable/disable screenspace reflections
+    // Enable/disable effects methods
     enableSSR(enabled = true) {
-        this.ssrEnabled = enabled;
+        this.effects.ssr = enabled;
         if (this.ssrPass) {
             this.ssrPass.enabled = enabled;
             console.log(`🌊 Screenspace Reflections ${enabled ? 'enabled' : 'disabled'}`);
         }
     }
 
-    // Update SSR settings
+    enableBloom(enabled = true) {
+        this.effects.bloom = enabled;
+        if (this.bloomPass) {
+            this.bloomPass.enabled = enabled;
+            console.log(`🌸 Bloom Effect ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    enableSSAO(enabled = true) {
+        this.effects.ssao = enabled;
+        if (this.ssaoPass) {
+            this.ssaoPass.enabled = enabled;
+            console.log(`🌫️ SSAO ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    enableGodRays(enabled = true) {
+        this.effects.godRays = enabled;
+        if (this.godRaysPass) {
+            this.godRaysPass.enabled = enabled;
+            console.log(`☀️ God Rays ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    enableMotionBlur(enabled = true) {
+        this.effects.motionBlur = enabled;
+        if (this.motionBlurPass) {
+            this.motionBlurPass.enabled = enabled;
+            console.log(`💨 Motion Blur ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    enableDOF(enabled = true) {
+        this.effects.dof = enabled;
+        if (this.dofPass) {
+            this.dofPass.enabled = enabled;
+            console.log(`🎯 Depth of Field ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    enableFilmGrain(enabled = true) {
+        this.effects.filmGrain = enabled;
+        if (this.filmPass) {
+            this.filmPass.enabled = enabled;
+            console.log(`📺 Film Grain ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    enableVignette(enabled = true) {
+        this.effects.vignette = enabled;
+        if (this.vignettePass) {
+            this.vignettePass.enabled = enabled;
+            console.log(`⚫ Vignette ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    enableChromaticAberration(enabled = true) {
+        this.effects.chromaticAberration = enabled;
+        if (this.chromaticPass) {
+            this.chromaticPass.enabled = enabled;
+            console.log(`🌈 Chromatic Aberration ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    enableColorGrading(enabled = true) {
+        this.effects.colorGrading = enabled;
+        if (this.colorGradingPass) {
+            this.colorGradingPass.enabled = enabled;
+            console.log(`🎨 Color Grading ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    enableParticleEffects(enabled = true) {
+        this.effects.particleEffects = enabled;
+        console.log(`✨ Particle Effects ${enabled ? 'enabled' : 'disabled'}`);
+    }
+
+    enableDynamicLighting(enabled = true) {
+        this.effects.dynamicLighting = enabled;
+        console.log(`💡 Dynamic Lighting ${enabled ? 'enabled' : 'disabled'}`);
+    }
+
+    // Update effect settings methods
     updateSSRSettings(settings = {}) {
         if (!this.ssrPass) return;
         
@@ -239,6 +601,125 @@ export class GraphicsEnhancer {
         this.ssrPass.uniforms['maxRoughness'].value = maxRoughness;
         
         console.log('🌊 SSR settings updated:', settings);
+    }
+
+    updateBloomSettings(settings = {}) {
+        if (!this.bloomPass) return;
+        
+        const { intensity = 30, threshold = 85, radius = 40 } = settings;
+        
+        this.bloomPass.strength = intensity / 100;
+        this.bloomPass.threshold = threshold / 100;
+        this.bloomPass.radius = radius / 100;
+        
+        console.log('🌸 Bloom settings updated:', settings);
+    }
+
+    updateSSAOSettings(settings = {}) {
+        if (!this.ssaoPass) return;
+        
+        const { intensity = 50, radius = 20 } = settings;
+        
+        this.ssaoPass.kernelRadius = (radius / 100) * 32;
+        this.ssaoPass.output = intensity > 0 ? 0 : 1; // 0 = Default, 1 = SSAO Only
+        
+        console.log('🌫️ SSAO settings updated:', settings);
+    }
+
+    updateGodRaysSettings(settings = {}) {
+        if (!this.godRaysPass) return;
+        
+        const { intensity = 40, exposure = 25 } = settings;
+        
+        this.godRaysPass.uniforms['weight'].value = intensity / 100;
+        this.godRaysPass.uniforms['exposure'].value = exposure / 100;
+        
+        console.log('☀️ God Rays settings updated:', settings);
+    }
+
+    updateMotionBlurSettings(settings = {}) {
+        if (!this.motionBlurPass) return;
+        
+        const { strength = 30 } = settings;
+        
+        this.motionBlurPass.uniforms['velocityFactor'].value = strength / 100;
+        
+        console.log('💨 Motion Blur settings updated:', settings);
+    }
+
+    updateDOFSettings(settings = {}) {
+        if (!this.dofPass) return;
+        
+        const { focus = 50, blur = 20 } = settings;
+        
+        this.dofPass.uniforms['focus'].value = focus;
+        this.dofPass.uniforms['maxblur'].value = blur / 1000;
+        
+        console.log('🎯 DOF settings updated:', settings);
+    }
+
+    updateFilmGrainSettings(settings = {}) {
+        if (!this.filmPass) return;
+        
+        const { intensity = 15 } = settings;
+        
+        this.filmPass.uniforms['nIntensity'].value = intensity / 100;
+        
+        console.log('📺 Film Grain settings updated:', settings);
+    }
+
+    updateVignetteSettings(settings = {}) {
+        if (!this.vignettePass) return;
+        
+        const { intensity = 25 } = settings;
+        
+        this.vignettePass.uniforms['intensity'].value = intensity / 100;
+        
+        console.log('⚫ Vignette settings updated:', settings);
+    }
+
+    updateChromaticSettings(settings = {}) {
+        if (!this.chromaticPass) return;
+        
+        const { intensity = 10 } = settings;
+        
+        this.chromaticPass.uniforms['amount'].value = intensity / 1000;
+        
+        console.log('🌈 Chromatic Aberration settings updated:', settings);
+    }
+
+    updateColorGradingSettings(settings = {}) {
+        if (!this.colorGradingPass) return;
+        
+        const { preset = 'cinematic' } = settings;
+        
+        const presetMap = {
+            'cinematic': 0,
+            'vibrant': 1,
+            'warm': 2,
+            'cool': 3,
+            'noir': 4
+        };
+        
+        this.colorGradingPass.uniforms['preset'].value = presetMap[preset] || 0;
+        
+        console.log('🎨 Color Grading settings updated:', settings);
+    }
+
+    updateParticleSettings(settings = {}) {
+        const { quality = 'medium' } = settings;
+        
+        // Update particle system quality
+        const qualityMap = {
+            'low': 0.5,
+            'medium': 1.0,
+            'high': 1.5,
+            'ultra': 2.0
+        };
+        
+        this.particleQuality = qualityMap[quality] || 1.0;
+        
+        console.log('✨ Particle settings updated:', settings);
     }
 
     // Render G-buffer for SSR
@@ -278,15 +759,22 @@ export class GraphicsEnhancer {
 
     // Main render method
     render() {
-        if (this.composer && this.ssrEnabled) {
-            // Render G-buffer first
-            this.renderGBuffer();
-            // Then render with post-processing
+        if (this.composer && this.hasAnyEffectEnabled()) {
+            // Render G-buffer for SSR if needed
+            if (this.effects.ssr) {
+                this.renderGBuffer();
+            }
+            // Render with post-processing pipeline
             this.composer.render();
         } else {
             // Fallback to regular rendering
             this.renderer.render(this.scene, this.camera);
         }
+    }
+
+    // Check if any post-processing effects are enabled
+    hasAnyEffectEnabled() {
+        return Object.values(this.effects).some(enabled => enabled === true);
     }
 
     // Handle window resize
