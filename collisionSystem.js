@@ -1092,6 +1092,23 @@ export class CollisionSystem {
             )
         );
     }
+
+    getFruitBoundingBox(position) {
+        const radius = 0.5; // Fruit is slightly larger than collectibles
+        
+        return new THREE.Box3(
+            new THREE.Vector3(
+                position.x - radius,
+                position.y - radius,
+                position.z - radius
+            ),
+            new THREE.Vector3(
+                position.x + radius,
+                position.y + radius,
+                position.z + radius
+            )
+        );
+    }
     
     checkBoxCollision(box1, box2) {
         return box1.intersectsBox(box2);

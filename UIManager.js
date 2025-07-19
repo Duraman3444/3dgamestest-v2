@@ -155,7 +155,7 @@ export class UIManager {
         collectiblesElement.id = 'collectibles-counter';
         collectiblesElement.style.cssText = `
             position: absolute;
-            top: 50px;
+            top: 80px;
             left: 10px;
             color: #FFD700;
             font-family: "Segoe UI", Arial, sans-serif;
@@ -178,7 +178,7 @@ export class UIManager {
         keysElement.id = 'keys-counter';
         keysElement.style.cssText = `
             position: absolute;
-            top: 110px;
+            top: 140px;
             left: 10px;
             color: #00FFFF;
             font-family: Arial, sans-serif;
@@ -196,7 +196,7 @@ export class UIManager {
         livesElement.id = 'lives-counter';
         livesElement.style.cssText = `
             position: absolute;
-            top: 90px;
+            top: 110px;
             left: 10px;
             color: #FF0000;
             font-family: Arial, sans-serif;
@@ -239,7 +239,7 @@ export class UIManager {
         cameraModeElement.id = 'camera-mode';
         cameraModeElement.style.cssText = `
             position: absolute;
-            top: 130px;
+            top: 160px;
             left: 10px;
             color: #87CEEB;
             font-family: Arial, sans-serif;
