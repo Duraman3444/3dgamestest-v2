@@ -63,8 +63,8 @@ export class GameLoop {
     }
     
     update(deltaTime) {
-        // Update pacman timer if in pacman mode
-        if (window.game && window.game.gameMode === 'pacman') {
+        // Update pacman timer if in pacman mode and not paused
+        if (window.game && window.game.gameMode === 'pacman' && !window.game.isPaused) {
             window.game.updatePacmanTimer(deltaTime);
         }
         
