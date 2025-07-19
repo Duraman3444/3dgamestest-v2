@@ -1141,16 +1141,35 @@ export class LocalMultiplayerBattle {
         for (let i = 0; i < this.activePlayerCount; i++) {
             const config = this.playerConfigs[i];
             
-            // Create visible rotation pattern for each player
-            const canvas = document.createElement('canvas');
-            canvas.width = 256;
-            canvas.height = 256;
-            const context = canvas.getContext('2d');
+            // Load ball customization settings for the first player (main player)
+            let customization = null;
+            if (i === 0) { // Apply customization only to player 1
+                try {
+                    const saved = localStorage.getItem('ballCustomization');
+                    if (saved) {
+                        customization = JSON.parse(saved);
+                        console.log('🎨 Applying ball customization to multiplayer player 1:', customization);
+                    }
+                } catch (error) {
+                    console.error('Failed to load ball customization:', error);
+                }
+            }
             
-            // Base color
-            const color = new THREE.Color(config.color);
-            context.fillStyle = `rgb(${color.r * 255}, ${color.g * 255}, ${color.b * 255})`;
-            context.fillRect(0, 0, 256, 256);
+            let ballMaterial;
+            if (customization && i === 0) {
+                // Use customized material for player 1
+                ballMaterial = this.createCustomizedMultiplayerMaterial(customization, config);
+            } else {
+                // Create visible rotation pattern for other players
+                const canvas = document.createElement('canvas');
+                canvas.width = 256;
+                canvas.height = 256;
+                const context = canvas.getContext('2d');
+                
+                // Base color
+                const color = new THREE.Color(config.color);
+                context.fillStyle = `rgb(${color.r * 255}, ${color.g * 255}, ${color.b * 255})`;
+                context.fillRect(0, 0, 256, 256);
             
             // Add unique rotation pattern for each player
             context.strokeStyle = 'rgba(255, 255, 255, 0.8)';
@@ -1213,25 +1232,28 @@ export class LocalMultiplayerBattle {
                 }
             }
             
-            const texture = new THREE.CanvasTexture(canvas);
-            texture.wrapS = THREE.RepeatWrapping;
-            texture.wrapT = THREE.RepeatWrapping;
-            texture.generateMipmaps = false;
-            texture.minFilter = THREE.LinearFilter;
-            texture.magFilter = THREE.LinearFilter;
+                const texture = new THREE.CanvasTexture(canvas);
+                texture.wrapS = THREE.RepeatWrapping;
+                texture.wrapT = THREE.RepeatWrapping;
+                texture.generateMipmaps = false;
+                texture.minFilter = THREE.LinearFilter;
+                texture.magFilter = THREE.LinearFilter;
+                
+                // Create default material for other players
+                ballMaterial = new THREE.MeshPhongMaterial({ 
+                    map: texture,
+                    color: config.color,
+                    transparent: true,
+                    opacity: 0.95,
+                    shininess: 80,
+                    specular: 0xFFFFFF,
+                    emissive: config.color,
+                    emissiveIntensity: 0.2
+                });
+            }
             
-            // Create high-quality player ball
+            // Create high-quality player ball with customized or default material
             const ballGeometry = new THREE.SphereGeometry(this.ballRadius, 32, 32);
-            const ballMaterial = new THREE.MeshPhongMaterial({ 
-                map: texture,
-                color: config.color,
-                transparent: true,
-                opacity: 0.95,
-                shininess: 80,
-                specular: 0xFFFFFF,
-                emissive: config.color,
-                emissiveIntensity: 0.2
-            });
             const ball = new THREE.Mesh(ballGeometry, ballMaterial);
             ball.position.copy(config.spawnPosition);
             ball.name = `player_${i}_ball`;
@@ -1292,6 +1314,309 @@ export class LocalMultiplayerBattle {
         }
         
         console.log(`👥 Created ${this.activePlayerCount} players with visible rotation patterns and rigidbody physics`);
+    }
+    
+    createCustomizedMultiplayerMaterial(customization, config) {
+        // Color mapping
+        const colorMap = {
+            'red': '#FF0000',
+            'blue': '#0066FF', 
+            'green': '#00FF00',
+            'yellow': '#FFFF00',
+            'purple': '#8000FF',
+            'orange': '#FF8000',
+            'cyan': '#00FFFF',
+            'magenta': '#FF00FF',
+            'white': '#FFFFFF',
+            'black': '#333333'
+        };
+        
+        const baseColor = new THREE.Color(colorMap[customization.color] || config.color);
+        
+        // Create texture based on design
+        const texture = this.createCustomMultiplayerTexture(customization, baseColor, config);
+        
+        // Create material based on material type
+        let material;
+        switch (customization.material) {
+            case 'rubber':
+                material = new THREE.MeshLambertMaterial({
+                    map: texture,
+                    color: baseColor
+                });
+                break;
+                
+            case 'plastic':
+                material = new THREE.MeshPhongMaterial({
+                    map: texture,
+                    color: baseColor,
+                    transparent: true,
+                    opacity: 0.95,
+                    shininess: 80,
+                    specular: 0xFFFFFF,
+                    emissive: baseColor,
+                    emissiveIntensity: 0.15
+                });
+                break;
+                
+            case 'metal':
+                material = new THREE.MeshStandardMaterial({
+                    map: texture,
+                    color: baseColor,
+                    metalness: 0.9,
+                    roughness: 0.1,
+                    envMapIntensity: 1.0,
+                    emissive: baseColor,
+                    emissiveIntensity: 0.1
+                });
+                break;
+                
+            case 'gem':
+                material = new THREE.MeshStandardMaterial({
+                    map: texture,
+                    color: baseColor,
+                    metalness: 0.0,
+                    roughness: 0.0,
+                    transparent: true,
+                    opacity: 0.85,
+                    envMapIntensity: 1.5,
+                    emissive: baseColor.clone().multiplyScalar(0.3),
+                    emissiveIntensity: 0.4
+                });
+                break;
+                
+            case 'glow':
+                material = new THREE.MeshStandardMaterial({
+                    map: texture,
+                    color: baseColor,
+                    emissive: baseColor.clone().multiplyScalar(0.7),
+                    emissiveIntensity: 0.8,
+                    metalness: 0.0,
+                    roughness: 0.3,
+                    transparent: true,
+                    opacity: 0.9
+                });
+                break;
+                
+            case 'stone':
+                material = new THREE.MeshStandardMaterial({
+                    map: texture,
+                    color: baseColor,
+                    metalness: 0.0,
+                    roughness: 0.8,
+                    envMapIntensity: 0.3
+                });
+                break;
+                
+            default:
+                material = new THREE.MeshPhongMaterial({
+                    map: texture,
+                    color: baseColor,
+                    transparent: true,
+                    opacity: 0.95,
+                    shininess: 80,
+                    specular: 0xFFFFFF,
+                    emissive: baseColor,
+                    emissiveIntensity: 0.2
+                });
+        }
+        
+        console.log(`🎨 Created customized multiplayer ${customization.material} material with ${customization.color} color and ${customization.design} design`);
+        return material;
+    }
+    
+    createCustomMultiplayerTexture(customization, baseColor, config) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+        
+        const baseColorStr = `rgb(${Math.floor(baseColor.r * 255)}, ${Math.floor(baseColor.g * 255)}, ${Math.floor(baseColor.b * 255)})`;
+        
+        // Fill base color
+        ctx.fillStyle = baseColorStr;
+        ctx.fillRect(0, 0, 256, 256);
+        
+        // Apply design pattern
+        switch (customization.design) {
+            case 'solid':
+                // Grid pattern for visibility
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.lineWidth = 3;
+                for (let i = 0; i < 256; i += 32) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, i);
+                    ctx.lineTo(256, i);
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(i, 0);
+                    ctx.lineTo(i, 256);
+                    ctx.stroke();
+                }
+                break;
+                
+            case 'stripes':
+                ctx.fillStyle = '#ffffff';
+                for (let i = 0; i < 256; i += 32) {
+                    ctx.fillRect(i, 0, 16, 256);
+                }
+                break;
+                
+            case 'dots':
+                ctx.fillStyle = '#ffffff';
+                for (let x = 32; x < 256; x += 64) {
+                    for (let y = 32; y < 256; y += 64) {
+                        ctx.beginPath();
+                        ctx.arc(x, y, 16, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+                break;
+                
+            case 'grid':
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 4;
+                for (let i = 0; i < 256; i += 32) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, 0);
+                    ctx.lineTo(i, 256);
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(0, i);
+                    ctx.lineTo(256, i);
+                    ctx.stroke();
+                }
+                break;
+                
+            case 'beach':
+                const colors = ['#FF0000', '#FFFF00', '#00FF00', '#0066FF', '#FF00FF'];
+                const sectionAngle = (Math.PI * 2) / colors.length;
+                colors.forEach((color, index) => {
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.moveTo(128, 128);
+                    ctx.arc(128, 128, 128, index * sectionAngle, (index + 1) * sectionAngle);
+                    ctx.closePath();
+                    ctx.fill();
+                });
+                break;
+                
+            case 'soccer':
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, 256, 256);
+                ctx.fillStyle = '#000000';
+                ctx.beginPath();
+                ctx.arc(128, 128, 30, 0, Math.PI * 2);
+                ctx.fill();
+                for (let i = 0; i < 5; i++) {
+                    const angle = (i * Math.PI * 2) / 5;
+                    const x = 128 + Math.cos(angle) * 60;
+                    const y = 128 + Math.sin(angle) * 60;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 15, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                break;
+                
+            case 'basketball':
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(128, 0, 128, 0, Math.PI);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(128, 256, 128, Math.PI, 0);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, 128);
+                ctx.lineTo(256, 128);
+                ctx.stroke();
+                break;
+                
+            case 'tennis':
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(64, 128, 80, 0, Math.PI * 2, false);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(192, 128, 80, 0, Math.PI * 2, false);
+                ctx.stroke();
+                break;
+                
+            case 'marble':
+                const gradient = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+                gradient.addColorStop(0, baseColorStr);
+                gradient.addColorStop(0.5, '#ffffff');
+                gradient.addColorStop(1, baseColorStr);
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, 256, 256);
+                break;
+                
+            case 'galaxy':
+                ctx.fillStyle = '#000022';
+                ctx.fillRect(0, 0, 256, 256);
+                ctx.fillStyle = '#ffffff';
+                for (let i = 0; i < 30; i++) {
+                    const x = Math.random() * 256;
+                    const y = Math.random() * 256;
+                    ctx.beginPath();
+                    ctx.arc(x, y, Math.random() * 2 + 1, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                // Add spiral with base color
+                ctx.strokeStyle = baseColorStr + '88';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 3; i++) {
+                    ctx.beginPath();
+                    let angle = (i * Math.PI * 2) / 3;
+                    ctx.moveTo(128, 128);
+                    for (let r = 0; r < 100; r += 3) {
+                        const x = 128 + Math.cos(angle) * r;
+                        const y = 128 + Math.sin(angle) * r;
+                        ctx.lineTo(x, y);
+                        angle += 0.1;
+                    }
+                    ctx.stroke();
+                }
+                break;
+        }
+        
+        // Add rotation visibility pattern - use player 1's grid pattern style
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = 4;
+        for (let i = 0; i < 256; i += 32) {
+            ctx.beginPath();
+            ctx.moveTo(0, i);
+            ctx.lineTo(256, i);
+            ctx.stroke();
+            
+            ctx.beginPath();
+            ctx.moveTo(i, 0);
+            ctx.lineTo(i, 256);
+            ctx.stroke();
+        }
+        
+        // Add contrasting dots
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        for (let x = 16; x < 256; x += 32) {
+            for (let y = 16; y < 256; y += 32) {
+                ctx.beginPath();
+                ctx.arc(x, y, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.generateMipmaps = false;
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        
+        return texture;
     }
     
     // Create enhanced name label for player
