@@ -1154,10 +1154,18 @@ class Game {
 
     updateFilmGrainSettings() {
         if (this.graphicsEnhancer && this.graphicsEnhancer.updateFilmGrainSettings && this.settingsManager) {
-            const settings = this.settingsManager.getSettings();
-            this.graphicsEnhancer.updateFilmGrainSettings({
-                intensity: settings.graphics.filmGrainIntensity
-            });
+            try {
+                const settings = this.settingsManager.getSettings();
+                this.graphicsEnhancer.updateFilmGrainSettings({
+                    intensity: settings.graphics.filmGrainIntensity
+                });
+            } catch (error) {
+                console.warn('Failed to update film grain settings:', error);
+                // Disable film grain if it's causing issues
+                if (this.settingsManager) {
+                    this.settingsManager.setSetting('graphics', 'enableFilmGrain', false);
+                }
+            }
         }
     }
 
@@ -2103,9 +2111,14 @@ class Game {
             this.startAutoSave();
         }
         
-        // Apply initial settings
+        // Apply initial settings with error handling
         if (this.settingsManager) {
-            this.settingsManager.applySettings();
+            try {
+                this.settingsManager.applySettings();
+            } catch (error) {
+                console.warn('Failed to apply some settings during setup, but continuing with defaults:', error);
+                // Don't fail the entire setup for settings issues
+            }
         }
         
         // Reset exit activation flag for new game/level

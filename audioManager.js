@@ -11,6 +11,7 @@ export class AudioManager {
         this.soundProfiles = {};
         this.waitingForUserInteraction = false;
         this.userInteractionHandlerSet = false;
+        this.initializationAttempted = false;
         
         // Initialize audio context
         this.initializeAudio();
@@ -97,13 +98,14 @@ export class AudioManager {
         const handleUserInteraction = async (event) => {
             console.log('🎵 User interaction detected, attempting to initialize audio...');
             
-            // Immediately set flag to false to prevent multiple attempts
-            this.waitingForUserInteraction = false;
-            
             // Remove the event listeners immediately to prevent multiple calls
             document.removeEventListener('click', handleUserInteraction);
             document.removeEventListener('keydown', handleUserInteraction);
             document.removeEventListener('touchstart', handleUserInteraction);
+            
+            // Immediately set flag to false to prevent multiple attempts
+            this.waitingForUserInteraction = false;
+            this.userInteractionHandlerSet = false; // Reset handler flag
             
             try {
                 if (this.audioContext && this.audioContext.state === 'suspended') {
@@ -112,21 +114,38 @@ export class AudioManager {
                 } else if (!this.audioContext) {
                     // Try to create audio context again
                     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    await this.audioContext.resume();
+                    if (this.audioContext.state === 'suspended') {
+                        await this.audioContext.resume();
+                    }
                     console.log('🎵 Audio context created and resumed');
                 }
                 
-                // Complete initialization
-                await this.completeInitialization();
+                // Wait a brief moment for the context to fully activate
+                await new Promise(resolve => setTimeout(resolve, 100));
                 
-                // Show success message
-                this.showAudioInitMessage('🎵 Audio System Ready!', 'success');
+                // Verify audio context is running
+                if (this.audioContext.state === 'running') {
+                    // Complete initialization
+                    await this.completeInitialization();
+                    
+                    // Show success message
+                    this.showAudioInitMessage('🎵 Audio System Ready!', 'success');
+                } else {
+                    throw new Error(`Audio context state is ${this.audioContext.state} instead of running`);
+                }
                 
             } catch (error) {
                 console.error('Failed to initialize audio after user interaction:', error);
-                this.showAudioInitMessage('🎵 Audio initialization failed', 'error');
+                this.showAudioInitMessage('🎵 Audio initialization failed - please try again', 'error');
                 this.waitingForUserInteraction = false; // Ensure flag is false even on error
                 this.isInitialized = false;
+                
+                // Try to set up the interaction handler again if it failed
+                setTimeout(() => {
+                    if (!this.isInitialized && this.audioContext) {
+                        this.setupUserInteractionHandler();
+                    }
+                }, 2000);
             }
         };
         
@@ -666,12 +685,15 @@ export class AudioManager {
     playSound(soundName, volume = 1.0) {
         if (!this.isInitialized || !this.audioContext) {
             if (this.waitingForUserInteraction) {
-                console.log(`🎵 Audio waiting for user interaction, skipping sound: ${soundName}`);
+                // Don't spam the console when waiting for user interaction
                 return;
             } else {
                 console.log(`🎵 Audio not ready, attempting to initialize for sound: ${soundName}`);
-                // Try to initialize audio
-                this.initializeAudio();
+                // Try to initialize audio, but only once
+                if (!this.initializationAttempted) {
+                    this.initializationAttempted = true;
+                    this.initializeAudio();
+                }
                 return;
             }
         }

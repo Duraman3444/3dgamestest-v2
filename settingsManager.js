@@ -87,6 +87,86 @@ export class SettingsManager {
         }
     }
     
+    // Mode-specific presets
+    applyPacmanPreset() {
+        // Retro/Arcade optimized settings
+        this.setSetting('graphics', 'enableSSR', false);
+        this.setSetting('graphics', 'enableBloom', true);
+        this.setSetting('graphics', 'bloomIntensity', 40);
+        this.setSetting('graphics', 'enableSSAO', false);
+        this.setSetting('graphics', 'enableGodRays', false);
+        this.setSetting('graphics', 'enableMotionBlur', true);
+        this.setSetting('graphics', 'motionBlurStrength', 25);
+        this.setSetting('graphics', 'enableDOF', false);
+        this.setSetting('graphics', 'enableFilmGrain', true);
+        this.setSetting('graphics', 'filmGrainIntensity', 25);
+        this.setSetting('graphics', 'enableVignette', true);
+        this.setSetting('graphics', 'vignetteIntensity', 30);
+        this.setSetting('graphics', 'enableChromaticAberration', true);
+        this.setSetting('graphics', 'chromaticIntensity', 15);
+        this.setSetting('graphics', 'enableColorGrading', true);
+        this.setSetting('graphics', 'colorGradingPreset', 'vibrant');
+        this.setSetting('graphics', 'enableVolumetricFog', false);
+        this.setSetting('graphics', 'enableParticleEffects', true);
+        this.setSetting('graphics', 'particleQuality', 'medium');
+        this.setSetting('graphics', 'enableDynamicLighting', false);
+        
+        console.log('🎯 Applied Pacman Mode preset - Retro arcade feel!');
+        alert('🎯 Pacman Mode preset applied! Optimized for retro arcade experience.');
+    }
+    
+    applyRegularPreset() {
+        // Modern/Cinematic optimized settings
+        this.setSetting('graphics', 'enableSSR', true);
+        this.setSetting('graphics', 'ssrIntensity', 50);
+        this.setSetting('graphics', 'enableBloom', true);
+        this.setSetting('graphics', 'bloomIntensity', 35);
+        this.setSetting('graphics', 'enableSSAO', true);
+        this.setSetting('graphics', 'ssaoIntensity', 50);
+        this.setSetting('graphics', 'enableGodRays', true);
+        this.setSetting('graphics', 'godRaysIntensity', 40);
+        this.setSetting('graphics', 'enableMotionBlur', true);
+        this.setSetting('graphics', 'motionBlurStrength', 30);
+        this.setSetting('graphics', 'enableDOF', true);
+        this.setSetting('graphics', 'dofFocus', 50);
+        this.setSetting('graphics', 'enableFilmGrain', true);
+        this.setSetting('graphics', 'filmGrainIntensity', 15);
+        this.setSetting('graphics', 'enableVignette', false);
+        this.setSetting('graphics', 'enableChromaticAberration', false);
+        this.setSetting('graphics', 'enableColorGrading', true);
+        this.setSetting('graphics', 'colorGradingPreset', 'cinematic');
+        this.setSetting('graphics', 'enableVolumetricFog', true);
+        this.setSetting('graphics', 'enableParticleEffects', true);
+        this.setSetting('graphics', 'particleQuality', 'high');
+        this.setSetting('graphics', 'enableDynamicLighting', true);
+        
+        console.log('🎮 Applied Regular Mode preset - Cinematic experience!');
+        alert('🎮 Regular Mode preset applied! Optimized for modern cinematic experience.');
+    }
+    
+    applyBattlePreset() {
+        // Performance/Competitive optimized settings
+        this.setSetting('graphics', 'enableSSR', false);
+        this.setSetting('graphics', 'enableBloom', true);
+        this.setSetting('graphics', 'bloomIntensity', 25);
+        this.setSetting('graphics', 'enableSSAO', false);
+        this.setSetting('graphics', 'enableGodRays', false);
+        this.setSetting('graphics', 'enableMotionBlur', false);
+        this.setSetting('graphics', 'enableDOF', false);
+        this.setSetting('graphics', 'enableFilmGrain', false);
+        this.setSetting('graphics', 'enableVignette', false);
+        this.setSetting('graphics', 'enableChromaticAberration', false);
+        this.setSetting('graphics', 'enableColorGrading', true);
+        this.setSetting('graphics', 'colorGradingPreset', 'vibrant');
+        this.setSetting('graphics', 'enableVolumetricFog', false);
+        this.setSetting('graphics', 'enableParticleEffects', true);
+        this.setSetting('graphics', 'particleQuality', 'medium');
+        this.setSetting('graphics', 'enableDynamicLighting', false);
+        
+        console.log('⚔️ Applied Battle Mode preset - Performance optimized!');
+        alert('⚔️ Battle Mode preset applied! Optimized for competitive performance and clarity.');
+    }
+    
     getSettings() {
         return { ...this.settings };
     }
@@ -225,7 +305,7 @@ export class SettingsManager {
             },
             { 
                 type: 'checkbox', 
-                label: 'Enable Screen Space Reflections', 
+                label: 'Enable Screen Space Reflections - 📍 Best for: Regular Mode | Skip for: Pacman, Battle', 
                 value: this.settings.graphics.enableSSR,
                 onChange: (value) => this.setSetting('graphics', 'enableSSR', value)
             },
@@ -254,14 +334,33 @@ export class SettingsManager {
                 onChange: (value) => this.setSetting('graphics', 'ssrThickness', value / 100)
             },
             
-            // Advanced Graphics Effects with Difficulty Indicators
+            // Advanced Graphics Effects with Difficulty Indicators and Mode Recommendations
             { 
                 type: 'header',
                 label: '🌟 ADVANCED GRAPHICS EFFECTS 🌟'
             },
             { 
+                type: 'text',
+                label: '📍 Mode Recommendations: Regular Mode (modern/cinematic), Pacman Mode (retro/arcade), Battle Mode (competitive/performance)'
+            },
+            { 
+                type: 'button',
+                label: '🎯 Auto-Apply Preset for Pacman Mode',
+                onClick: () => this.applyPacmanPreset()
+            },
+            { 
+                type: 'button',
+                label: '🎮 Auto-Apply Preset for Regular Mode',
+                onClick: () => this.applyRegularPreset()
+            },
+            { 
+                type: 'button',
+                label: '⚔️ Auto-Apply Preset for Battle Mode',
+                onClick: () => this.applyBattlePreset()
+            },
+            { 
                 type: 'checkbox', 
-                label: '🌸 Bloom Effect (Difficulty: ⭐⭐☆) - Beautiful glow around bright objects', 
+                label: '🌸 Bloom Effect (Difficulty: ⭐⭐☆) - Beautiful glow around bright objects | 📍 Excellent for: All Modes', 
                 value: this.settings.graphics.enableBloom,
                 onChange: (value) => this.setSetting('graphics', 'enableBloom', value)
             },
@@ -292,7 +391,7 @@ export class SettingsManager {
             
             { 
                 type: 'checkbox', 
-                label: '🌫️ Screen Space Ambient Occlusion (Difficulty: ⭐⭐⭐) - Realistic shadows', 
+                label: '🌫️ Screen Space Ambient Occlusion (Difficulty: ⭐⭐⭐) - Realistic shadows | 📍 Best for: Regular Mode | Optional: Battle', 
                 value: this.settings.graphics.enableSSAO,
                 onChange: (value) => this.setSetting('graphics', 'enableSSAO', value)
             },
@@ -315,7 +414,7 @@ export class SettingsManager {
             
             { 
                 type: 'checkbox', 
-                label: '☀️ God Rays/Volumetric Light (Difficulty: ⭐⭐⭐) - Dramatic light shafts', 
+                label: '☀️ God Rays/Volumetric Light (Difficulty: ⭐⭐⭐) - Dramatic light shafts | 📍 Best for: Regular Mode | Skip for: Pacman, Battle', 
                 value: this.settings.graphics.enableGodRays,
                 onChange: (value) => this.setSetting('graphics', 'enableGodRays', value)
             },
@@ -338,7 +437,7 @@ export class SettingsManager {
             
             { 
                 type: 'checkbox', 
-                label: '💨 Motion Blur (Difficulty: ⭐⭐☆) - Speed blur effects', 
+                label: '💨 Motion Blur (Difficulty: ⭐⭐☆) - Speed blur effects | 📍 Best for: Regular Mode | Fun for: Pacman | Skip for: Battle', 
                 value: this.settings.graphics.enableMotionBlur,
                 onChange: (value) => this.setSetting('graphics', 'enableMotionBlur', value)
             },
@@ -353,7 +452,7 @@ export class SettingsManager {
             
             { 
                 type: 'checkbox', 
-                label: '🎯 Depth of Field (Difficulty: ⭐⭐☆) - Camera focus effects', 
+                label: '🎯 Depth of Field (Difficulty: ⭐⭐☆) - Camera focus effects | 📍 Best for: Regular Mode | Skip for: Pacman, Battle', 
                 value: this.settings.graphics.enableDOF,
                 onChange: (value) => this.setSetting('graphics', 'enableDOF', value)
             },
@@ -376,7 +475,7 @@ export class SettingsManager {
             
             { 
                 type: 'checkbox', 
-                label: '📺 Film Grain (Difficulty: ⭐☆☆) - Vintage film texture', 
+                label: '📺 Film Grain (Difficulty: ⭐☆☆) - Vintage film texture | 📍 Perfect for: Pacman Mode | Good for: Regular | Skip for: Battle', 
                 value: this.settings.graphics.enableFilmGrain,
                 onChange: (value) => this.setSetting('graphics', 'enableFilmGrain', value)
             },
@@ -391,7 +490,7 @@ export class SettingsManager {
             
             { 
                 type: 'checkbox', 
-                label: '⚫ Vignette (Difficulty: ⭐☆☆) - Screen edge darkening', 
+                label: '⚫ Vignette (Difficulty: ⭐☆☆) - Screen edge darkening | 📍 Perfect for: Pacman Mode | Optional: Regular | Skip for: Battle', 
                 value: this.settings.graphics.enableVignette,
                 onChange: (value) => this.setSetting('graphics', 'enableVignette', value)
             },
@@ -406,7 +505,7 @@ export class SettingsManager {
             
             { 
                 type: 'checkbox', 
-                label: '🌈 Chromatic Aberration (Difficulty: ⭐☆☆) - Color fringing effect', 
+                label: '🌈 Chromatic Aberration (Difficulty: ⭐☆☆) - Color fringing effect | 📍 Perfect for: Pacman Mode | Subtle for: Regular | Skip for: Battle', 
                 value: this.settings.graphics.enableChromaticAberration,
                 onChange: (value) => this.setSetting('graphics', 'enableChromaticAberration', value)
             },
@@ -421,7 +520,7 @@ export class SettingsManager {
             
             { 
                 type: 'checkbox', 
-                label: '🎨 Color Grading/Tone Mapping (Difficulty: ⭐⭐☆) - Cinematic colors', 
+                label: '🎨 Color Grading/Tone Mapping (Difficulty: ⭐⭐☆) - Cinematic colors | 📍 Great for: All Modes (use Vibrant for Pacman, Cinematic for Regular)', 
                 value: this.settings.graphics.enableColorGrading,
                 onChange: (value) => this.setSetting('graphics', 'enableColorGrading', value)
             },
@@ -441,7 +540,7 @@ export class SettingsManager {
             
             { 
                 type: 'checkbox', 
-                label: '🌫️ Volumetric Fog (Difficulty: ⭐⭐⭐) - Realistic atmospheric fog', 
+                label: '🌫️ Volumetric Fog (Difficulty: ⭐⭐⭐) - Realistic atmospheric fog | 📍 Best for: Regular Mode | Skip for: Pacman, Battle', 
                 value: this.settings.graphics.enableVolumetricFog,
                 onChange: (value) => this.setSetting('graphics', 'enableVolumetricFog', value)
             },
@@ -475,7 +574,7 @@ export class SettingsManager {
             
             { 
                 type: 'checkbox', 
-                label: '✨ Enhanced Particle Effects (Difficulty: ⭐⭐☆) - Beautiful particles', 
+                label: '✨ Enhanced Particle Effects (Difficulty: ⭐⭐☆) - Beautiful particles | 📍 Great for: All Modes', 
                 value: this.settings.graphics.enableParticleEffects,
                 onChange: (value) => this.setSetting('graphics', 'enableParticleEffects', value)
             },
@@ -494,7 +593,7 @@ export class SettingsManager {
             
             { 
                 type: 'checkbox', 
-                label: '💡 Dynamic Lighting (Difficulty: ⭐⭐⭐) - Advanced light physics', 
+                label: '💡 Dynamic Lighting (Difficulty: ⭐⭐⭐) - Advanced light physics | 📍 Best for: Regular Mode | Optional: Battle | Skip for: Pacman', 
                 value: this.settings.graphics.enableDynamicLighting,
                 onChange: (value) => this.setSetting('graphics', 'enableDynamicLighting', value)
             }
@@ -767,6 +866,59 @@ export class SettingsManager {
                 `;
                 
                 container.appendChild(headerElement);
+                break;
+                
+            case 'button':
+                const buttonElement = document.createElement('button');
+                buttonElement.textContent = control.label;
+                buttonElement.style.cssText = `
+                    width: 100%;
+                    background: linear-gradient(135deg, #006600 0%, #00cc00 100%);
+                    border: 2px solid #00ff88;
+                    color: #ffffff;
+                    padding: 12px 20px;
+                    font-size: 14px;
+                    font-weight: bold;
+                    font-family: 'Courier New', monospace;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    text-shadow: 2px 2px 0px #000000;
+                    letter-spacing: 1px;
+                    transition: all 0.3s ease;
+                    margin: 5px 0;
+                `;
+                
+                buttonElement.addEventListener('mouseenter', () => {
+                    buttonElement.style.background = 'linear-gradient(135deg, #cc6600 0%, #ff9900 100%)';
+                    buttonElement.style.transform = 'scale(1.02)';
+                });
+                
+                buttonElement.addEventListener('mouseleave', () => {
+                    buttonElement.style.background = 'linear-gradient(135deg, #006600 0%, #00cc00 100%)';
+                    buttonElement.style.transform = 'scale(1)';
+                });
+                
+                buttonElement.addEventListener('click', control.onClick);
+                
+                container.appendChild(buttonElement);
+                break;
+                
+            case 'text':
+                const textElement = document.createElement('div');
+                textElement.textContent = control.label;
+                textElement.style.cssText = `
+                    color: #cccccc;
+                    font-size: 13px;
+                    margin: 10px 0;
+                    padding: 10px;
+                    background: rgba(0, 0, 0, 0.3);
+                    border-left: 4px solid #00ffff;
+                    border-radius: 4px;
+                    text-shadow: 1px 1px 0px #000000;
+                    line-height: 1.4;
+                `;
+                
+                container.appendChild(textElement);
                 break;
         }
         

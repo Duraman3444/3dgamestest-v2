@@ -652,9 +652,16 @@ export class GraphicsEnhancer {
         this.composer.addPass(this.dofPass);
         
         // 8. Film Grain Pass
-        this.filmPass = new FilmPass(0.35, 0.5, 2048, false);
-        this.filmPass.enabled = false;
-        this.composer.addPass(this.filmPass);
+        try {
+            this.filmPass = new FilmPass(0.35, 0.5, 2048, false);
+            this.filmPass.enabled = false;
+            this.composer.addPass(this.filmPass);
+            console.log('📺 FilmPass initialized successfully');
+        } catch (error) {
+            console.warn('📺 Failed to initialize FilmPass:', error);
+            this.filmPass = null;
+            this.effects.filmGrain = false;
+        }
         
         // 9. Vignette Pass
         this.vignettePass = new ShaderPass(VignetteShader);
@@ -1052,9 +1059,22 @@ export class GraphicsEnhancer {
         
         const { intensity = 15 } = settings;
         
-        this.filmPass.uniforms['nIntensity'].value = intensity / 100;
-        
-        console.log('📺 Film Grain settings updated:', settings);
+        // Check if the uniforms exist before trying to access them
+        if (this.filmPass.uniforms && this.filmPass.uniforms['nIntensity']) {
+            this.filmPass.uniforms['nIntensity'].value = intensity / 100;
+            console.log('📺 Film Grain settings updated:', settings);
+        } else if (this.filmPass.material && this.filmPass.material.uniforms && this.filmPass.material.uniforms['nIntensity']) {
+            // Try alternative uniform path for different FilmPass implementations
+            this.filmPass.material.uniforms['nIntensity'].value = intensity / 100;
+            console.log('📺 Film Grain settings updated via material:', settings);
+        } else {
+            console.warn('📺 Film Grain uniforms not found - pass may not be properly initialized');
+            // Disable film grain if uniforms are not available
+            this.effects.filmGrain = false;
+            if (this.filmPass) {
+                this.filmPass.enabled = false;
+            }
+        }
     }
 
     updateVignetteSettings(settings = {}) {
