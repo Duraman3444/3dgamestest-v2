@@ -1074,6 +1074,14 @@ class Game {
         return null;
     }
 
+    // Test SSR system
+    testSSR() {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.testSSR) {
+            return this.graphicsEnhancer.testSSR();
+        }
+        return null;
+    }
+
     // Cycle through graphics effects for testing
     startGraphicsTest() {
         if (this.graphicsEnhancer && this.graphicsEnhancer.cycleEffectsTest) {

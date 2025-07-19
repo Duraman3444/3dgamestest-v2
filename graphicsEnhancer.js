@@ -11,7 +11,7 @@ import { BokehPass } from 'https://unpkg.com/three@0.158.0/examples/jsm/postproc
 import { FilmPass } from 'https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/FilmPass.js';
 import { GlitchPass } from 'https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/GlitchPass.js';
 
-// Simplified and Working SSR Shader
+// Improved SSR Shader with proper surface detection
 const SSRShader = {
     uniforms: {
         'tDiffuse': { value: null },
@@ -36,20 +36,73 @@ const SSRShader = {
         void main() {
             vec4 color = texture2D(tDiffuse, vUv);
             
-            // Simple pseudo-reflection effect
+            // Enhanced surface detection to exclude sky and inappropriate surfaces
+            float brightness = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+            float saturation = max(color.r, max(color.g, color.b)) - min(color.r, min(color.g, color.b));
+            
+            // Exclude very bright surfaces (sky) and very saturated surfaces
+            float skyMask = 1.0 - smoothstep(0.7, 0.95, brightness);
+            float colorMask = 1.0 - smoothstep(0.8, 1.0, saturation);
+            
+            // Only apply reflections to darker, less saturated surfaces (like floors, metals)
+            float surfaceMask = skyMask * colorMask;
+            
+            // Additional check for appropriate reflection surfaces
+            // Look for surfaces that are more likely to be reflective (darker, more uniform)
+            vec3 colorVariation = abs(color.rgb - vec3(brightness));
+            float uniformity = 1.0 - (colorVariation.r + colorVariation.g + colorVariation.b) / 3.0;
+            float reflectiveSurface = smoothstep(0.4, 0.8, uniformity) * smoothstep(0.1, 0.6, brightness);
+            
+            // Combine masks
+            surfaceMask *= reflectiveSurface;
+            
+            // Only apply reflections if surface mask is strong enough
+            if (surfaceMask < 0.1) {
+                gl_FragColor = color;
+                return;
+            }
+            
+            // Improved reflection calculation
             vec2 center = vec2(0.5, 0.5);
-            vec2 reflectUV = center + (center - vUv) * 0.1;
+            vec2 offsetFromCenter = vUv - center;
             
-            // Sample reflection from mirrored position
-            vec4 reflectionColor = texture2D(tDiffuse, reflectUV);
+            // Create more realistic reflection based on viewing angle
+            float viewingAngle = length(offsetFromCenter);
+            vec2 reflectDirection = normalize(offsetFromCenter);
             
-            // Calculate reflection strength based on surface properties
-            float surfaceReflection = smoothstep(0.3, 1.0, color.r + color.g + color.b);
-            float edgeFade = 1.0 - smoothstep(0.6, 1.0, distance(vUv, center));
+            // Multi-sample reflection for better quality
+            vec4 reflectionColor = vec4(0.0);
+            float samples = 3.0;
             
-            // Mix original color with reflection
-            float reflectionStrength = intensity * surfaceReflection * edgeFade * 0.3;
-            gl_FragColor = mix(color, reflectionColor, reflectionStrength);
+            for(float i = 0.0; i < 3.0; i++) {
+                float offset = (i - 1.0) * 0.02;
+                vec2 sampleUV = center - offsetFromCenter * (0.3 + offset);
+                
+                // Clamp UV to avoid sampling outside screen
+                sampleUV = clamp(sampleUV, vec2(0.02), vec2(0.98));
+                
+                vec4 sampleColor = texture2D(tDiffuse, sampleUV);
+                
+                // Don't reflect the sky back onto surfaces
+                float sampleBrightness = dot(sampleColor.rgb, vec3(0.299, 0.587, 0.114));
+                float sampleMask = 1.0 - smoothstep(0.7, 0.9, sampleBrightness);
+                
+                reflectionColor += sampleColor * sampleMask;
+            }
+            
+            reflectionColor /= samples;
+            
+            // Fade reflection based on distance from center and viewing angle
+            float edgeFade = 1.0 - smoothstep(0.4, 0.8, viewingAngle);
+            float angleFade = 1.0 - smoothstep(0.2, 0.6, viewingAngle);
+            
+            // Final reflection strength
+            float reflectionStrength = intensity * surfaceMask * edgeFade * angleFade * 0.4;
+            
+            // Mix with subtle tint to make reflections more realistic
+            vec3 finalReflection = mix(reflectionColor.rgb, color.rgb * 0.1, 0.3);
+            
+            gl_FragColor = vec4(mix(color.rgb, finalReflection, reflectionStrength), color.a);
         }`
 };
 
@@ -522,11 +575,31 @@ export class GraphicsEnhancer {
     updateSSRSettings(settings = {}) {
         if (!this.ssrPass) return;
         
-        const { intensity = 0.5 } = settings;
+        const { 
+            intensity = 0.5, 
+            maxDistance = 50, 
+            thickness = 20 
+        } = settings;
         
+        // Update shader uniforms
         this.ssrPass.uniforms['intensity'].value = intensity;
         
-        console.log('🌊 SSR settings updated:', { intensity });
+        // Scale intensity based on other parameters for better control
+        // maxDistance affects how far reflections extend (used as multiplier)
+        // thickness affects the strength of reflections (used as secondary multiplier)
+        const distanceMultiplier = Math.max(0.2, Math.min(2.0, maxDistance / 50));
+        const thicknessMultiplier = Math.max(0.5, Math.min(1.5, thickness / 20));
+        
+        // Apply combined intensity
+        const finalIntensity = intensity * distanceMultiplier * thicknessMultiplier;
+        this.ssrPass.uniforms['intensity'].value = Math.min(1.0, finalIntensity);
+        
+        console.log('🌊 SSR settings updated:', { 
+            baseIntensity: intensity,
+            maxDistance,
+            thickness,
+            finalIntensity: this.ssrPass.uniforms['intensity'].value
+        });
     }
 
     updateBloomSettings(settings = {}) {
@@ -1510,6 +1583,43 @@ export class GraphicsEnhancer {
         console.log(`🔧 Quality Settings: ${particleTest.qualityLevel} (${this.particleQuality}x multiplier)`);
         
         return particleTest;
+    }
+
+    // Test SSR specifically
+    testSSR() {
+        console.log('🌊 Testing Screen Space Reflections...');
+        
+        const ssrTest = {
+            enabled: this.effects.ssr,
+            passExists: !!this.ssrPass,
+            intensity: this.ssrPass ? this.ssrPass.uniforms['intensity'].value : 'N/A',
+            shaderUniforms: this.ssrPass ? {
+                tDiffuse: !!this.ssrPass.uniforms['tDiffuse'].value,
+                intensity: this.ssrPass.uniforms['intensity'].value,
+                resolution: this.ssrPass.uniforms['resolution'].value
+            } : 'N/A',
+            implementationType: 'Improved Surface-Aware SSR',
+            features: [
+                'Sky exclusion masking',
+                'Surface brightness detection',
+                'Multi-sample reflection',
+                'Realistic viewing angle fade',
+                'Appropriate surface detection'
+            ]
+        };
+        
+        console.log('🪞 SSR Test Results:', ssrTest);
+        
+        if (ssrTest.enabled && ssrTest.passExists) {
+            console.log('✅ SSR is active with improved surface detection');
+            console.log('🎯 SSR should only reflect on appropriate surfaces (floors, metals, not sky)');
+        } else if (!ssrTest.enabled) {
+            console.log('❌ SSR is disabled - enable in settings to see reflections');
+        } else {
+            console.log('⚠️ SSR pass not initialized properly');
+        }
+        
+        return ssrTest;
     }
 
     // Get quality level name from multiplier
