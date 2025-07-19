@@ -834,8 +834,34 @@ export class SinglePlayerMenu {
     updateDifficultyDisplay() {
         const difficultyDisplay = document.getElementById('difficultyDisplay');
         if (difficultyDisplay) {
-            difficultyDisplay.textContent = this.selectedDifficulty.toUpperCase();
+            const difficultyInfo = this.getDifficultyInfo(this.selectedDifficulty);
+            difficultyDisplay.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap; justify-content: center;">
+                    <span style="font-size: 18px; font-weight: bold;">${this.selectedDifficulty.toUpperCase()}</span>
+                    <span style="color: #ffff00; font-size: 14px; background: rgba(255, 255, 0, 0.1); padding: 2px 6px; border-radius: 3px;">⚡ ${difficultyInfo.performance}</span>
+                    <span style="color: #00ff00; font-size: 12px; background: rgba(0, 255, 0, 0.1); padding: 2px 6px; border-radius: 3px;">${difficultyInfo.bestFor}</span>
+                </div>
+            `;
         }
+    }
+
+    getDifficultyInfo(difficulty) {
+        const difficultyData = {
+            'easy': {
+                performance: '85% Performance',
+                bestFor: '🎮 Casual • Story Mode • New Players'
+            },
+            'normal': {
+                performance: '100% Performance', 
+                bestFor: '⚖️ Balanced • All Modes • Most Players'
+            },
+            'hard': {
+                performance: '115% Performance',
+                bestFor: '🔥 Challenge • Speedruns • Expert Players'
+            }
+        };
+        
+        return difficultyData[difficulty] || difficultyData['normal'];
     }
     
     startGame() {

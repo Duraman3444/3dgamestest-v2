@@ -370,12 +370,16 @@ export class LeaderboardUI {
             button.addEventListener('mouseenter', () => {
                 if (this.currentCategory !== category) {
                     button.style.background = 'rgba(0, 255, 255, 0.2)';
+                    button.style.transform = 'translateY(-2px)';
+                    button.style.boxShadow = '0 4px 8px rgba(0, 255, 255, 0.3)';
                 }
             });
             
             button.addEventListener('mouseleave', () => {
                 if (this.currentCategory !== category) {
                     button.style.background = 'transparent';
+                    button.style.transform = 'translateY(0)';
+                    button.style.boxShadow = 'none';
                 }
             });
             
@@ -491,6 +495,8 @@ export class LeaderboardUI {
                     if (this.getCurrentNavigationArea() !== 'actions' || 
                         this.currentOptionIndex !== this.categoryButtons.length + this.actionButtons.indexOf(button)) {
                         button.style.background = 'rgba(0, 255, 255, 0.2)';
+                        button.style.transform = 'translateY(-2px)';
+                        button.style.boxShadow = '6px 6px 0px #000000, 0 4px 8px rgba(0, 255, 255, 0.3)';
                     }
                 });
                 
@@ -498,10 +504,22 @@ export class LeaderboardUI {
                     if (this.getCurrentNavigationArea() !== 'actions' || 
                         this.currentOptionIndex !== this.categoryButtons.length + this.actionButtons.indexOf(button)) {
                         button.style.background = 'linear-gradient(135deg, #003366 0%, #0066cc 100%)';
+                        button.style.transform = 'translateY(0)';
+                        button.style.boxShadow = '4px 4px 0px #000000';
                     }
                 });
                 
-                button.addEventListener('click', actionInfo.action);
+                button.addEventListener('click', () => {
+                    // Visual feedback for click
+                    button.style.transform = 'translateY(2px)';
+                    button.style.boxShadow = '2px 2px 0px #000000';
+                    setTimeout(() => {
+                        button.style.transform = 'translateY(0)';
+                        button.style.boxShadow = '4px 4px 0px #000000';
+                    }, 100);
+                    
+                    actionInfo.action();
+                });
                 
                 actionContainer.appendChild(button);
                 this.actionButtons.push(button); // Store reference for cursor navigation
@@ -699,14 +717,30 @@ export class LeaderboardUI {
                 background: ${index % 2 === 0 ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.1)'};
                 border-bottom: 1px solid rgba(255, 255, 255, 0.1);
                 transition: background 0.3s ease;
+                cursor: pointer;
             `;
             
             row.addEventListener('mouseenter', () => {
                 row.style.background = 'rgba(0, 255, 255, 0.1)';
+                row.style.transform = 'scale(1.01)';
+                row.style.boxShadow = '0 4px 8px rgba(0, 255, 255, 0.2)';
             });
             
             row.addEventListener('mouseleave', () => {
                 row.style.background = index % 2 === 0 ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.1)';
+                row.style.transform = 'scale(1)';
+                row.style.boxShadow = 'none';
+            });
+            
+            // Add click handler for better user feedback
+            row.addEventListener('click', () => {
+                // Visual feedback for click
+                row.style.transform = 'scale(0.98)';
+                setTimeout(() => {
+                    row.style.transform = 'scale(1.01)';
+                }, 100);
+                
+                console.log(`Selected score: ${score.initials} - ${this.leaderboardManager.formatScore(score.score)}`);
             });
             
             // Rank

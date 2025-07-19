@@ -953,8 +953,34 @@ export class PacmanMenu {
     updateDifficultyDisplay() {
         const difficultyDisplay = document.getElementById('pacmanDifficultyDisplay');
         if (difficultyDisplay) {
-            difficultyDisplay.textContent = this.selectedDifficulty.toUpperCase();
+            const difficultyInfo = this.getDifficultyInfo(this.selectedDifficulty);
+            difficultyDisplay.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap; justify-content: center;">
+                    <span style="font-size: 18px; font-weight: bold;">${this.selectedDifficulty.toUpperCase()}</span>
+                    <span style="color: #ffff00; font-size: 14px; background: rgba(255, 255, 0, 0.1); padding: 2px 6px; border-radius: 3px;">⚡ ${difficultyInfo.performance}</span>
+                    <span style="color: #ff00ff; font-size: 12px; background: rgba(255, 0, 255, 0.1); padding: 2px 6px; border-radius: 3px;">${difficultyInfo.bestFor}</span>
+                </div>
+            `;
         }
+    }
+
+    getDifficultyInfo(difficulty) {
+        const difficultyData = {
+            'easy': {
+                performance: '80% Performance',
+                bestFor: '👻 Slower Ghosts • Classic Mode • Beginners'
+            },
+            'normal': {
+                performance: '100% Performance', 
+                bestFor: '⚡ Standard Speed • All Modes • Balanced Fun'
+            },
+            'hard': {
+                performance: '120% Performance',
+                bestFor: '💀 Fast Ghosts • Score Attacks • Veterans'
+            }
+        };
+        
+        return difficultyData[difficulty] || difficultyData['normal'];
     }
     
     toggleClassicMode() {
