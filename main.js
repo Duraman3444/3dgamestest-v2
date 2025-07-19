@@ -1433,15 +1433,9 @@ class Game {
         // Reset the systems initialized flag to ensure proper reinitialization
         this.areSystemsInitialized = false;
         
-        // Initialize skybox manager and graphics enhancer now that scene is created
+        // Initialize skybox manager 
         this.skyboxManager = new SkyboxManager(this.scene, this.renderer);
         console.log('🌅 Skybox manager initialized');
-        
-        // Create camera first for graphics enhancer
-        this.cameraSystem = new CameraSystem(this.player);
-        
-        this.graphicsEnhancer = new GraphicsEnhancer(this.scene, this.renderer, this.cameraSystem.camera);
-        console.log('✨ Graphics enhancer initialized with SSR support');
         
         // Initialize level loader and load a level
         this.levelLoader = new LevelLoader();
@@ -1477,6 +1471,13 @@ class Game {
         // Initialize all game systems with level data
         this.gridManager = new GridManager(this.scene, this.levelLoader);
         this.player = new Player(this.scene);
+        
+        // Now that player is created, initialize camera system and graphics enhancer
+        this.cameraSystem = new CameraSystem(this.player);
+        console.log('📷 Camera system initialized');
+        
+        this.graphicsEnhancer = new GraphicsEnhancer(this.scene, this.renderer, this.cameraSystem.camera);
+        console.log('✨ Graphics enhancer initialized with SSR support');
         
         // Sync player lives with classic mode lives if in classic mode
         if (this.isClassicMode) {
