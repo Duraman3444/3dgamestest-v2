@@ -32,6 +32,7 @@ export class MainMenu {
             justify-content: center;
             z-index: 1000;
             font-family: 'Courier New', monospace;
+            overflow: hidden;
         `;
         
         // Create title
@@ -108,7 +109,7 @@ export class MainMenu {
         controlsInfo.textContent = 'Use ↑↓ arrow keys to navigate, ENTER to select';
         controlsInfo.style.cssText = `
             position: absolute;
-            bottom: 120px;
+            bottom: 140px;
             left: 50%;
             transform: translateX(-50%);
             color: #00ffff;
@@ -116,6 +117,7 @@ export class MainMenu {
             text-align: center;
             font-family: 'Courier New', monospace;
             text-shadow: 1px 1px 0px #000000;
+            z-index: 10;
         `;
         
         // Create audio info with status
@@ -141,7 +143,7 @@ export class MainMenu {
         
         audioInfo.style.cssText = `
             position: absolute;
-            bottom: 80px;
+            bottom: 100px;
             left: 50%;
             transform: translateX(-50%);
             color: #ffff00;
@@ -151,6 +153,7 @@ export class MainMenu {
             text-shadow: 1px 1px 0px #000000;
             animation: pulse 2s infinite;
             cursor: pointer;
+            z-index: 9;
         `;
         
         // Add click handler to manually initialize audio
@@ -182,12 +185,13 @@ export class MainMenu {
         versionInfo.textContent = 'PS2 EDITION v2.0';
         versionInfo.style.cssText = `
             position: absolute;
-            bottom: 20px;
-            right: 20px;
+            bottom: 30px;
+            right: 30px;
             color: #ffff00;
             font-size: 14px;
             font-family: 'Courier New', monospace;
             text-shadow: 1px 1px 0px #000000;
+            z-index: 8;
         `;
         
         // Add copyright notice
@@ -195,12 +199,13 @@ export class MainMenu {
         copyrightInfo.textContent = '© 2024 ARCADE CLASSICS';
         copyrightInfo.style.cssText = `
             position: absolute;
-            bottom: 20px;
-            left: 20px;
+            bottom: 30px;
+            left: 30px;
             color: #ff00ff;
             font-size: 12px;
             font-family: 'Courier New', monospace;
             text-shadow: 1px 1px 0px #000000;
+            z-index: 8;
         `;
         
         // Assemble menu
