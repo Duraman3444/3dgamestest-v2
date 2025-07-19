@@ -298,6 +298,10 @@ export class GraphicsEnhancer {
             dynamicLighting: false
         };
         
+        // Particle system properties
+        this.particleQuality = 1.0; // Default quality multiplier (medium)
+        this.currentGameMode = null; // Track current game mode for effect management
+        
         // Initialize enhanced renderer settings
         this.setupEnhancedRenderer();
         this.setupPostProcessing();
@@ -495,7 +499,18 @@ export class GraphicsEnhancer {
 
     enableParticleEffects(enabled = true) {
         this.effects.particleEffects = enabled;
-        console.log(`✨ Particle Effects ${enabled ? 'enabled' : 'disabled'}`);
+        
+        if (enabled) {
+            console.log(`✨ Particle Effects enabled`);
+            // Re-add environmental effects if we have a current game mode
+            if (this.currentGameMode) {
+                this.addEnvironmentalEffects(this.currentGameMode);
+            }
+        } else {
+            console.log(`🚫 Particle Effects disabled`);
+            // Clear all existing particle effects
+            this.clearParticleEffects();
+        }
     }
 
     enableDynamicLighting(enabled = true) {
@@ -639,7 +654,13 @@ export class GraphicsEnhancer {
         
         this.particleQuality = qualityMap[quality] || 1.0;
         
-        console.log('✨ Particle settings updated:', settings);
+        // If particle effects are enabled and we have a game mode, refresh the effects with new settings
+        if (this.effects.particleEffects && this.currentGameMode) {
+            this.clearParticleEffects();
+            this.addEnvironmentalEffects(this.currentGameMode);
+        }
+        
+        console.log('✨ Particle settings updated:', settings, `Quality multiplier: ${this.particleQuality}x`);
     }
 
     // Simplified G-buffer rendering (not needed for simplified SSR)
@@ -889,6 +910,9 @@ export class GraphicsEnhancer {
     // Enhance existing meshes in the scene with comprehensive improvements
     enhanceSceneMaterials(gameMode = 'normal') {
         try {
+            // Store current game mode for particle effects management
+            this.currentGameMode = gameMode;
+            
             // Clear any existing particles and effects
             this.clearParticleEffects();
             
@@ -910,6 +934,12 @@ export class GraphicsEnhancer {
 
     // Add environmental effects based on game mode and era
     addEnvironmentalEffects(gameMode) {
+        // Only add particle effects if they're enabled
+        if (!this.effects.particleEffects) {
+            console.log('🚫 Particle effects disabled, skipping environmental effects');
+            return;
+        }
+
         const eraTheme = this.getEraThemeForGameMode(gameMode);
         
         switch (gameMode) {
@@ -936,14 +966,18 @@ export class GraphicsEnhancer {
             new THREE.Vector3(-5, 2, -5)
         ];
 
+        // Scale particle count based on quality setting
+        const baseCount = 20;
+        const particleCount = Math.floor(baseCount * this.particleQuality);
+
         glowPositions.forEach((pos, index) => {
             this.createParticleEffect('neon', pos, {
-                count: 20,
+                count: particleCount,
                 color: [0x00FFFF, 0xFF00FF, 0xFFFF00, 0x00FF00, 0xFF0000][index % 5],
-                size: 0.3,
+                size: 0.3 * this.particleQuality,
                 spread: 2,
                 height: 1,
-                opacity: 0.6,
+                opacity: Math.min(0.6 * this.particleQuality, 0.9),
                 duration: Infinity
             });
         });
@@ -960,14 +994,18 @@ export class GraphicsEnhancer {
         // Add sparks and arena atmosphere
         const arenaCenter = new THREE.Vector3(0, 1, 0);
         
+        // Scale particle count based on quality setting
+        const baseCount = 30;
+        const particleCount = Math.floor(baseCount * this.particleQuality);
+        
         this.createParticleEffect('sparks', arenaCenter, {
-            count: 30,
+            count: particleCount,
             color: 0xFFAA00,
-            size: 0.4,
+            size: 0.4 * this.particleQuality,
             spread: 8,
-            height: 3,
-            opacity: 0.7,
-            velocity: new THREE.Vector3(0, 2, 0),
+            height: 3 * this.particleQuality,
+            opacity: Math.min(0.7 * this.particleQuality, 0.9),
+            velocity: new THREE.Vector3(0, 2 * this.particleQuality, 0),
             duration: Infinity
         });
 
@@ -991,14 +1029,18 @@ export class GraphicsEnhancer {
             new THREE.Vector3(-3, 3, -3)
         ];
 
+        // Scale particle count based on quality setting
+        const baseCount = 15;
+        const particleCount = Math.floor(baseCount * this.particleQuality);
+
         sparklePositions.forEach(pos => {
             this.createParticleEffect('sparkle', pos, {
-                count: 15,
+                count: particleCount,
                 color: 0xFFFFAA,
-                size: 0.2,
+                size: 0.2 * this.particleQuality,
                 spread: 1.5,
-                height: 2,
-                opacity: 0.4,
+                height: 2 * this.particleQuality,
+                opacity: Math.min(0.4 * this.particleQuality, 0.7),
                 duration: Infinity
             });
         });
@@ -1396,7 +1438,11 @@ export class GraphicsEnhancer {
             vignette: this.vignettePass && this.vignettePass.enabled,
             chromaticAberration: this.chromaticPass && this.chromaticPass.enabled,
             colorGrading: this.colorGradingPass && this.colorGradingPass.enabled,
-            ssr: this.ssrPass && this.ssrPass.enabled
+            ssr: this.ssrPass && this.ssrPass.enabled,
+            particleEffects: this.effects.particleEffects,
+            particleQuality: this.particleQuality,
+            particleCount: this.particleSystems.length,
+            dynamicLighting: this.effects.dynamicLighting
         };
         
         console.log('📊 Graphics Settings Status:');
@@ -1438,6 +1484,40 @@ export class GraphicsEnhancer {
         console.log('🔄 Starting effects cycle test (every 3 seconds)');
         cycleFn();
         return setInterval(cycleFn, 3000);
+    }
+
+    // Test particle effects specifically
+    testParticleEffects() {
+        console.log('✨ Testing particle effects system...');
+        
+        const particleTest = {
+            enabled: this.effects.particleEffects,
+            quality: this.particleQuality,
+            qualityLevel: this.getQualityLevel(this.particleQuality),
+            activeParticleSystemsCount: this.particleSystems.length,
+            currentGameMode: this.currentGameMode,
+            particleSystemDetails: this.particleSystems.map((system, index) => ({
+                index: index,
+                type: system.type || 'unknown',
+                alive: system.system && system.system.parent !== null,
+                particleCount: system.system && system.system.geometry ? 
+                             system.system.geometry.attributes.position.count : 0,
+                opacity: system.system && system.system.material ? system.system.material.opacity : 'N/A'
+            }))
+        };
+        
+        console.log('🎪 Particle Effects Test Results:', particleTest);
+        console.log(`🔧 Quality Settings: ${particleTest.qualityLevel} (${this.particleQuality}x multiplier)`);
+        
+        return particleTest;
+    }
+
+    // Get quality level name from multiplier
+    getQualityLevel(multiplier) {
+        if (multiplier <= 0.5) return 'Low';
+        if (multiplier <= 1.0) return 'Medium';  
+        if (multiplier <= 1.5) return 'High';
+        return 'Ultra';
     }
 
     // Clean up resources

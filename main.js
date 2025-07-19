@@ -1066,6 +1066,14 @@ class Game {
         return null;
     }
 
+    // Test particle effects system
+    testParticleEffects() {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.testParticleEffects) {
+            return this.graphicsEnhancer.testParticleEffects();
+        }
+        return null;
+    }
+
     // Cycle through graphics effects for testing
     startGraphicsTest() {
         if (this.graphicsEnhancer && this.graphicsEnhancer.cycleEffectsTest) {
