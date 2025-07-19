@@ -980,6 +980,16 @@ class Game {
             case 'enableDynamicLighting':
                 this.applyDynamicLightingSetting(value);
                 break;
+                
+            // Volumetric Fog Settings
+            case 'enableVolumetricFog':
+                this.applyVolumetricFogSetting(value);
+                break;
+            case 'volumetricFogQuality':
+            case 'volumetricFogDensity':
+            case 'volumetricFogScattering':
+                this.updateVolumetricFogSettings();
+                break;
         }
     }
     
@@ -1224,6 +1234,77 @@ class Game {
         if (this.graphicsEnhancer && this.graphicsEnhancer.enableDynamicLighting) {
             this.graphicsEnhancer.enableDynamicLighting(enabled);
             console.log(`💡 Dynamic Lighting ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    // Volumetric Fog methods
+    applyVolumetricFogSetting(enabled) {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.enableVolumetricFog) {
+            this.graphicsEnhancer.enableVolumetricFog(enabled);
+            console.log(`🌫️ Volumetric Fog ${enabled ? 'enabled' : 'disabled'}`);
+            
+            // Apply initial theme if enabled
+            if (enabled && this.gameMode) {
+                this.updateVolumetricFogTheme();
+            }
+        }
+    }
+
+    updateVolumetricFogSettings() {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.setVolumetricFogParameters) {
+            const settings = this.settingsManager.settings.graphics;
+            
+            // Convert quality setting to numeric values
+            const qualityMap = {
+                'low': 0.5,
+                'medium': 1.0,
+                'high': 2.0
+            };
+            
+            const params = {
+                quality: qualityMap[settings.volumetricFogQuality] || 1.0,
+                density: settings.volumetricFogDensity / 1000, // Convert to decimal
+                scatteringStrength: settings.volumetricFogScattering / 500, // Convert to usable range
+                raySteps: settings.volumetricFogQuality === 'high' ? 64 : 
+                         settings.volumetricFogQuality === 'medium' ? 32 : 16
+            };
+            
+            this.graphicsEnhancer.setVolumetricFogParameters(params);
+            console.log(`🌫️ Updated volumetric fog settings:`, params);
+        }
+    }
+
+    updateVolumetricFogTheme() {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.applyVolumetricFogTheme) {
+            let theme = 'default';
+            
+            // Map game modes to volumetric fog themes
+            switch (this.gameMode) {
+                case 'pacman':
+                    theme = 'pacman';
+                    break;
+                case 'battle':
+                case 'local_multiplayer':
+                    theme = 'battle';
+                    break;
+                default:
+                    // Map levels to themes
+                    if (this.currentLevel) {
+                        const levelThemes = {
+                            1: 'forest',
+                            2: 'desert',
+                            3: 'desert',
+                            4: 'mystical',
+                            5: 'volcanic',
+                            6: 'space'
+                        };
+                        theme = levelThemes[this.currentLevel] || 'default';
+                    }
+                    break;
+            }
+            
+            this.graphicsEnhancer.applyVolumetricFogTheme(theme);
+            console.log(`🌫️ Applied volumetric fog theme: ${theme}`);
         }
     }
     
@@ -1916,6 +1997,11 @@ class Game {
         if (this.skyboxManager) {
             const skyboxTheme = this.skyboxManager.getThemeForLevel(this.gameMode, this.currentLevel);
             this.skyboxManager.setSkyboxTheme(skyboxTheme);
+        }
+        
+        // Update volumetric fog theme for the level/mode
+        if (this.settingsManager.settings.graphics.enableVolumetricFog) {
+            this.updateVolumetricFogTheme();
         }
         
         // Enhance graphics and materials

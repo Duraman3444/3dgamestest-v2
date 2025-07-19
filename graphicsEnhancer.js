@@ -308,6 +308,214 @@ const ColorGradingShader = {
         }`
 };
 
+// Volumetric Fog Shader - Advanced raymarching implementation
+const VolumetricFogShader = {
+    uniforms: {
+        tDiffuse: { value: null },
+        tDepth: { value: null },
+        cameraFar: { value: 1000.0 },
+        cameraNear: { value: 0.1 },
+        fogColor: { value: new THREE.Color(0.5, 0.6, 0.7) },
+        fogDensity: { value: 0.02 },
+        fogStart: { value: 0.0 },
+        fogEnd: { value: 100.0 },
+        lightPosition: { value: new THREE.Vector3(10, 10, 10) },
+        lightColor: { value: new THREE.Color(1.0, 0.9, 0.7) },
+        lightIntensity: { value: 0.8 },
+        scatteringStrength: { value: 0.1 },
+        extinctionStrength: { value: 0.05 },
+        phaseG: { value: 0.76 },
+        raySteps: { value: 32 },
+        quality: { value: 1.0 }, // 0.5 = low, 1.0 = medium, 2.0 = high
+        heightFalloff: { value: 0.1 },
+        noiseScale: { value: 0.01 },
+        noiseStrength: { value: 0.3 },
+        time: { value: 0.0 },
+        windDirection: { value: new THREE.Vector2(1.0, 0.5) }
+    },
+
+    vertexShader: `
+        varying vec2 vUv;
+        varying vec3 vViewDir;
+        varying vec3 vWorldPos;
+        
+        void main() {
+            vUv = uv;
+            
+            // Calculate view direction for raymarching
+            vec4 worldPos = modelMatrix * vec4(position, 1.0);
+            vWorldPos = worldPos.xyz;
+            
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            vViewDir = -mvPosition.xyz;
+            
+            gl_Position = projectionMatrix * mvPosition;
+        }`,
+
+    fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform sampler2D tDepth;
+        uniform float cameraFar;
+        uniform float cameraNear;
+        uniform vec3 fogColor;
+        uniform float fogDensity;
+        uniform float fogStart;
+        uniform float fogEnd;
+        uniform vec3 lightPosition;
+        uniform vec3 lightColor;
+        uniform float lightIntensity;
+        uniform float scatteringStrength;
+        uniform float extinctionStrength;
+        uniform float phaseG;
+        uniform int raySteps;
+        uniform float quality;
+        uniform float heightFalloff;
+        uniform float noiseScale;
+        uniform float noiseStrength;
+        uniform float time;
+        uniform vec2 windDirection;
+        
+        varying vec2 vUv;
+        varying vec3 vViewDir;
+        varying vec3 vWorldPos;
+        
+        // Noise function for volumetric variation
+        float noise(vec3 pos) {
+            pos += time * 0.1 * vec3(windDirection.x, 0.2, windDirection.y);
+            return fract(sin(dot(pos.xyz, vec3(12.9898, 78.233, 45.5432))) * 43758.5453);
+        }
+        
+        // 3D noise for more realistic volume
+        float noise3D(vec3 pos) {
+            vec3 i = floor(pos);
+            vec3 f = fract(pos);
+            f = f * f * (3.0 - 2.0 * f);
+            
+            float n = mix(
+                mix(
+                    mix(noise(i), noise(i + vec3(1,0,0)), f.x),
+                    mix(noise(i + vec3(0,1,0)), noise(i + vec3(1,1,0)), f.x),
+                    f.y
+                ),
+                mix(
+                    mix(noise(i + vec3(0,0,1)), noise(i + vec3(1,0,1)), f.x),
+                    mix(noise(i + vec3(0,1,1)), noise(i + vec3(1,1,1)), f.x),
+                    f.y
+                ),
+                f.z
+            );
+            
+            return n;
+        }
+        
+        // Henyey-Greenstein phase function for light scattering
+        float phaseFunction(float cosTheta, float g) {
+            float g2 = g * g;
+            return (1.0 - g2) / pow(1.0 + g2 - 2.0 * g * cosTheta, 1.5);
+        }
+        
+        // Convert depth buffer value to world space depth
+        float readDepth(vec2 coord) {
+            float fragCoordZ = texture2D(tDepth, coord).x;
+            float viewZ = (cameraNear * cameraFar) / ((cameraFar - cameraNear) * fragCoordZ - cameraFar);
+            return -viewZ;
+        }
+        
+        // Main volumetric fog calculation
+        vec3 calculateVolumetricFog(vec3 rayStart, vec3 rayDir, float rayLength) {
+            vec3 scatteredLight = vec3(0.0);
+            float totalTransmittance = 1.0;
+            
+            // Adaptive step size based on quality
+            int steps = int(float(raySteps) * quality);
+            float stepSize = rayLength / float(steps);
+            
+            for(int i = 0; i < 64; i++) { // Max iterations for WebGL compatibility
+                if(i >= steps) break;
+                
+                float t = (float(i) + 0.5) * stepSize;
+                vec3 pos = rayStart + rayDir * t;
+                
+                // Height-based density falloff
+                float heightFactor = exp(-pos.y * heightFalloff);
+                
+                // Add 3D noise for volume variation
+                float noiseFactor = 1.0 + noiseStrength * (
+                    noise3D(pos * noiseScale) * 2.0 - 1.0
+                );
+                
+                // Calculate local density
+                float localDensity = fogDensity * heightFactor * noiseFactor;
+                
+                // Distance-based density (traditional fog)
+                float distance = length(pos);
+                float distanceFactor = smoothstep(fogStart, fogEnd, distance);
+                localDensity *= distanceFactor;
+                
+                if(localDensity > 0.001) {
+                    // Light attenuation
+                    vec3 lightDir = normalize(lightPosition - pos);
+                    float lightDist = length(lightPosition - pos);
+                    
+                    // Light scattering calculation
+                    float cosTheta = dot(rayDir, lightDir);
+                    float phase = phaseFunction(cosTheta, phaseG);
+                    
+                    // Light attenuation with inverse square law
+                    float lightAttenuation = lightIntensity / (1.0 + 0.01 * lightDist * lightDist);
+                    
+                    // In-scattering contribution
+                    vec3 inscattering = lightColor * lightAttenuation * scatteringStrength * phase;
+                    
+                    // Beer's law for light extinction through volume
+                    float extinction = localDensity * extinctionStrength * stepSize;
+                    float stepTransmittance = exp(-extinction);
+                    
+                    // Accumulate scattered light
+                    scatteredLight += inscattering * localDensity * stepSize * totalTransmittance;
+                    
+                    // Update total transmittance
+                    totalTransmittance *= stepTransmittance;
+                    
+                    // Early termination if transmittance is very low
+                    if(totalTransmittance < 0.01) break;
+                }
+            }
+            
+            return scatteredLight;
+        }
+        
+        void main() {
+            vec4 originalColor = texture2D(tDiffuse, vUv);
+            
+            // Get depth and calculate ray parameters
+            float depth = readDepth(vUv);
+            vec3 rayDir = normalize(vViewDir);
+            vec3 rayStart = vWorldPos;
+            float rayLength = min(depth, fogEnd);
+            
+            // Skip fog calculation if too close
+            if(rayLength < fogStart) {
+                gl_FragColor = originalColor;
+                return;
+            }
+            
+            // Calculate volumetric fog contribution
+            vec3 fogContribution = calculateVolumetricFog(rayStart, rayDir, rayLength - fogStart);
+            
+            // Apply fog color tinting
+            fogContribution *= fogColor;
+            
+            // Combine with original image
+            vec3 finalColor = originalColor.rgb + fogContribution;
+            
+            // Tone mapping to prevent oversaturation
+            finalColor = finalColor / (finalColor + vec3(1.0));
+            
+            gl_FragColor = vec4(finalColor, originalColor.a);
+        }`
+};
+
 export class GraphicsEnhancer {
     constructor(scene, renderer, camera) {
         this.scene = scene;
@@ -333,6 +541,7 @@ export class GraphicsEnhancer {
         this.vignettePass = null;
         this.chromaticPass = null;
         this.colorGradingPass = null;
+        this.volumetricFogPass = null;
         this.copyPass = null;
         
         // Effect states
@@ -347,6 +556,7 @@ export class GraphicsEnhancer {
             vignette: false,
             chromaticAberration: false,
             colorGrading: false,
+            volumetricFog: false,
             particleEffects: true,
             dynamicLighting: false
         };
@@ -460,13 +670,30 @@ export class GraphicsEnhancer {
         this.colorGradingPass = new ShaderPass(ColorGradingShader);
         this.colorGradingPass.enabled = false;
         this.composer.addPass(this.colorGradingPass);
+
+        // 12. Volumetric Fog Pass - requires depth texture
+        this.volumetricFogPass = new ShaderPass(VolumetricFogShader);
+        this.volumetricFogPass.enabled = false;
         
-        // 12. Final copy pass
+        // Create depth render target for volumetric fog
+        this.depthRenderTarget = new THREE.WebGLRenderTarget(size.x, size.y, {
+            minFilter: THREE.LinearFilter,
+            magFilter: THREE.LinearFilter,
+            format: THREE.DepthFormat,
+            type: THREE.UnsignedShortType
+        });
+        
+        // Set up depth texture uniforms
+        this.volumetricFogPass.uniforms['tDepth'].value = this.depthRenderTarget.texture;
+        
+        this.composer.addPass(this.volumetricFogPass);
+        
+        // 13. Final copy pass
         this.copyPass = new ShaderPass(CopyShader);
         this.copyPass.renderToScreen = true;
         this.composer.addPass(this.copyPass);
         
-        console.log('🎨 Advanced post-processing pipeline initialized with 10+ effects!');
+        console.log('🎨 Advanced post-processing pipeline initialized with volumetric fog and 11+ effects!');
     }
 
     // Enable/disable effects methods
@@ -564,6 +791,160 @@ export class GraphicsEnhancer {
             // Clear all existing particle effects
             this.clearParticleEffects();
         }
+    }
+
+    enableVolumetricFog(enabled = true) {
+        this.effects.volumetricFog = enabled;
+        if (this.volumetricFogPass) {
+            this.volumetricFogPass.enabled = enabled;
+            console.log(`🌫️ Volumetric Fog ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    // Update volumetric fog parameters based on current scene/theme
+    updateVolumetricFogSettings(theme = null) {
+        if (!this.volumetricFogPass || !this.effects.volumetricFog) return;
+        
+        const uniforms = this.volumetricFogPass.uniforms;
+        
+        // Update camera parameters
+        if (this.camera) {
+            uniforms['cameraFar'].value = this.camera.far;
+            uniforms['cameraNear'].value = this.camera.near;
+        }
+        
+        // Set theme-based fog properties
+        if (theme) {
+            this.applyVolumetricFogTheme(theme);
+        }
+        
+        console.log('🌫️ Volumetric fog settings updated');
+    }
+
+    // Apply theme-specific volumetric fog settings
+    applyVolumetricFogTheme(themeName) {
+        if (!this.volumetricFogPass) return;
+        
+        const uniforms = this.volumetricFogPass.uniforms;
+        
+        // Define theme-specific fog parameters
+        const fogThemes = {
+            default: {
+                color: new THREE.Color(0.5, 0.6, 0.7),
+                density: 0.02,
+                start: 10,
+                end: 120,
+                lightColor: new THREE.Color(1.0, 0.9, 0.7),
+                scattering: 0.1,
+                extinction: 0.05
+            },
+            forest: {
+                color: new THREE.Color(0.3, 0.5, 0.3),
+                density: 0.035,
+                start: 5,
+                end: 80,
+                lightColor: new THREE.Color(0.8, 1.0, 0.6),
+                scattering: 0.12,
+                extinction: 0.06
+            },
+            desert: {
+                color: new THREE.Color(0.8, 0.7, 0.5),
+                density: 0.015,
+                start: 20,
+                end: 150,
+                lightColor: new THREE.Color(1.0, 0.8, 0.5),
+                scattering: 0.08,
+                extinction: 0.04
+            },
+            mystical: {
+                color: new THREE.Color(0.6, 0.4, 0.8),
+                density: 0.045,
+                start: 8,
+                end: 60,
+                lightColor: new THREE.Color(0.8, 0.6, 1.0),
+                scattering: 0.15,
+                extinction: 0.07
+            },
+            volcanic: {
+                color: new THREE.Color(0.7, 0.3, 0.2),
+                density: 0.05,
+                start: 5,
+                end: 50,
+                lightColor: new THREE.Color(1.0, 0.5, 0.2),
+                scattering: 0.18,
+                extinction: 0.08
+            },
+            space: {
+                color: new THREE.Color(0.2, 0.2, 0.4),
+                density: 0.008,
+                start: 30,
+                end: 200,
+                lightColor: new THREE.Color(0.7, 0.7, 1.0),
+                scattering: 0.05,
+                extinction: 0.02
+            },
+            pacman: {
+                color: new THREE.Color(0.1, 0.1, 0.3),
+                density: 0.025,
+                start: 8,
+                end: 40,
+                lightColor: new THREE.Color(0.3, 0.8, 1.0),
+                scattering: 0.1,
+                extinction: 0.05
+            },
+            battle: {
+                color: new THREE.Color(0.4, 0.5, 0.6),
+                density: 0.03,
+                start: 8,
+                end: 80,
+                lightColor: new THREE.Color(0.9, 0.9, 0.8),
+                scattering: 0.12,
+                extinction: 0.06
+            }
+        };
+        
+        const theme = fogThemes[themeName] || fogThemes.default;
+        
+        // Apply theme settings
+        uniforms['fogColor'].value.copy(theme.color);
+        uniforms['fogDensity'].value = theme.density;
+        uniforms['fogStart'].value = theme.start;
+        uniforms['fogEnd'].value = theme.end;
+        uniforms['lightColor'].value.copy(theme.lightColor);
+        uniforms['scatteringStrength'].value = theme.scattering;
+        uniforms['extinctionStrength'].value = theme.extinction;
+        
+        console.log(`🌫️ Applied volumetric fog theme: ${themeName}`);
+    }
+
+    // Set custom volumetric fog parameters
+    setVolumetricFogParameters(params) {
+        if (!this.volumetricFogPass) return;
+        
+        const uniforms = this.volumetricFogPass.uniforms;
+        
+        if (params.density !== undefined) uniforms['fogDensity'].value = params.density;
+        if (params.quality !== undefined) uniforms['quality'].value = params.quality;
+        if (params.raySteps !== undefined) uniforms['raySteps'].value = params.raySteps;
+        if (params.scatteringStrength !== undefined) uniforms['scatteringStrength'].value = params.scatteringStrength;
+        if (params.extinctionStrength !== undefined) uniforms['extinctionStrength'].value = params.extinctionStrength;
+        if (params.heightFalloff !== undefined) uniforms['heightFalloff'].value = params.heightFalloff;
+        if (params.noiseScale !== undefined) uniforms['noiseScale'].value = params.noiseScale;
+        if (params.noiseStrength !== undefined) uniforms['noiseStrength'].value = params.noiseStrength;
+        
+        if (params.fogColor) {
+            if (typeof params.fogColor === 'string') {
+                uniforms['fogColor'].value = new THREE.Color(params.fogColor);
+            } else if (params.fogColor instanceof THREE.Color) {
+                uniforms['fogColor'].value.copy(params.fogColor);
+            }
+        }
+        
+        if (params.lightPosition) {
+            uniforms['lightPosition'].value.copy(params.lightPosition);
+        }
+        
+        console.log('🌫️ Custom volumetric fog parameters applied');
     }
 
     enableDynamicLighting(enabled = true) {
@@ -756,16 +1137,44 @@ export class GraphicsEnhancer {
         this.updateAnimatedEffects();
         
         if (this.composer && this.hasAnyEffectEnabled()) {
+            // Render depth buffer for volumetric fog if needed
+            if (this.effects.volumetricFog && this.depthRenderTarget) {
+                this.renderDepthBuffer();
+            }
+            
             // Render G-buffer for SSR if needed
             if (this.effects.ssr) {
                 this.renderGBuffer();
             }
+            
             // Render with post-processing pipeline
             this.composer.render();
         } else {
             // Fallback to regular rendering
             this.renderer.render(this.scene, this.camera);
         }
+    }
+
+    // Render depth buffer for volumetric fog
+    renderDepthBuffer() {
+        if (!this.depthRenderTarget || !this.camera || !this.scene) return;
+        
+        // Store original settings
+        const originalRenderTarget = this.renderer.getRenderTarget();
+        const originalClearColor = this.renderer.getClearColor(new THREE.Color());
+        const originalClearAlpha = this.renderer.getClearAlpha();
+        
+        // Set up depth rendering
+        this.renderer.setRenderTarget(this.depthRenderTarget);
+        this.renderer.setClearColor(0xffffff, 1.0);
+        this.renderer.clear();
+        
+        // Render scene to depth buffer
+        this.renderer.render(this.scene, this.camera);
+        
+        // Restore original settings
+        this.renderer.setRenderTarget(originalRenderTarget);
+        this.renderer.setClearColor(originalClearColor, originalClearAlpha);
     }
 
     // Update dynamic effects each frame
@@ -793,6 +1202,30 @@ export class GraphicsEnhancer {
                 this.colorGradingPass.uniforms['temperature'].value = warmth;
             }
         }
+        
+        // Update volumetric fog animation
+        if (this.volumetricFogPass && this.effects.volumetricFog) {
+            const time = Date.now() * 0.001;
+            const uniforms = this.volumetricFogPass.uniforms;
+            
+            // Update time for animated noise
+            uniforms['time'].value = time;
+            
+            // Animate light position slightly for dynamic atmosphere
+            const basePos = new THREE.Vector3(10, 15, 10);
+            const animatedPos = basePos.clone();
+            animatedPos.x += Math.sin(time * 0.1) * 2;
+            animatedPos.y += Math.cos(time * 0.08) * 1.5;
+            animatedPos.z += Math.sin(time * 0.12) * 1.5;
+            uniforms['lightPosition'].value.copy(animatedPos);
+            
+            // Animate wind direction for natural fog movement
+            const windTime = time * 0.02;
+            uniforms['windDirection'].value.set(
+                Math.sin(windTime) * 0.5 + 0.5,
+                Math.cos(windTime * 0.7) * 0.3 + 0.7
+            );
+        }
     }
 
     // Check if any post-processing effects are enabled
@@ -811,6 +1244,11 @@ export class GraphicsEnhancer {
         // Update SSR uniforms
         if (this.ssrPass) {
             this.ssrPass.uniforms['resolution'].value = size;
+        }
+        
+        // Resize depth render target for volumetric fog
+        if (this.depthRenderTarget) {
+            this.depthRenderTarget.setSize(size.x, size.y);
         }
     }
 

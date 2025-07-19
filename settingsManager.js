@@ -39,6 +39,10 @@ export class SettingsManager {
                 chromaticIntensity: 10,
                 enableColorGrading: false,
                 colorGradingPreset: 'cinematic',
+                enableVolumetricFog: true,
+                volumetricFogQuality: 'medium',
+                volumetricFogDensity: 50,
+                volumetricFogScattering: 50,
                 enableParticleEffects: true,
                 particleQuality: 'medium',
                 enableDynamicLighting: false
@@ -433,6 +437,40 @@ export class SettingsManager {
                     { value: 'noir', text: 'Film Noir' }
                 ],
                 onChange: (value) => this.setSetting('graphics', 'colorGradingPreset', value)
+            },
+            
+            { 
+                type: 'checkbox', 
+                label: '🌫️ Volumetric Fog (Difficulty: ⭐⭐⭐) - Realistic atmospheric fog', 
+                value: this.settings.graphics.enableVolumetricFog,
+                onChange: (value) => this.setSetting('graphics', 'enableVolumetricFog', value)
+            },
+            { 
+                type: 'select', 
+                label: 'Volumetric Fog Quality', 
+                value: this.settings.graphics.volumetricFogQuality,
+                options: [
+                    { value: 'low', text: 'Low (Performance)' },
+                    { value: 'medium', text: 'Medium' },
+                    { value: 'high', text: 'High (Quality)' }
+                ],
+                onChange: (value) => this.setSetting('graphics', 'volumetricFogQuality', value)
+            },
+            { 
+                type: 'slider', 
+                label: 'Fog Density', 
+                value: this.settings.graphics.volumetricFogDensity,
+                min: 10,
+                max: 100,
+                onChange: (value) => this.setSetting('graphics', 'volumetricFogDensity', value)
+            },
+            { 
+                type: 'slider', 
+                label: 'Light Scattering', 
+                value: this.settings.graphics.volumetricFogScattering,
+                min: 10,
+                max: 100,
+                onChange: (value) => this.setSetting('graphics', 'volumetricFogScattering', value)
             },
             
             { 
@@ -875,6 +913,10 @@ export class SettingsManager {
                 chromaticIntensity: 10,
                 enableColorGrading: false,
                 colorGradingPreset: 'cinematic',
+                enableVolumetricFog: true,
+                volumetricFogQuality: 'medium',
+                volumetricFogDensity: 50,
+                volumetricFogScattering: 50,
                 enableParticleEffects: true,
                 particleQuality: 'medium',
                 enableDynamicLighting: false
