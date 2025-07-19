@@ -816,13 +816,13 @@ export class LocalMultiplayerBattle {
             const randomIndex = Math.floor(Math.random() * this.customMaps.length);
             const customMap = this.customMaps[randomIndex];
             this.currentArenaTheme = this.mapCustomMapToTheme(customMap);
-            console.log(`🎲 Custom arena randomly selected: ${customMap.name} -> ${this.arenaThemes[this.currentArenaTheme].name}`);
+            console.log(`🎲 Custom arena randomly selected: "${customMap.name}" (${customMap.file}) -> "${this.arenaThemes[this.currentArenaTheme].name}"`);
         } else if (this.arenaSelectionMode === 'custom_sequential' && this.customMaps && this.customMaps.length > 0) {
             // Use sequential selection from custom maps
             const mapIndex = Math.min(this.currentRound - 1, this.customMaps.length - 1);
             const customMap = this.customMaps[mapIndex];
             this.currentArenaTheme = this.mapCustomMapToTheme(customMap);
-            console.log(`🔄 Custom arena selected sequentially: ${customMap.name} -> ${this.arenaThemes[this.currentArenaTheme].name}`);
+            console.log(`🔄 Round ${this.currentRound}: Custom arena selected sequentially: "${customMap.name}" (${customMap.file}) -> "${this.arenaThemes[this.currentArenaTheme].name}"`);
         } else if (this.arenaSelectionMode === 'random') {
             this.currentArenaTheme = Math.floor(Math.random() * this.arenaThemes.length);
             console.log(`🎲 Arena randomly selected from ${this.arenaThemes.length} available themes`);
@@ -833,17 +833,26 @@ export class LocalMultiplayerBattle {
         }
         
         const theme = this.arenaThemes[this.currentArenaTheme];
-        console.log(`🎨 Selected arena theme: ${theme.name} - ${theme.description}`);
+        console.log(`🎨 Final arena: "${theme.name}" - ${theme.description}`);
     }
     
     // Map custom map selection to arena theme index
     mapCustomMapToTheme(customMap) {
-        // Map the custom map ID/file to corresponding arena theme
+        // FIRST: if map object has explicit theme property – try to match by name
+        if (customMap && customMap.theme) {
+            const themeIndexByName = this.arenaThemes.findIndex(t => t.name.toLowerCase().includes(customMap.theme.toLowerCase()));
+            if (themeIndexByName !== -1) {
+                console.log(`🗺️ Using theme match by name '${customMap.theme}' -> ${this.arenaThemes[themeIndexByName].name}`);
+                return themeIndexByName;
+            }
+        }
+
+        // Legacy fallback: map file names / ids to arena themes
         const mapToThemeMapping = {
             'level1.json': 0,      // Jungle Temple
             'level2.json': 1,      // Volcanic Crater  
             'level3.json': 2,      // Sky Sanctuary
-            'level4.json': 3,      // Desert Oasis
+            'level4.json': 3,      // Desert Ruins
             'level5.json': 4,      // Neon Grid
             'level6.json': 5,      // Frozen Peaks
             'pacman1.json': 6,     // Ancient Temple
@@ -851,8 +860,8 @@ export class LocalMultiplayerBattle {
             'pacman3.json': 8,     // Crystal Caverns
             'pacman4.json': 9,     // Haunted Graveyard
             'pacman5.json': 10,    // Space Station
-            'pacman6.json': 11,    // Clockwork Factory
-            'pacman7.json': 12     // Floating Islands
+            'pacman6.json': 12,    // Clockwork Factory (fixed: was 11, now 12)
+            'pacman7.json': 13     // Floating Islands (fixed: was 12, now 13)
         };
         
         // Use the file property from the custom map, or fall back to ID-based mapping
