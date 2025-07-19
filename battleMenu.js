@@ -5,6 +5,7 @@ export class BattleMenu {
         this.isVisible = false;
         this.selectedLevel = 1;
         this.selectedBotCount = 3; // Default to 3 bots (1 player vs 3 bots)
+        this.selectedRounds = 3; // Default to best of 3 rounds
         this.menuElement = null;
         this.levelSelect = null;
         this.botCountSelect = null;
@@ -93,6 +94,53 @@ export class BattleMenu {
         
         botCountContainer.appendChild(botCountLabel);
         botCountContainer.appendChild(this.botCountSelect);
+        
+        // Rounds selection
+        const roundsContainer = document.createElement('div');
+        roundsContainer.style.cssText = `
+            margin-bottom: 30px;
+            text-align: center;
+        `;
+        
+        const roundsLabel = document.createElement('label');
+        roundsLabel.textContent = 'Number of Rounds to Win:';
+        roundsLabel.style.cssText = `
+            color: #FFFFFF;
+            font-size: 18px;
+            display: block;
+            margin-bottom: 10px;
+        `;
+        
+        this.roundsSelect = document.createElement('select');
+        this.roundsSelect.style.cssText = `
+            background: rgba(255, 255, 255, 0.1);
+            color: #FFFFFF;
+            border: 2px solid #FFD700;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            width: 200px;
+        `;
+        
+        // Add round options (1, 3, 5, 7 rounds to win)
+        const roundOptions = [
+            { value: 1, text: '1 Round (Quick Match)' },
+            { value: 3, text: '3 Rounds (Best of 5)' },
+            { value: 5, text: '5 Rounds (Best of 9)' },
+            { value: 7, text: '7 Rounds (Championship)' }
+        ];
+        
+        roundOptions.forEach(option => {
+            const optionElement = document.createElement('option');
+            optionElement.value = option.value;
+            optionElement.textContent = option.text;
+            if (option.value === 3) optionElement.selected = true; // Default to 3 rounds
+            this.roundsSelect.appendChild(optionElement);
+        });
+        
+        roundsContainer.appendChild(roundsLabel);
+        roundsContainer.appendChild(this.roundsSelect);
         
         // Arena info
         const arenaInfo = document.createElement('div');
@@ -188,6 +236,7 @@ export class BattleMenu {
         this.menuElement.appendChild(title);
         this.menuElement.appendChild(subtitle);
         this.menuElement.appendChild(botCountContainer);
+        this.menuElement.appendChild(roundsContainer);
         this.menuElement.appendChild(arenaInfo);
         this.menuElement.appendChild(controlInfo);
         this.menuElement.appendChild(this.startButton);
@@ -202,6 +251,11 @@ export class BattleMenu {
         // Bot count selection
         this.botCountSelect.addEventListener('change', (e) => {
             this.selectedBotCount = parseInt(e.target.value);
+        });
+        
+        // Rounds selection
+        this.roundsSelect.addEventListener('change', (e) => {
+            this.selectedRounds = parseInt(e.target.value);
         });
         
         // Start battle button
@@ -233,10 +287,11 @@ export class BattleMenu {
     }
     
     startBattle() {
-        console.log(`🤖 Starting Player vs ${this.selectedBotCount} Bots Battle`);
+        console.log(`🤖 Starting Player vs ${this.selectedBotCount} Bots Battle - ${this.selectedRounds} rounds to win`);
         this.hide();
         // Route to the enhanced battle system for bot battles
-        this.onStartBattle('bot_battle', this.selectedBotCount, 'normal');
+        // Pass bot count and rounds as an object in the level parameter
+        this.onStartBattle('bot_battle', { botCount: this.selectedBotCount, rounds: this.selectedRounds }, 'normal');
     }
     
     show() {

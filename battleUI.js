@@ -335,4 +335,17 @@ export class BattleUI {
         
         console.log('🧹 Sumo Battle UI cleaned up completely');
     }
+    
+    // Update round information display
+    updateRoundInfo(currentRound, playerWins, botWins, roundsToWin) {
+        console.log(`🎯 Updating round info: Round ${currentRound}, Player: ${playerWins}/${roundsToWin}, Bots: ${botWins}/${roundsToWin}`);
+        
+        // Update level display to show round info
+        if (this.elements.level) {
+            this.elements.level.textContent = `Round ${currentRound} | Player: ${playerWins}/${roundsToWin} | Bots: ${botWins}/${roundsToWin}`;
+        }
+        
+        // Show round advancement message
+        this.showMessage(`Round ${currentRound} Starting!`, 2000);
+    }
 } 

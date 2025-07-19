@@ -1624,7 +1624,16 @@ class Game {
             this.multiplayerData = null;
             this.currentLevel = 1;
             this.gameMode = 'battle'; // Set to battle mode for battle system initialization
-            this.botCount = level || 3; // level parameter contains bot count
+            
+            // Handle both old format (number) and new format (object)
+            if (typeof level === 'object') {
+                this.botCount = level.botCount || 3;
+                this.battleRounds = level.rounds || 3;
+                console.log(`🎯 Battle settings - Bots: ${this.botCount}, Rounds to win: ${this.battleRounds}`);
+            } else {
+                this.botCount = level || 3; // level parameter contains bot count (legacy support)
+                this.battleRounds = 3; // Default to 3 rounds
+            }
             
             // Show the game canvas
             this.canvas.style.display = 'block';
@@ -2196,8 +2205,8 @@ class Game {
                 this.battleSystem.setVictoryCallback(() => this.handleBattleVictory());
                 this.battleSystem.setDefeatCallback(() => this.handleBattleDefeat());
                 
-                // Start battle at specified level with bot count if available
-                this.battleSystem.startBattle(this.currentLevel, this.botCount);
+                // Start battle at specified level with bot count and rounds if available
+                this.battleSystem.startBattle(this.currentLevel, this.botCount, this.battleRounds);
                 
                 console.log('🥊 Battle system initialized successfully');
             } catch (error) {

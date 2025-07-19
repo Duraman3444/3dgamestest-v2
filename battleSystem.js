@@ -55,13 +55,21 @@ export class BattleSystem {
     }
     
     // Start battle
-    startBattle(level = 1, botCount = null) {
+    startBattle(level = 1, botCount = null, roundsToWin = 3) {
         this.currentLevel = level;
         this.battleState = 'waiting';
         this.isActive = true;
         this.roundTimer = 0;
         
-        console.log(`🥊 Starting Sumo Battle - Level ${level}${botCount ? ` with ${botCount} bots` : ''}`);
+        // Round-based battle system
+        this.roundsToWin = roundsToWin || 3;
+        this.currentRound = 1;
+        this.playerRoundWins = 0;
+        this.botRoundWins = 0;
+        this.maxRounds = (roundsToWin * 2) - 1; // Maximum possible rounds in best-of series
+        
+        console.log(`🥊 Starting Sumo Battle Tournament - Level ${level}${botCount ? ` with ${botCount} bots` : ''}`);
+        console.log(`🏆 First to ${this.roundsToWin} rounds wins the match!`);
         
         // Play battle start sound effect
         if (window.game && window.game.audioManager) {
@@ -73,6 +81,9 @@ export class BattleSystem {
             this.battleUI.show();
             this.battleUI.updateLevel(level);
             this.battleUI.showControls();
+            
+            // Show initial round information
+            this.battleUI.updateRoundInfo(this.currentRound, this.playerRoundWins, this.botRoundWins, this.roundsToWin);
         }
         
         // Create sumo arena
@@ -949,20 +960,26 @@ export class BattleSystem {
     // Check win/lose conditions
     checkWinConditions() {
         if (this.playersAlive <= 0) {
-            this.endBattle(false); // Player lost
+            this.endRound(false); // Player lost this round
         } else if (this.enemiesAlive <= 0) {
-            this.endBattle(true); // Player won
+            this.endRound(true); // Player won this round
         }
     }
     
-    // End battle
-    endBattle(victory = false) {
+    // End round (not the entire battle)
+    endRound(victory = false) {
         this.isActive = false;
-        this.battleState = victory ? 'won' : 'lost';
         
-        console.log(`🏁 Sumo Battle ended - ${victory ? 'Victory' : 'Defeat'} - immediately cleaning up UI`);
+        // Update round wins
+        if (victory) {
+            this.playerRoundWins++;
+            console.log(`🏁 Round ${this.currentRound} won! Player: ${this.playerRoundWins}/${this.roundsToWin}`);
+        } else {
+            this.botRoundWins++;
+            console.log(`🏁 Round ${this.currentRound} lost! Player: ${this.playerRoundWins}/${this.roundsToWin}, Bots: ${this.botRoundWins}/${this.roundsToWin}`);
+        }
         
-        // Play victory or defeat sound effect
+        // Play round result sound
         if (window.game && window.game.audioManager) {
             if (victory) {
                 window.game.audioManager.playVictorySound();
@@ -970,6 +987,28 @@ export class BattleSystem {
                 window.game.audioManager.playDefeatSound();
             }
         }
+        
+        // Check if match is over
+        if (this.playerRoundWins >= this.roundsToWin) {
+            // Player won the match
+            this.endMatch(true);
+        } else if (this.botRoundWins >= this.roundsToWin) {
+            // Bots won the match
+            this.endMatch(false);
+        } else {
+            // Start next round
+            setTimeout(() => {
+                this.startNextRound();
+            }, 2000);
+        }
+    }
+    
+    // End the entire match
+    endMatch(victory = false) {
+        this.isActive = false;
+        this.battleState = victory ? 'won' : 'lost';
+        
+        console.log(`🏆 Match ended - ${victory ? 'Victory' : 'Defeat'}! Final score: Player ${this.playerRoundWins}-${this.botRoundWins} Bots`);
         
         // IMMEDIATE UI cleanup - no victory/defeat screens shown
         if (this.battleUI) {
@@ -980,7 +1019,7 @@ export class BattleSystem {
         // Immediate cleanup of battle system
         setTimeout(() => {
             this.cleanup();
-        }, 100); // Small delay to allow sound to play
+        }, 100);
         
         // Call appropriate callback immediately
         setTimeout(() => {
@@ -989,7 +1028,59 @@ export class BattleSystem {
             } else if (!victory && this.defeatCallback) {
                 this.defeatCallback();
             }
-        }, 200); // Very short delay just for sound
+        }, 200);
+    }
+    
+    // Start next round
+    startNextRound() {
+        this.currentRound++;
+        console.log(`🔄 Starting Round ${this.currentRound} - Player: ${this.playerRoundWins}/${this.roundsToWin}, Bots: ${this.botRoundWins}/${this.roundsToWin}`);
+        
+        // Reset round state
+        this.battleState = 'waiting';
+        this.isActive = true;
+        this.roundTimer = 0;
+        this.playersAlive = 1;
+        
+        // Clean up current arena and balls
+        this.cleanupRound();
+        
+        // Create new arena and balls for next round
+        this.createSumoArena();
+        this.createPlayerBall();
+        this.createEnemyBalls(this.currentLevel);
+        
+        // Update UI
+        if (this.battleUI) {
+            this.battleUI.updateRoundInfo(this.currentRound, this.playerRoundWins, this.botRoundWins, this.roundsToWin);
+        }
+        
+        // Start countdown for next round
+        this.startCountdown();
+    }
+    
+    // Clean up current round (but not the entire battle system)
+    cleanupRound() {
+        // Remove current balls and arena (but keep UI and callbacks)
+        if (this.playerBall) {
+            this.scene.remove(this.playerBall);
+            this.playerBall = null;
+        }
+        
+        this.enemyBalls.forEach(ball => {
+            if (ball.mesh) this.scene.remove(ball.mesh);
+        });
+        this.enemyBalls = [];
+        
+        if (this.arena) {
+            this.scene.remove(this.arena);
+            this.arena = null;
+        }
+        
+        if (this.arenaEdge) {
+            this.scene.remove(this.arenaEdge);
+            this.arenaEdge = null;
+        }
     }
     
     // Clean up
