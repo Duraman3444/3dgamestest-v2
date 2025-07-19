@@ -145,7 +145,13 @@ export class GameLoop {
     }
     
     render() {
-        this.renderer.render(this.scene, this.camera);
+        // Use graphics enhancer for rendering if available (includes SSR)
+        if (window.game && window.game.graphicsEnhancer && typeof window.game.graphicsEnhancer.render === 'function') {
+            window.game.graphicsEnhancer.render();
+        } else {
+            // Fallback to basic rendering
+            this.renderer.render(this.scene, this.camera);
+        }
     }
     
     updateFPS(currentTime) {

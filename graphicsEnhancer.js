@@ -1,15 +1,146 @@
 import * as THREE from 'https://unpkg.com/three@0.158.0/build/three.module.js';
+import { EffectComposer } from 'https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/RenderPass.js';
+import { ShaderPass } from 'https://unpkg.com/three@0.158.0/examples/jsm/postprocessing/ShaderPass.js';
+import { CopyShader } from 'https://unpkg.com/three@0.158.0/examples/jsm/shaders/CopyShader.js';
+
+// Screenspace Reflections Shader
+const SSRShader = {
+    uniforms: {
+        'tDiffuse': { value: null },
+        'tDepth': { value: null },
+        'tNormal': { value: null },
+        'cameraNear': { value: 0.1 },
+        'cameraFar': { value: 1000 },
+        'resolution': { value: new THREE.Vector2() },
+        'cameraProjectionMatrix': { value: new THREE.Matrix4() },
+        'cameraInverseProjectionMatrix': { value: new THREE.Matrix4() },
+        'intensity': { value: 0.5 },
+        'maxDistance': { value: 30.0 },
+        'thickness': { value: 0.5 },
+        'maxRoughness': { value: 0.3 }
+    },
+
+    vertexShader: /* glsl */`
+        varying vec2 vUv;
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+        }`,
+
+    fragmentShader: /* glsl */`
+        uniform sampler2D tDiffuse;
+        uniform sampler2D tDepth;
+        uniform sampler2D tNormal;
+        uniform float cameraNear;
+        uniform float cameraFar;
+        uniform vec2 resolution;
+        uniform mat4 cameraProjectionMatrix;
+        uniform mat4 cameraInverseProjectionMatrix;
+        uniform float intensity;
+        uniform float maxDistance;
+        uniform float thickness;
+        uniform float maxRoughness;
+        
+        varying vec2 vUv;
+        
+        float getLinearDepth(float depth) {
+            float z = depth * 2.0 - 1.0;
+            return (2.0 * cameraNear * cameraFar) / (cameraFar + cameraNear - z * (cameraFar - cameraNear));
+        }
+        
+        vec3 getWorldPosition(vec2 uv, float depth) {
+            vec4 clipSpacePosition = vec4(uv * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
+            vec4 viewSpacePosition = cameraInverseProjectionMatrix * clipSpacePosition;
+            viewSpacePosition /= viewSpacePosition.w;
+            return viewSpacePosition.xyz;
+        }
+        
+        vec3 hash(vec3 a) {
+            a = fract(a * 0.1031);
+            a += dot(a, a.yzx + 33.33);
+            return fract((a.xxy + a.yxx) * a.zyx);
+        }
+        
+        void main() {
+            vec4 color = texture2D(tDiffuse, vUv);
+            vec4 normalRoughness = texture2D(tNormal, vUv);
+            vec3 normal = normalize(normalRoughness.xyz * 2.0 - 1.0);
+            float roughness = normalRoughness.a;
+            
+            // Skip SSR for rough surfaces
+            if (roughness > maxRoughness) {
+                gl_FragColor = color;
+                return;
+            }
+            
+            float depth = texture2D(tDepth, vUv).x;
+            if (depth >= 1.0) {
+                gl_FragColor = color;
+                return;
+            }
+            
+            vec3 worldPos = getWorldPosition(vUv, depth);
+            vec3 viewDir = normalize(worldPos);
+            vec3 reflectDir = reflect(viewDir, normal);
+            
+            // Ray marching parameters
+            vec3 rayStart = worldPos;
+            vec3 rayDir = reflectDir;
+            float stepSize = maxDistance / 64.0;
+            
+            vec3 rayPos = rayStart;
+            vec4 reflectionColor = vec4(0.0);
+            
+            // Ray marching
+            for (int i = 0; i < 64; i++) {
+                rayPos += rayDir * stepSize;
+                
+                // Project to screen space
+                vec4 screenPos = cameraProjectionMatrix * vec4(rayPos, 1.0);
+                screenPos.xyz /= screenPos.w;
+                vec2 screenUV = screenPos.xy * 0.5 + 0.5;
+                
+                // Check if we're outside screen bounds
+                if (screenUV.x < 0.0 || screenUV.x > 1.0 || screenUV.y < 0.0 || screenUV.y > 1.0) break;
+                
+                float sampledDepth = texture2D(tDepth, screenUV).x;
+                vec3 sampledPos = getWorldPosition(screenUV, sampledDepth);
+                
+                // Check if ray intersects with surface
+                float depthDiff = sampledPos.z - rayPos.z;
+                if (depthDiff > 0.0 && depthDiff < thickness) {
+                    float fadeOut = 1.0 - smoothstep(0.8, 1.0, float(i) / 64.0);
+                    fadeOut *= 1.0 - smoothstep(0.8, 1.0, distance(screenUV, vec2(0.5)));
+                    
+                    reflectionColor = texture2D(tDiffuse, screenUV);
+                    reflectionColor.a = fadeOut * intensity * (1.0 - roughness);
+                    break;
+                }
+            }
+            
+            // Mix original color with reflection
+            gl_FragColor = mix(color, reflectionColor, reflectionColor.a);
+        }`
+};
 
 export class GraphicsEnhancer {
-    constructor(scene, renderer) {
+    constructor(scene, renderer, camera) {
         this.scene = scene;
         this.renderer = renderer;
+        this.camera = camera;
         this.enhancedMaterials = new Map();
         this.particleSystems = [];
         this.environmentEffects = [];
         
+        // Post-processing setup
+        this.composer = null;
+        this.ssrEnabled = false;
+        this.renderTargets = {};
+        
         // Initialize enhanced renderer settings
         this.setupEnhancedRenderer();
+        this.setupPostProcessing();
     }
 
     setupEnhancedRenderer() {
@@ -31,6 +162,150 @@ export class GraphicsEnhancer {
         this.renderer.physicallyCorrectLights = true;
         
         console.log('🎨 Graphics enhancer initialized with premium settings');
+    }
+
+    setupPostProcessing() {
+        if (!this.camera) {
+            console.warn('⚠️ Camera not provided, skipping post-processing setup');
+            return;
+        }
+
+        const size = this.renderer.getSize(new THREE.Vector2());
+        
+        // Create render targets for G-buffer
+        this.renderTargets.color = new THREE.WebGLRenderTarget(size.x, size.y, {
+            minFilter: THREE.LinearFilter,
+            magFilter: THREE.LinearFilter,
+            format: THREE.RGBAFormat,
+            type: THREE.FloatType
+        });
+
+        this.renderTargets.depth = new THREE.WebGLRenderTarget(size.x, size.y, {
+            minFilter: THREE.NearestFilter,
+            magFilter: THREE.NearestFilter,
+            format: THREE.DepthFormat,
+            type: THREE.FloatType
+        });
+
+        this.renderTargets.normal = new THREE.WebGLRenderTarget(size.x, size.y, {
+            minFilter: THREE.LinearFilter,
+            magFilter: THREE.LinearFilter,
+            format: THREE.RGBAFormat,
+            type: THREE.FloatType
+        });
+
+        // Create effect composer
+        this.composer = new EffectComposer(this.renderer);
+        
+        // Add render pass
+        this.renderPass = new RenderPass(this.scene, this.camera);
+        this.composer.addPass(this.renderPass);
+        
+        // Create SSR pass
+        this.ssrPass = new ShaderPass(SSRShader);
+        this.ssrPass.uniforms['resolution'].value = size;
+        this.ssrPass.uniforms['cameraNear'].value = this.camera.near;
+        this.ssrPass.uniforms['cameraFar'].value = this.camera.far;
+        this.composer.addPass(this.ssrPass);
+        
+        // Final copy pass
+        this.copyPass = new ShaderPass(CopyShader);
+        this.copyPass.renderToScreen = true;
+        this.composer.addPass(this.copyPass);
+        
+        console.log('🌊 Post-processing pipeline initialized with SSR');
+    }
+
+    // Enable/disable screenspace reflections
+    enableSSR(enabled = true) {
+        this.ssrEnabled = enabled;
+        if (this.ssrPass) {
+            this.ssrPass.enabled = enabled;
+            console.log(`🌊 Screenspace Reflections ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+
+    // Update SSR settings
+    updateSSRSettings(settings = {}) {
+        if (!this.ssrPass) return;
+        
+        const { intensity = 0.5, maxDistance = 30.0, thickness = 0.5, maxRoughness = 0.3 } = settings;
+        
+        this.ssrPass.uniforms['intensity'].value = intensity;
+        this.ssrPass.uniforms['maxDistance'].value = maxDistance;
+        this.ssrPass.uniforms['thickness'].value = thickness;
+        this.ssrPass.uniforms['maxRoughness'].value = maxRoughness;
+        
+        console.log('🌊 SSR settings updated:', settings);
+    }
+
+    // Render G-buffer for SSR
+    renderGBuffer() {
+        if (!this.camera || !this.ssrEnabled) return;
+
+        const originalRenderTarget = this.renderer.getRenderTarget();
+        
+        // Render depth
+        this.renderer.setRenderTarget(this.renderTargets.depth);
+        this.renderer.render(this.scene, this.camera);
+        
+        // Render normals (this is simplified - in a real implementation you'd need a normal pass)
+        this.renderer.setRenderTarget(this.renderTargets.normal);
+        this.scene.traverse((obj) => {
+            if (obj.material && obj.material.normalMap) {
+                obj.material.needsUpdate = true;
+            }
+        });
+        this.renderer.render(this.scene, this.camera);
+        
+        // Render color
+        this.renderer.setRenderTarget(this.renderTargets.color);
+        this.renderer.render(this.scene, this.camera);
+        
+        // Restore original render target
+        this.renderer.setRenderTarget(originalRenderTarget);
+        
+        // Update SSR uniforms
+        if (this.ssrPass) {
+            this.ssrPass.uniforms['tDepth'].value = this.renderTargets.depth.texture;
+            this.ssrPass.uniforms['tNormal'].value = this.renderTargets.normal.texture;
+            this.ssrPass.uniforms['cameraProjectionMatrix'].value = this.camera.projectionMatrix;
+            this.ssrPass.uniforms['cameraInverseProjectionMatrix'].value = this.camera.projectionMatrixInverse;
+        }
+    }
+
+    // Main render method
+    render() {
+        if (this.composer && this.ssrEnabled) {
+            // Render G-buffer first
+            this.renderGBuffer();
+            // Then render with post-processing
+            this.composer.render();
+        } else {
+            // Fallback to regular rendering
+            this.renderer.render(this.scene, this.camera);
+        }
+    }
+
+    // Handle window resize
+    onWindowResize() {
+        const size = this.renderer.getSize(new THREE.Vector2());
+        
+        if (this.composer) {
+            this.composer.setSize(size.x, size.y);
+        }
+        
+        // Update render targets
+        if (this.renderTargets.color) {
+            this.renderTargets.color.setSize(size.x, size.y);
+            this.renderTargets.depth.setSize(size.x, size.y);
+            this.renderTargets.normal.setSize(size.x, size.y);
+        }
+        
+        // Update SSR uniforms
+        if (this.ssrPass) {
+            this.ssrPass.uniforms['resolution'].value = size;
+        }
     }
 
     // Create enhanced material for different surface types
@@ -336,8 +611,21 @@ export class GraphicsEnhancer {
             material.dispose();
         });
         
+        // Clean up post-processing resources
+        if (this.composer) {
+            this.composer.dispose();
+        }
+        
+        // Clean up render targets
+        Object.values(this.renderTargets).forEach(target => {
+            if (target && target.dispose) {
+                target.dispose();
+            }
+        });
+        
         this.particleSystems = [];
         this.enhancedMaterials.clear();
+        this.renderTargets = {};
         
         console.log('🧹 Graphics enhancer resources disposed');
     }

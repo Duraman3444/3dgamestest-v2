@@ -10,7 +10,11 @@ export class SettingsManager {
                 quality: 'medium',
                 enableShadows: true,
                 enableFog: true,
-                enableAntiAliasing: true
+                enableAntiAliasing: true,
+                enableSSR: false,
+                ssrIntensity: 50,
+                ssrMaxDistance: 30,
+                ssrThickness: 0.5
             },
             controls: {
                 mouseSensitivity: 50,
@@ -187,6 +191,36 @@ export class SettingsManager {
                 label: 'Enable Anti-Aliasing', 
                 value: this.settings.graphics.enableAntiAliasing,
                 onChange: (value) => this.setSetting('graphics', 'enableAntiAliasing', value)
+            },
+            { 
+                type: 'checkbox', 
+                label: 'Enable Screen Space Reflections', 
+                value: this.settings.graphics.enableSSR,
+                onChange: (value) => this.setSetting('graphics', 'enableSSR', value)
+            },
+            { 
+                type: 'slider', 
+                label: 'SSR Intensity', 
+                value: this.settings.graphics.ssrIntensity,
+                min: 0,
+                max: 100,
+                onChange: (value) => this.setSetting('graphics', 'ssrIntensity', value)
+            },
+            { 
+                type: 'slider', 
+                label: 'SSR Max Distance', 
+                value: this.settings.graphics.ssrMaxDistance,
+                min: 10,
+                max: 100,
+                onChange: (value) => this.setSetting('graphics', 'ssrMaxDistance', value)
+            },
+            { 
+                type: 'slider', 
+                label: 'SSR Surface Thickness', 
+                value: Math.round(this.settings.graphics.ssrThickness * 100),
+                min: 10,
+                max: 200,
+                onChange: (value) => this.setSetting('graphics', 'ssrThickness', value / 100)
             }
         ]);
         
@@ -554,7 +588,11 @@ export class SettingsManager {
                 quality: 'medium',
                 enableShadows: true,
                 enableFog: true,
-                enableAntiAliasing: true
+                enableAntiAliasing: true,
+                enableSSR: false,
+                ssrIntensity: 50,
+                ssrMaxDistance: 30,
+                ssrThickness: 0.5
             },
             controls: {
                 mouseSensitivity: 50,

@@ -791,6 +791,34 @@ class Game {
             case 'enableAntiAliasing':
                 this.applyAntiAliasing(value);
                 break;
+            case 'enableSSR':
+                this.applySSRSetting(value);
+                break;
+            case 'ssrIntensity':
+            case 'ssrMaxDistance':
+            case 'ssrThickness':
+                this.updateSSRSettings();
+                break;
+        }
+    }
+    
+    applySSRSetting(enabled) {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.enableSSR) {
+            this.graphicsEnhancer.enableSSR(enabled);
+            console.log(`🌊 Screen Space Reflections ${enabled ? 'enabled' : 'disabled'}`);
+        }
+    }
+    
+    updateSSRSettings() {
+        if (this.graphicsEnhancer && this.graphicsEnhancer.updateSSRSettings && this.settingsManager) {
+            const settings = this.settingsManager.getSettings();
+            const ssrSettings = {
+                intensity: settings.graphics.ssrIntensity / 100, // Convert 0-100 to 0-1
+                maxDistance: settings.graphics.ssrMaxDistance,
+                thickness: settings.graphics.ssrThickness,
+                maxRoughness: 0.3 // Keep this constant for now
+            };
+            this.graphicsEnhancer.updateSSRSettings(ssrSettings);
         }
     }
     
@@ -1409,8 +1437,11 @@ class Game {
         this.skyboxManager = new SkyboxManager(this.scene, this.renderer);
         console.log('🌅 Skybox manager initialized');
         
-        this.graphicsEnhancer = new GraphicsEnhancer(this.scene, this.renderer);
-        console.log('✨ Graphics enhancer initialized');
+        // Create camera first for graphics enhancer
+        this.cameraSystem = new CameraSystem(this.player);
+        
+        this.graphicsEnhancer = new GraphicsEnhancer(this.scene, this.renderer, this.cameraSystem.camera);
+        console.log('✨ Graphics enhancer initialized with SSR support');
         
         // Initialize level loader and load a level
         this.levelLoader = new LevelLoader();
@@ -1492,7 +1523,6 @@ class Game {
         this.gridManager.setPlayer(this.player);
         this.player.setGridManager(this.gridManager);
         
-        this.cameraSystem = new CameraSystem(this.player);
         this.collisionSystem = new CollisionSystem();
         this.uiManager = new UIManager();
         
@@ -1610,6 +1640,11 @@ class Game {
             this.cameraSystem.camera.aspect = window.innerWidth / window.innerHeight;
             this.cameraSystem.camera.updateProjectionMatrix();
             this.renderer.setSize(window.innerWidth, window.innerHeight);
+            
+            // Update graphics enhancer post-processing pipeline
+            if (this.graphicsEnhancer && this.graphicsEnhancer.onWindowResize) {
+                this.graphicsEnhancer.onWindowResize();
+            }
         });
         
         // Handle pointer lock
