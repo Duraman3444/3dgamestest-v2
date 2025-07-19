@@ -87,7 +87,6 @@ export class MainMenu {
             { text: 'Continue', action: () => this.continueGame(), id: 'continue-button' },
             { text: 'Single Player', action: () => this.startSinglePlayer() },
             { text: 'Pacman Mode', action: () => this.startPacmanMode() },
-            { text: 'Battle Mode', action: () => this.startBattleMode() },
             { text: 'Ball Customization', action: () => this.showBallCustomization() },
             { text: 'Leaderboards', action: () => this.showLeaderboards() },
             { text: 'Multiplayer', action: () => this.showMultiplayerNotice() },
@@ -377,12 +376,7 @@ export class MainMenu {
         }
     }
 
-    startBattleMode() {
-        this.hide();
-        if (this.onStartGame) {
-            this.onStartGame('battle'); // Pass 'battle' as mode identifier
-        }
-    }
+
 
     continueGame() {
         this.hide();
@@ -897,31 +891,83 @@ export class MainMenu {
         document.getElementById('rounds-1').addEventListener('click', () => {
             document.body.removeChild(roundsDialog);
             this.selectedMultiplayerRounds = 1;
-            this.startLocalMultiplayerBattle();
+            this.showMultiplayerMapSelection();
         });
         
         document.getElementById('rounds-3').addEventListener('click', () => {
             document.body.removeChild(roundsDialog);
             this.selectedMultiplayerRounds = 3;
-            this.startLocalMultiplayerBattle();
+            this.showMultiplayerMapSelection();
         });
         
         document.getElementById('rounds-4').addEventListener('click', () => {
             document.body.removeChild(roundsDialog);
             this.selectedMultiplayerRounds = 4;
-            this.startLocalMultiplayerBattle();
+            this.showMultiplayerMapSelection();
         });
         
         document.getElementById('rounds-5').addEventListener('click', () => {
             document.body.removeChild(roundsDialog);
             this.selectedMultiplayerRounds = 5;
-            this.startLocalMultiplayerBattle();
+            this.showMultiplayerMapSelection();
         });
         
         document.getElementById('back-from-rounds-btn').addEventListener('click', () => {
             document.body.removeChild(roundsDialog);
             this.showPlayerCountSelection();
         });
+    }
+    
+    showMultiplayerMapSelection() {
+        console.log(`🗺️ Showing map selection for ${this.selectedPlayerCount}-Player Battle - ${this.selectedMultiplayerRounds} rounds to win!`);
+        
+        // Import and create map selection menu for multiplayer
+        import('./mapSelectionMenu.js').then(module => {
+            const MapSelectionMenu = module.MapSelectionMenu;
+            const mapSelection = new MapSelectionMenu(
+                (mapSelectionData) => {
+                    // Map selection completed - start multiplayer battle
+                    console.log('🗺️ Multiplayer map selection completed:', mapSelectionData);
+                    this.startLocalMultiplayerBattleWithMaps(mapSelectionData);
+                },
+                () => {
+                    // Back to round selection
+                    console.log('🗺️ Back to multiplayer round selection');
+                    this.showMultiplayerRoundSelection();
+                }
+            );
+            
+            // Configure for multiplayer mode
+            mapSelection.rounds = this.selectedMultiplayerRounds;
+            mapSelection.battleMode = 'local_multiplayer';
+            mapSelection.battleConfig = {
+                playerCount: this.selectedPlayerCount,
+                rounds: this.selectedMultiplayerRounds,
+                mode: 'local_multiplayer'
+            };
+            
+            // Show the map selection menu
+            mapSelection.show();
+        }).catch(error => {
+            console.error('Failed to load map selection:', error);
+            // Fallback to direct battle start
+            this.startLocalMultiplayerBattle();
+        });
+    }
+    
+    startLocalMultiplayerBattleWithMaps(mapSelectionData) {
+        console.log(`🥊 Starting ${this.selectedPlayerCount}-Player Local Multiplayer Battle with selected maps!`);
+        console.log('🗺️ Map selection data:', mapSelectionData);
+        
+        // Start the game in local multiplayer battle mode with player count, rounds, and maps
+        if (this.onStartGame) {
+            this.onStartGame('local_multiplayer', { 
+                playerCount: this.selectedPlayerCount, 
+                rounds: this.selectedMultiplayerRounds,
+                maps: mapSelectionData.maps,
+                useRandomMaps: mapSelectionData.randomized  // Fixed: use 'randomized' property from mapSelectionData
+            });
+        }
     }
     
     startLocalMultiplayerBattle() {

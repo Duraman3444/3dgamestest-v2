@@ -21,9 +21,9 @@
     "points": 700
   },
   "ghosts": [
-    {"x": 5, "z": 9, "color": "red", "speed": 5.0},
-    {"x": 9, "z": 9, "color": "blue", "speed": 5.0},
-    {"x": 13, "z": 9, "color": "green", "speed": 5.0}
+    {"x": 5, "z": 9, "color": "red", "speed": 3.5},
+    {"x": 9, "z": 9, "color": "blue", "speed": 3.5},
+    {"x": 13, "z": 9, "color": "green", "speed": 3.5}
   ],
   "exit": {
     "x": 9,

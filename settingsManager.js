@@ -87,61 +87,266 @@ export class SettingsManager {
         }
     }
     
-    // Mode-specific presets
-    applyPacmanPreset() {
-        // Retro/Arcade optimized settings
-        this.setSetting('graphics', 'enableSSR', false);
-        this.setSetting('graphics', 'enableBloom', true);
-        this.setSetting('graphics', 'bloomIntensity', 40);
-        this.setSetting('graphics', 'enableSSAO', false);
-        this.setSetting('graphics', 'enableGodRays', false);
-        this.setSetting('graphics', 'enableMotionBlur', true);
-        this.setSetting('graphics', 'motionBlurStrength', 25);
-        this.setSetting('graphics', 'enableDOF', false);
-        this.setSetting('graphics', 'enableFilmGrain', true);
-        this.setSetting('graphics', 'filmGrainIntensity', 25);
-        this.setSetting('graphics', 'enableVignette', true);
-        this.setSetting('graphics', 'vignetteIntensity', 30);
-        this.setSetting('graphics', 'enableChromaticAberration', true);
-        this.setSetting('graphics', 'chromaticIntensity', 15);
-        this.setSetting('graphics', 'enableColorGrading', true);
-        this.setSetting('graphics', 'colorGradingPreset', 'vibrant');
-        this.setSetting('graphics', 'enableVolumetricFog', false);
-        this.setSetting('graphics', 'enableParticleEffects', true);
-        this.setSetting('graphics', 'particleQuality', 'medium');
-        this.setSetting('graphics', 'enableDynamicLighting', false);
+    // Comprehensive settings presets
+    getPresets() {
+        return {
+            performance: {
+                name: '🏃‍♂️ Performance',
+                description: 'Maximum FPS for competitive gaming',
+                settings: {
+                    graphics: {
+                        quality: 'low',
+                        enableShadows: false,
+                        enableFog: false,
+                        enableAntiAliasing: false,
+                        enableSSR: false,
+                        enableBloom: false,
+                        enableSSAO: false,
+                        enableGodRays: false,
+                        enableMotionBlur: false,
+                        enableDOF: false,
+                        enableFilmGrain: false,
+                        enableVignette: false,
+                        enableChromaticAberration: false,
+                        enableColorGrading: false,
+                        enableVolumetricFog: false,
+                        particleQuality: 'low',
+                        enableParticleEffects: true,
+                        enableDynamicLighting: false
+                    },
+                    audio: {
+                        masterVolume: 80,
+                        musicVolume: 20,
+                        sfxVolume: 100
+                    }
+                }
+            },
+            balanced: {
+                name: '⚖️ Balanced',
+                description: 'Good balance of quality and performance',
+                settings: {
+                    graphics: {
+                        quality: 'medium',
+                        enableShadows: true,
+                        enableFog: true,
+                        enableAntiAliasing: true,
+                        enableSSR: false,
+                        enableBloom: true,
+                        bloomIntensity: 25,
+                        enableSSAO: false,
+                        enableGodRays: false,
+                        enableMotionBlur: true,
+                        motionBlurStrength: 20,
+                        enableDOF: false,
+                        enableFilmGrain: false,
+                        enableVignette: false,
+                        enableChromaticAberration: false,
+                        enableColorGrading: true,
+                        colorGradingPreset: 'cinematic',
+                        enableVolumetricFog: true,
+                        volumetricFogQuality: 'medium',
+                        particleQuality: 'medium',
+                        enableParticleEffects: true,
+                        enableDynamicLighting: false
+                    },
+                    audio: {
+                        masterVolume: 60,
+                        musicVolume: 40,
+                        sfxVolume: 80
+                    }
+                }
+            },
+            quality: {
+                name: '💎 Maximum Quality',
+                description: 'Best visuals for high-end systems',
+                settings: {
+                    graphics: {
+                        quality: 'high',
+                        enableShadows: true,
+                        enableFog: true,
+                        enableAntiAliasing: true,
+                        enableSSR: true,
+                        ssrIntensity: 70,
+                        enableBloom: true,
+                        bloomIntensity: 40,
+                        enableSSAO: true,
+                        ssaoIntensity: 60,
+                        enableGodRays: true,
+                        godRaysIntensity: 50,
+                        enableMotionBlur: true,
+                        motionBlurStrength: 35,
+                        enableDOF: true,
+                        dofFocus: 50,
+                        enableFilmGrain: true,
+                        filmGrainIntensity: 20,
+                        enableVignette: true,
+                        vignetteIntensity: 30,
+                        enableChromaticAberration: true,
+                        chromaticIntensity: 15,
+                        enableColorGrading: true,
+                        colorGradingPreset: 'cinematic',
+                        enableVolumetricFog: true,
+                        volumetricFogQuality: 'high',
+                        particleQuality: 'high',
+                        enableParticleEffects: true,
+                        enableDynamicLighting: true
+                    },
+                    audio: {
+                        masterVolume: 50,
+                        musicVolume: 35,
+                        sfxVolume: 70
+                    }
+                }
+            },
+            retro: {
+                name: '🕹️ Retro Arcade',
+                description: 'Optimized for Pacman mode with retro effects',
+                settings: {
+                    graphics: {
+                        quality: 'medium',
+                        enableShadows: true,
+                        enableFog: false,
+                        enableAntiAliasing: true,
+                        enableSSR: false,
+                        enableBloom: true,
+                        bloomIntensity: 45,
+                        enableSSAO: false,
+                        enableGodRays: false,
+                        enableMotionBlur: true,
+                        motionBlurStrength: 25,
+                        enableDOF: false,
+                        enableFilmGrain: true,
+                        filmGrainIntensity: 30,
+                        enableVignette: true,
+                        vignetteIntensity: 35,
+                        enableChromaticAberration: true,
+                        chromaticIntensity: 20,
+                        enableColorGrading: true,
+                        colorGradingPreset: 'vibrant',
+                        enableVolumetricFog: false,
+                        particleQuality: 'medium',
+                        enableParticleEffects: true,
+                        enableDynamicLighting: false
+                    },
+                    audio: {
+                        masterVolume: 70,
+                        musicVolume: 60,
+                        sfxVolume: 90
+                    }
+                }
+            },
+            cinematic: {
+                name: '🎬 Cinematic',
+                description: 'Movie-like visuals for single player',
+                settings: {
+                    graphics: {
+                        quality: 'high',
+                        enableShadows: true,
+                        enableFog: true,
+                        enableAntiAliasing: true,
+                        enableSSR: true,
+                        ssrIntensity: 60,
+                        enableBloom: true,
+                        bloomIntensity: 30,
+                        enableSSAO: true,
+                        ssaoIntensity: 55,
+                        enableGodRays: true,
+                        godRaysIntensity: 45,
+                        enableMotionBlur: true,
+                        motionBlurStrength: 30,
+                        enableDOF: true,
+                        dofFocus: 50,
+                        dofBlur: 25,
+                        enableFilmGrain: true,
+                        filmGrainIntensity: 15,
+                        enableVignette: false,
+                        enableChromaticAberration: false,
+                        enableColorGrading: true,
+                        colorGradingPreset: 'cinematic',
+                        enableVolumetricFog: true,
+                        volumetricFogQuality: 'high',
+                        particleQuality: 'high',
+                        enableParticleEffects: true,
+                        enableDynamicLighting: true
+                    },
+                    audio: {
+                        masterVolume: 45,
+                        musicVolume: 50,
+                        sfxVolume: 60
+                    }
+                }
+            },
+            competitive: {
+                name: '⚔️ Battle/Competitive',
+                description: 'Clear visibility for multiplayer battles',
+                settings: {
+                    graphics: {
+                        quality: 'medium',
+                        enableShadows: true,
+                        enableFog: false,
+                        enableAntiAliasing: true,
+                        enableSSR: false,
+                        enableBloom: false,
+                        enableSSAO: false,
+                        enableGodRays: false,
+                        enableMotionBlur: false,
+                        enableDOF: false,
+                        enableFilmGrain: false,
+                        enableVignette: false,
+                        enableChromaticAberration: false,
+                        enableColorGrading: false,
+                        enableVolumetricFog: false,
+                        particleQuality: 'medium',
+                        enableParticleEffects: true,
+                        enableDynamicLighting: false
+                    },
+                    audio: {
+                        masterVolume: 85,
+                        musicVolume: 15,
+                        sfxVolume: 100
+                    },
+                    ui: {
+                        showFPS: true,
+                        showMinimap: true,
+                        showCrosshair: true
+                    }
+                }
+            }
+        };
+    }
+    
+    applyPreset(presetName) {
+        const presets = this.getPresets();
+        const preset = presets[presetName];
         
-        console.log('🎯 Applied Pacman Mode preset - Retro arcade feel!');
-        alert('🎯 Pacman Mode preset applied! Optimized for retro arcade experience.');
+        if (!preset) {
+            console.error(`Preset "${presetName}" not found`);
+            return false;
+        }
+        
+        // Apply all settings from the preset
+        Object.keys(preset.settings).forEach(category => {
+            Object.keys(preset.settings[category]).forEach(key => {
+                this.setSetting(category, key, preset.settings[category][key]);
+            });
+        });
+        
+        console.log(`✨ Applied "${preset.name}" preset!`);
+        this.showNotice(`✨ ${preset.name} preset applied!\n${preset.description}`, null, 3000);
+        return true;
+    }
+    
+    // Legacy mode-specific presets (kept for compatibility)
+    applyPacmanPreset() {
+        this.applyPreset('retro');
     }
     
     applyRegularPreset() {
-        // Modern/Cinematic optimized settings
-        this.setSetting('graphics', 'enableSSR', true);
-        this.setSetting('graphics', 'ssrIntensity', 50);
-        this.setSetting('graphics', 'enableBloom', true);
-        this.setSetting('graphics', 'bloomIntensity', 35);
-        this.setSetting('graphics', 'enableSSAO', true);
-        this.setSetting('graphics', 'ssaoIntensity', 50);
-        this.setSetting('graphics', 'enableGodRays', true);
-        this.setSetting('graphics', 'godRaysIntensity', 40);
-        this.setSetting('graphics', 'enableMotionBlur', true);
-        this.setSetting('graphics', 'motionBlurStrength', 30);
-        this.setSetting('graphics', 'enableDOF', true);
-        this.setSetting('graphics', 'dofFocus', 50);
-        this.setSetting('graphics', 'enableFilmGrain', true);
-        this.setSetting('graphics', 'filmGrainIntensity', 15);
-        this.setSetting('graphics', 'enableVignette', false);
-        this.setSetting('graphics', 'enableChromaticAberration', false);
-        this.setSetting('graphics', 'enableColorGrading', true);
-        this.setSetting('graphics', 'colorGradingPreset', 'cinematic');
-        this.setSetting('graphics', 'enableVolumetricFog', true);
-        this.setSetting('graphics', 'enableParticleEffects', true);
-        this.setSetting('graphics', 'particleQuality', 'high');
-        this.setSetting('graphics', 'enableDynamicLighting', true);
-        
-        console.log('🎮 Applied Regular Mode preset - Cinematic experience!');
-        alert('🎮 Regular Mode preset applied! Optimized for modern cinematic experience.');
+        this.applyPreset('cinematic');
+    }
+    
+    applyBattlePreset() {
+        this.applyPreset('competitive');
     }
     
     applyBattlePreset() {
@@ -204,7 +409,7 @@ export class SettingsManager {
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 2001;
+            z-index: 9999;
             font-family: 'Courier New', monospace;
         `;
         
@@ -243,6 +448,9 @@ export class SettingsManager {
             overflow-y: auto;
             padding-right: 10px;
         `;
+        
+        // Settings Presets Section (at the top)
+        const presetsSection = this.createPresetsSection();
         
         // Audio Settings Section
         const audioSection = this.createSettingsSection('AUDIO SETTINGS', [
@@ -341,22 +549,7 @@ export class SettingsManager {
             },
             { 
                 type: 'text',
-                label: '📍 Mode Recommendations: Regular Mode (modern/cinematic), Pacman Mode (retro/arcade), Battle Mode (competitive/performance)'
-            },
-            { 
-                type: 'button',
-                label: '🎯 Auto-Apply Preset for Pacman Mode',
-                onClick: () => this.applyPacmanPreset()
-            },
-            { 
-                type: 'button',
-                label: '🎮 Auto-Apply Preset for Regular Mode',
-                onClick: () => this.applyRegularPreset()
-            },
-            { 
-                type: 'button',
-                label: '⚔️ Auto-Apply Preset for Battle Mode',
-                onClick: () => this.applyBattlePreset()
+                label: '💡 Tip: Use the Settings Presets section above for quick configuration!'
             },
             { 
                 type: 'checkbox', 
@@ -640,6 +833,7 @@ export class SettingsManager {
         ]);
         
         // Add sections to content container
+        contentContainer.appendChild(presetsSection);
         contentContainer.appendChild(audioSection);
         contentContainer.appendChild(graphicsSection);
         contentContainer.appendChild(controlsSection);
@@ -697,10 +891,165 @@ export class SettingsManager {
         settingsPanel.appendChild(instructions);
         settingsOverlay.appendChild(settingsPanel);
         
+        // CRITICAL: Add ESC key handler to prevent breaking the game
+        const escKeyHandler = (event) => {
+            if (event.key === 'Escape' && this.currentSettingsPanel) {
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+                
+                console.log('🎮 ESC pressed in settings - closing settings panel cleanly');
+                this.closeSettings();
+                if (onClose) onClose();
+            }
+        };
+        
+        // Add event listener with highest priority (capture phase)
+        document.addEventListener('keydown', escKeyHandler, true);
+        
+        // Store the handler so we can remove it later
+        settingsOverlay.escKeyHandler = escKeyHandler;
+        
         document.body.appendChild(settingsOverlay);
         this.currentSettingsPanel = settingsOverlay;
         
         return settingsOverlay;
+    }
+    
+    createPresetsSection() {
+        const section = document.createElement('div');
+        section.style.cssText = `
+            margin-bottom: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, #1a0033 0%, #330066 50%, #660099 100%);
+            border-radius: 12px;
+            border: 3px solid #FFD700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        `;
+        
+        const sectionTitle = document.createElement('h3');
+        sectionTitle.textContent = '⚡ SETTINGS PRESETS ⚡';
+        sectionTitle.style.cssText = `
+            color: #FFD700;
+            margin-bottom: 15px;
+            font-size: 20px;
+            font-weight: bold;
+            text-shadow: 3px 3px 0px #ff00ff, 6px 6px 0px #000000;
+            letter-spacing: 3px;
+            text-align: center;
+            text-transform: uppercase;
+        `;
+        
+        const description = document.createElement('div');
+        description.textContent = 'Choose a preset to instantly configure all settings for your preferred gaming experience';
+        description.style.cssText = `
+            color: #FFFFFF;
+            margin-bottom: 20px;
+            font-size: 14px;
+            text-align: center;
+            line-height: 1.4;
+            opacity: 0.9;
+        `;
+        
+        // Create presets grid
+        const presetsGrid = document.createElement('div');
+        presetsGrid.style.cssText = `
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        `;
+        
+        // Get all presets
+        const presets = this.getPresets();
+        
+        // Create buttons for each preset
+        Object.keys(presets).forEach(presetKey => {
+            const preset = presets[presetKey];
+            const button = document.createElement('button');
+            button.style.cssText = `
+                background: linear-gradient(135deg, #003366 0%, #0066cc 100%);
+                border: 2px solid #00FFFF;
+                color: #FFFFFF;
+                padding: 15px 10px;
+                font-size: 14px;
+                font-weight: bold;
+                cursor: pointer;
+                border-radius: 8px;
+                transition: all 0.3s ease;
+                text-align: center;
+                font-family: 'Courier New', monospace;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+                min-height: 80px;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            `;
+            
+            button.innerHTML = `
+                <div style="font-size: 16px; margin-bottom: 5px;">${preset.name}</div>
+                <div style="font-size: 11px; opacity: 0.8; text-transform: none; line-height: 1.2;">${preset.description}</div>
+            `;
+            
+            // Add hover effects
+            button.addEventListener('mouseenter', () => {
+                button.style.background = 'linear-gradient(135deg, #0066cc 0%, #00aaff 100%)';
+                button.style.transform = 'scale(1.05)';
+                button.style.boxShadow = '0 0 15px rgba(0, 255, 255, 0.5)';
+                
+                // Play hover sound
+                if (window.game && window.game.audioManager) {
+                    window.game.audioManager.playMenuHoverSound();
+                }
+            });
+            
+            button.addEventListener('mouseleave', () => {
+                button.style.background = 'linear-gradient(135deg, #003366 0%, #0066cc 100%)';
+                button.style.transform = 'scale(1)';
+                button.style.boxShadow = '2px 2px 5px rgba(0,0,0,0.3)';
+            });
+            
+            // Add click handler
+            button.addEventListener('click', () => {
+                // Play click sound
+                if (window.game && window.game.audioManager) {
+                    window.game.audioManager.playMenuClickSound();
+                }
+                
+                // Apply the preset
+                this.applyPreset(presetKey);
+                
+                // Refresh the settings panel to show new values
+                setTimeout(() => {
+                    this.closeSettings();
+                    this.createSettingsPanel();
+                }, 1000);
+            });
+            
+            presetsGrid.appendChild(button);
+        });
+        
+        // Add warning note
+        const warningNote = document.createElement('div');
+        warningNote.textContent = '⚠️ Applying a preset will override your current settings';
+        warningNote.style.cssText = `
+            color: #FFFF00;
+            font-size: 12px;
+            text-align: center;
+            font-style: italic;
+            opacity: 0.8;
+            margin-top: 10px;
+        `;
+        
+        section.appendChild(sectionTitle);
+        section.appendChild(description);
+        section.appendChild(presetsGrid);
+        section.appendChild(warningNote);
+        
+        return section;
     }
     
     createSettingsSection(title, controls) {
@@ -1020,6 +1369,12 @@ export class SettingsManager {
     
     closeSettings() {
         if (this.currentSettingsPanel) {
+            // CRITICAL: Clean up ESC key event listener
+            if (this.currentSettingsPanel.escKeyHandler) {
+                document.removeEventListener('keydown', this.currentSettingsPanel.escKeyHandler, true);
+                console.log('🎮 Settings ESC key handler removed');
+            }
+            
             document.body.removeChild(this.currentSettingsPanel);
             this.currentSettingsPanel = null;
         }

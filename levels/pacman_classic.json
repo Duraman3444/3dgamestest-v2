@@ -737,10 +737,10 @@
     "points": 1000
   },
   "ghosts": [
-    {"x": 3, "z": 9, "color": "red", "speed": 3.0},
-    {"x": 6, "z": 9, "color": "blue", "speed": 3.0},
-    {"x": 12, "z": 9, "color": "green", "speed": 3.0},
-    {"x": 15, "z": 9, "color": "pink", "speed": 3.0}
+    {"x": 3, "z": 9, "color": "red", "speed": 2.2},
+    {"x": 6, "z": 9, "color": "blue", "speed": 2.2},
+    {"x": 12, "z": 9, "color": "green", "speed": 2.2},
+    {"x": 15, "z": 9, "color": "pink", "speed": 2.2}
   ],
   "exit": null,
   "requireAllCoins": true,

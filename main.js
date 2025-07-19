@@ -9,7 +9,8 @@ import { LevelLoader } from './levelLoader.js';
 import { MainMenu } from './mainMenu.js';
 import { SinglePlayerMenu } from './singlePlayerMenu.js';
 import { PacmanMenu } from './pacmanMenu.js';
-import { BattleMenu } from './battleMenu.js';
+
+import { MapSelectionMenu } from './mapSelectionMenu.js';
 import { GameOverScreen } from './gameOverScreen.js';
 import { SettingsManager } from './settingsManager.js';
 import { BattleSystem } from './battleSystem.js';
@@ -37,7 +38,7 @@ class Game {
         this.mainMenu = null;
         this.singlePlayerMenu = null;
         this.pacmanMenu = null;
-        this.battleMenu = null;
+
         this.gameOverScreen = null;
         this.settingsManager = null;
         this.battleSystem = null;
@@ -69,8 +70,8 @@ class Game {
         this.isClassicMode = false; // Flag for classic mode
         this.classicLives = 3; // Starting lives for classic mode
         this.classicWave = 1; // Current wave/round in classic mode
-        this.classicPlayerSpeed = 12; // Starting player speed in classic mode
-        this.classicEnemySpeed = 8; // Starting enemy speed in classic mode
+        this.classicPlayerSpeed = 14; // Starting player speed in classic mode - faster
+        this.classicEnemySpeed = 6; // Starting enemy speed in classic mode - slower
         this.maxClassicSpeed = 20; // Maximum speed for both player and enemies
      
         this.initializeMenu();
@@ -83,9 +84,6 @@ class Game {
         } else if (mode === 'pacman') {
             // Show pacman mode menu
             this.showPacmanMenu();
-        } else if (mode === 'battle') {
-            // Show battle mode menu (now for bot battles)
-            this.showBattleMenu();
         } else {
             // For other modes, start directly with proper parameters
             this.startGame(mode, level, difficulty);
@@ -117,8 +115,17 @@ class Game {
         // Hide all other menus
         if (this.singlePlayerMenu) this.singlePlayerMenu.hide();
         if (this.pacmanMenu) this.pacmanMenu.hide();
-        if (this.battleMenu) this.battleMenu.hide();
         if (this.gameOverScreen) this.gameOverScreen.hide();
+        
+        // CRITICAL: Restore audio system for main menu
+        if (this.audioManager && this.audioManager.isInitialized) {
+            this.audioManager.setGameMode('normal'); // Reset to normal/main menu audio profile
+            console.log('🎵 Audio restored for main menu after game mode cleanup');
+        } else if (this.audioManager && !this.audioManager.isInitialized) {
+            console.log('🎵 Audio manager exists but not initialized, attempting to reinitialize...');
+            // Try to reinitialize if it was somehow lost
+            this.audioManager.initializeAudio();
+        }
         
         // Show main menu
         this.mainMenu.show();
@@ -177,10 +184,7 @@ class Game {
         this.pacmanMenu.show();
     }
     
-    showBattleMenu() {
-        this.mainMenu.hide();
-        this.battleMenu.show();
-    }
+
     
     initializeMenu() {
         // Create settings manager
@@ -206,11 +210,7 @@ class Game {
             () => this.showMainMenu()
         );
         
-        // Create battle menu
-        this.battleMenu = new BattleMenu(
-            (mode, level, difficulty) => this.startGame(mode, level, difficulty),
-            () => this.showMainMenu()
-        );
+
         
         // Create game over screen
         this.gameOverScreen = new GameOverScreen(
@@ -794,8 +794,15 @@ class Game {
             this.isPaused = false;
             if (this.pauseOverlay) {
                 console.log('🎮 Removing pause overlay...');
-                document.body.removeChild(this.pauseOverlay);
-                this.pauseOverlay = null;
+                try {
+                    if (this.pauseOverlay.parentNode) {
+                        this.pauseOverlay.parentNode.removeChild(this.pauseOverlay);
+                    }
+                } catch (e) {
+                    console.warn('pauseOverlay already removed or not in DOM:', e);
+                } finally {
+                    this.pauseOverlay = null;
+                }
             }
             
             // Play resume sound
@@ -904,8 +911,48 @@ class Game {
     
     showPauseSettings() {
         if (this.settingsManager) {
+            // CRITICAL: Hide the pause overlay when settings open
+            let pauseOverlayWasVisible = false;
+            if (this.pauseOverlay) {
+                pauseOverlayWasVisible = true;
+                this.pauseOverlay.style.display = 'none';
+                console.log('🎮 Hiding pause overlay for settings menu');
+            }
+            
             this.settingsManager.createSettingsPanel(() => {
-                // Settings panel closed - no additional action needed
+                console.log('🎮 Settings panel closed, restoring pause overlay...');
+                
+                // CRITICAL: Always ensure we're back in proper pause state
+                if (pauseOverlayWasVisible) {
+                    // Force recreation of pause overlay to ensure clean state
+                    if (this.pauseOverlay) {
+                        // Remove any existing overlay first
+                        try {
+                            if (document.body.contains(this.pauseOverlay)) {
+                                document.body.removeChild(this.pauseOverlay);
+                            }
+                        } catch (e) {
+                            console.log('🎮 Old pause overlay already removed');
+                        }
+                    }
+                    
+                    // Recreate pause overlay with fresh state
+                    this.pauseOverlay = this.createPauseOverlay();
+                    if (this.pauseOverlay) {
+                        document.body.appendChild(this.pauseOverlay);
+                        console.log('🎮 Fresh pause overlay created after settings');
+                        
+                        // Ensure proper focus and event handling
+                        this.pauseOverlay.focus();
+                        
+                        // Force a reflow to ensure proper display
+                        this.pauseOverlay.offsetHeight;
+                    }
+                    
+                    // Ensure pause state is correct
+                    this.isPaused = true;
+                    console.log('🎮 Game pause state confirmed after settings');
+                }
             });
         }
     }
@@ -932,8 +979,15 @@ class Game {
         
         // Hide pause overlay
         if (this.pauseOverlay) {
-            document.body.removeChild(this.pauseOverlay);
-            this.pauseOverlay = null;
+            try {
+                if (this.pauseOverlay.parentNode) {
+                    this.pauseOverlay.parentNode.removeChild(this.pauseOverlay);
+                }
+            } catch (e) {
+                console.warn('pauseOverlay already removed or not in DOM:', e);
+            } finally {
+                this.pauseOverlay = null;
+            }
         }
         
         this.isPaused = false;
@@ -1488,28 +1542,28 @@ class Game {
                     this.renderer.setPixelRatio(0.5);
                     this.renderer.shadowMap.enabled = false;
                     this.renderer.antialias = false;
-                    this.renderer.toneMappingExposure = 1.0;
+                    this.renderer.toneMappingExposure = 1.8;  // Increased from 1.0 for brighter visuals
                     break;
                 case 'medium':
                     this.renderer.setPixelRatio(1);
                     this.renderer.shadowMap.enabled = true;
                     this.renderer.shadowMap.type = THREE.PCFShadowMap;
                     this.renderer.antialias = true;
-                    this.renderer.toneMappingExposure = 1.1;
+                    this.renderer.toneMappingExposure = 1.9;  // Increased from 1.1 for brighter visuals
                     break;
                 case 'high':
                     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
                     this.renderer.shadowMap.enabled = true;
                     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                     this.renderer.antialias = true;
-                    this.renderer.toneMappingExposure = 1.2;
+                    this.renderer.toneMappingExposure = 2.0;  // Increased from 1.2 for brighter visuals
                     break;
                 case 'ultra':
                     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
                     this.renderer.shadowMap.enabled = true;
                     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
                     this.renderer.antialias = true;
-                    this.renderer.toneMappingExposure = 1.3;
+                    this.renderer.toneMappingExposure = 2.2;  // Increased from 1.3 for brighter visuals
                     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
                     break;
             }
@@ -1581,15 +1635,20 @@ class Game {
             this.multiplayerData = null;
             this.currentLevel = 1;
             
-            // Extract player count and rounds from level parameter
-            let playerCount, rounds;
+            // Extract player count, rounds, and maps from level parameter
+            let playerCount, rounds, maps, useRandomMaps;
             if (typeof level === 'object') {
                 playerCount = level.playerCount || 2;
                 rounds = level.rounds || 4;
+                maps = level.maps || null; // Pass maps data
+                useRandomMaps = level.useRandomMaps || false; // Pass randomization setting
                 console.log(`🎯 Multiplayer settings - Players: ${playerCount}, Rounds to win: ${rounds}`);
+                console.log(`🗺️ Maps data:`, maps ? maps.map(m => m.name) : 'None (using default)');
             } else {
                 playerCount = level || 2; // Legacy support for number parameter
                 rounds = 4; // Default to 4 rounds
+                maps = null;
+                useRandomMaps = false;
             }
             
             // Show the game canvas
@@ -1625,52 +1684,9 @@ class Game {
                 this.cameraSystem = new CameraSystem(this.player);
             }
             
-            // Start local multiplayer battle with player count and rounds
-            this.startLocalMultiplayerBattle(playerCount, rounds);
+            // Start local multiplayer battle with all parameters
+            this.startLocalMultiplayerBattle(playerCount, rounds, maps, useRandomMaps);
             return; // Exit early since battle handles its own game loop
-        } else if (mode === 'bot_battle') {
-            console.log('🤖 Bot battle mode detected, setting up bot battle...');
-            this.isMultiplayerMode = false;
-            this.multiplayerData = null;
-            this.currentLevel = 1;
-            this.gameMode = 'battle'; // Set to battle mode for battle system initialization
-            
-            // Handle both old format (number) and new format (object)
-            if (typeof level === 'object') {
-                this.botCount = level.botCount || 3;
-                this.battleRounds = level.rounds || 3;
-                console.log(`🎯 Battle settings - Bots: ${this.botCount}, Rounds to win: ${this.battleRounds}`);
-            } else {
-                this.botCount = level || 3; // level parameter contains bot count (legacy support)
-                this.battleRounds = 3; // Default to 3 rounds
-            }
-            
-            // Show the game canvas
-            this.canvas.style.display = 'block';
-            
-            // Show game UI elements for battle
-            const gameUI = document.getElementById('ui');
-            const crosshair = document.getElementById('crosshair');
-            const instructions = document.getElementById('instructions');
-            
-            if (gameUI) gameUI.style.display = 'block';
-            if (crosshair) crosshair.style.display = 'block';
-            if (instructions) instructions.style.display = 'block';
-            
-            // Initialize 3D environment if not already done
-            if (!this.isGameInitialized) {
-                try {
-                    await this.init();
-                    this.isGameInitialized = true;
-                } catch (error) {
-                    console.error('Failed to initialize game for bot battle:', error);
-                    // Show error message and return to main menu
-                    this.showErrorAndReturnToMenu('Failed to initialize the battle system. Please try again or restart the game.');
-                    return;
-                }
-            }
-            
-            // Continue with battle system initialization below
         } else {
             this.isMultiplayerMode = false;
             this.multiplayerData = null;
@@ -1687,8 +1703,8 @@ class Game {
                 this.classicLives = 3; // Fallback assignment
             }
             this.classicWave = 1; // Reset wave counter
-            this.classicPlayerSpeed = 12; // Reset speeds
-            this.classicEnemySpeed = 8;
+            this.classicPlayerSpeed = 14; // Reset speeds - faster player
+            this.classicEnemySpeed = 6; // Reset speeds - slower enemies
         } else {
             this.isClassicMode = false;
             // Set starting level (for single player mode and pacman mode with level selection)
@@ -1778,7 +1794,7 @@ class Game {
     
 
     
-    startLocalMultiplayerBattle(playerCount = 2, rounds = 4) {
+    startLocalMultiplayerBattle(playerCount = 2, rounds = 4, maps = null, useRandomMaps = false) {
         console.log(`🥊 Initializing ${playerCount}-Player Local Multiplayer Battle Arena...`);
         console.log(`🎯 Tournament settings - Players: ${playerCount}, Rounds to win: ${rounds}`);
         
@@ -1792,9 +1808,7 @@ class Game {
         if (this.pacmanMenu) {
             this.pacmanMenu.hide();
         }
-        if (this.battleMenu) {
-            this.battleMenu.hide();
-        }
+
         
         // Hide any existing UI elements
         const gameUI = document.getElementById('ui');
@@ -1818,6 +1832,14 @@ class Game {
         console.log(`🏆 Setting round win target to: ${rounds}`);
         this.localMultiplayerBattle.setRoundWinTarget(rounds);
         
+        // Set maps data if provided
+        if (maps && maps.length > 0) {
+            console.log(`🗺️ Setting custom maps for ${maps.length} rounds:`, maps.map(m => m.name));
+            this.localMultiplayerBattle.setCustomMaps(maps, useRandomMaps);
+        } else {
+            console.log(`🗺️ Using default arena selection (random mode)`);
+        }
+        
         // Set up callbacks
         this.localMultiplayerBattle.onBackToMenu = () => {
             console.log('🥊 Returning to main menu from local multiplayer battle');
@@ -1829,7 +1851,22 @@ class Game {
         // Set up cleanup callback for when battle ends
         this.localMultiplayerBattle.onMatchEnd = () => {
             console.log('🥊 Match ended, returning to main menu');
+            
+            // CRITICAL: Stop ALL running loops
+            this.localMultiplayerBattle.stopAnimationLoop();
             this.localMultiplayerBattle.cleanup();
+            
+            // Stop main game loop if it's running
+            if (this.gameLoop) {
+                console.log('🛑 Stopping main game loop');
+                this.gameLoop.stop();
+                this.gameLoop = null;
+            }
+            
+            // Clean up all systems
+            this.cleanupAllGameModeUI();
+            this.cleanupSystems();
+            
             this.localMultiplayerBattle = null;
             this.showMainMenu();
         };
@@ -1938,17 +1975,17 @@ class Game {
     }
     
     setupLighting() {
-        // Enhanced ambient light with better color space
-        const ambientLight = new THREE.AmbientLight(0x404040, 1.2);
+        // Enhanced ambient light with better color space - MUCH BRIGHTER
+        const ambientLight = new THREE.AmbientLight(0x606060, 1.8);  // Brighter color and increased intensity from 1.2
         this.scene.add(ambientLight);
         
         if (this.gameMode === 'pacman') {
-            // Ultra-enhanced neon lighting for Pacman mode
-            ambientLight.intensity = 0.8;
-            ambientLight.color = new THREE.Color(0x223344);
+            // Ultra-enhanced neon lighting for Pacman mode - BRIGHTER
+            ambientLight.intensity = 1.4;  // Increased from 0.8 for much brighter ambience
+            ambientLight.color = new THREE.Color(0x445566);  // Brighter ambient color
             
-            // High-quality neon directional lights
-            const neonLight1 = new THREE.DirectionalLight(0x00FFFF, 1.5);
+            // High-quality neon directional lights - BRIGHTER
+            const neonLight1 = new THREE.DirectionalLight(0x00FFFF, 2.2);  // Increased from 1.5
             neonLight1.position.set(10, 10, 10);
             neonLight1.castShadow = true;
             neonLight1.shadow.mapSize.width = 4096;
@@ -1959,7 +1996,7 @@ class Game {
             neonLight1.shadow.normalBias = 0.02;
             this.scene.add(neonLight1);
             
-            const neonLight2 = new THREE.DirectionalLight(0xFF00FF, 1.2);
+            const neonLight2 = new THREE.DirectionalLight(0xFF00FF, 1.8);  // Increased from 1.2
             neonLight2.position.set(-10, 10, -10);
             neonLight2.castShadow = true;
             neonLight2.shadow.mapSize.width = 4096;
@@ -1970,23 +2007,23 @@ class Game {
             neonLight2.shadow.normalBias = 0.02;
             this.scene.add(neonLight2);
             
-            // Enhanced point lights with better falloff
-            const pointLight1 = new THREE.PointLight(0xFFFF00, 3, 35, 2);
+            // Enhanced point lights with better falloff - BRIGHTER
+            const pointLight1 = new THREE.PointLight(0xFFFF00, 4.2, 35, 2);  // Increased from 3
             pointLight1.position.set(0, 5, 0);
             pointLight1.castShadow = true;
             pointLight1.shadow.mapSize.width = 2048;
             pointLight1.shadow.mapSize.height = 2048;
             this.scene.add(pointLight1);
             
-            const pointLight2 = new THREE.PointLight(0x00FF00, 2.5, 30, 2);
+            const pointLight2 = new THREE.PointLight(0x00FF00, 3.5, 30, 2);  // Increased from 2.5
             pointLight2.position.set(0, 8, 0);
             pointLight2.castShadow = true;
             pointLight2.shadow.mapSize.width = 2048;
             pointLight2.shadow.mapSize.height = 2048;
             this.scene.add(pointLight2);
             
-            // Add hemisphere light for better neon ambience
-            const hemiLight = new THREE.HemisphereLight(0x00ffff, 0xff00ff, 0.3);
+            // Add hemisphere light for better neon ambience - BRIGHTER
+            const hemiLight = new THREE.HemisphereLight(0x00ffff, 0xff00ff, 0.6);  // Increased from 0.3
             this.scene.add(hemiLight);
             
         } else if (this.gameMode === 'normal') {
@@ -2007,11 +2044,11 @@ class Game {
             const lightThemeIndex = ((this.currentLevel - 1) % 10) + 1;
             const lightTheme = ps2LightThemes[lightThemeIndex];
             
-            ambientLight.intensity = 0.9;
-            ambientLight.color = new THREE.Color(0x444466);
+            ambientLight.intensity = 1.5;  // Increased from 0.9 for brighter visuals
+            ambientLight.color = new THREE.Color(0x667788);  // Brighter ambient color
             
-            // Enhanced PS2 directional lights with better shadows
-            const ps2Light1 = new THREE.DirectionalLight(lightTheme.primary, 1.3);
+            // Enhanced PS2 directional lights with better shadows - BRIGHTER
+            const ps2Light1 = new THREE.DirectionalLight(lightTheme.primary, 2.0);  // Increased from 1.3
             ps2Light1.position.set(10, 10, 10);
             ps2Light1.castShadow = true;
             ps2Light1.shadow.mapSize.width = 4096;
@@ -2022,7 +2059,7 @@ class Game {
             ps2Light1.shadow.normalBias = 0.02;
             this.scene.add(ps2Light1);
             
-            const ps2Light2 = new THREE.DirectionalLight(lightTheme.secondary, 1.0);
+            const ps2Light2 = new THREE.DirectionalLight(lightTheme.secondary, 1.6);  // Increased from 1.0
             ps2Light2.position.set(-10, 10, -10);
             ps2Light2.castShadow = true;
             ps2Light2.shadow.mapSize.width = 4096;
@@ -2033,21 +2070,21 @@ class Game {
             ps2Light2.shadow.normalBias = 0.02;
             this.scene.add(ps2Light2);
             
-            // Enhanced PS2 point lights with improved falloff
-            const ps2PointLight = new THREE.PointLight(lightTheme.primary, 2.5, 35, 2);
+            // Enhanced PS2 point lights with improved falloff - BRIGHTER
+            const ps2PointLight = new THREE.PointLight(lightTheme.primary, 3.8, 35, 2);  // Increased from 2.5
             ps2PointLight.position.set(0, 6, 0);
             ps2PointLight.castShadow = true;
             ps2PointLight.shadow.mapSize.width = 2048;
             ps2PointLight.shadow.mapSize.height = 2048;
             this.scene.add(ps2PointLight);
             
-            // Add hemisphere light for better PS2 ambience
-            const hemiLight = new THREE.HemisphereLight(lightTheme.primary, lightTheme.secondary, 0.2);
+            // Add hemisphere light for better PS2 ambience - BRIGHTER
+            const hemiLight = new THREE.HemisphereLight(lightTheme.primary, lightTheme.secondary, 0.5);  // Increased from 0.2
             this.scene.add(hemiLight);
             
         } else {
-            // Ultra-enhanced standard lighting
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            // Ultra-enhanced standard lighting - MUCH BRIGHTER
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 2.4);  // Increased from 1.5
             directionalLight.position.set(10, 10, 5);
             directionalLight.castShadow = true;
             directionalLight.shadow.mapSize.width = 4096;
@@ -2062,20 +2099,20 @@ class Game {
             directionalLight.shadow.normalBias = 0.02;
             this.scene.add(directionalLight);
             
-            // Enhanced point light with better falloff
-            const pointLight = new THREE.PointLight(0xffffff, 2, 60, 2);
+            // Enhanced point light with better falloff - BRIGHTER
+            const pointLight = new THREE.PointLight(0xffffff, 3.2, 60, 2);  // Increased from 2
             pointLight.position.set(0, 10, 0);
             pointLight.castShadow = true;
             pointLight.shadow.mapSize.width = 2048;
             pointLight.shadow.mapSize.height = 2048;
             this.scene.add(pointLight);
             
-            // Add hemisphere light for better overall illumination
-            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.3);
+            // Add hemisphere light for better overall illumination - BRIGHTER
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x666666, 0.6);  // Increased from 0.3, brighter ground color
             this.scene.add(hemiLight);
         }
         
-        console.log('🌟 Ultra-enhanced lighting setup complete with 4K shadows and improved falloff');
+        console.log('🌟 Ultra-bright enhanced lighting setup complete with maximum brightness settings and 4K shadows');
     }
     
     async setupSystems() {
@@ -2205,30 +2242,7 @@ class Game {
         // Reset collision system state for new level
         this.collisionSystem.resetForNewLevel();
         
-        // Initialize battle system if in battle mode
-        if (this.gameMode === 'battle') {
-            try {
-                this.battleSystem = new BattleSystem(this.scene, this.player);
-                this.battleUI = new BattleUI();
-                
-                // Connect battle system and UI
-                this.battleSystem.setBattleUI(this.battleUI);
-                
-                // Setup battle system callbacks
-                this.battleSystem.setVictoryCallback(() => this.handleBattleVictory());
-                this.battleSystem.setDefeatCallback(() => this.handleBattleDefeat());
-                
-                // Start battle at specified level with bot count and rounds if available
-                this.battleSystem.startBattle(this.currentLevel, this.botCount, this.battleRounds);
-                
-                console.log('🥊 Battle system initialized successfully');
-            } catch (error) {
-                console.error('Failed to initialize battle system:', error);
-                // Show error message and return to main menu
-                this.showErrorAndReturnToMenu('Failed to start the battle system. Please try again or check your browser console for more details.');
-                return; // Exit early to prevent game loop creation
-            }
-        }
+
 
         // Setup game loop only if we reach this point successfully
         try {
@@ -2354,11 +2368,10 @@ class Game {
                     const menuVisible = this.mainMenu.isVisible || 
                                       this.singlePlayerMenu.isVisible || 
                                       this.pacmanMenu.isVisible || 
-                                      this.battleMenu.isVisible ||
                                       this.gameOverScreen.isVisible;
                     
                     console.log(`🎮 Menu visibility check: ${menuVisible}`);
-                    console.log(`🎮 Main menu: ${this.mainMenu.isVisible}, Single player: ${this.singlePlayerMenu.isVisible}, Pacman: ${this.pacmanMenu.isVisible}, Battle: ${this.battleMenu.isVisible}, Game over: ${this.gameOverScreen.isVisible}`);
+                    console.log(`🎮 Main menu: ${this.mainMenu.isVisible}, Single player: ${this.singlePlayerMenu.isVisible}, Pacman: ${this.pacmanMenu.isVisible}, Game over: ${this.gameOverScreen.isVisible}`);
                     console.log(`🎮 Current pause state: ${this.isPaused}`);
                     
                     // Only handle pause if no menus are visible and game is active
@@ -2738,6 +2751,14 @@ class Game {
                 
                 // Tournament complete - immediate return to main menu
                 console.log('🏆 Tournament completed, returning to main menu');
+                
+                // CRITICAL: Stop ALL running systems
+                if (this.gameLoop) {
+                    console.log('🛑 Stopping main game loop after battle victory');
+                    this.gameLoop.stop();
+                    this.gameLoop = null;
+                }
+                
                 this.cleanupBattleMode();
                 this.showMainMenu();
             } else {
@@ -2787,6 +2808,13 @@ class Game {
     // Handle battle defeat
     async handleBattleDefeat() {
         console.log('💀 Battle defeated - immediately returning to main menu (no UI shown)');
+        
+        // CRITICAL: Stop ALL running systems
+        if (this.gameLoop) {
+            console.log('🛑 Stopping main game loop after battle defeat');
+            this.gameLoop.stop();
+            this.gameLoop = null;
+        }
         
         // Immediate cleanup and return to main menu
         this.cleanupBattleMode();
@@ -3184,6 +3212,12 @@ class Game {
             // Wait for systems to be ready
             await new Promise(resolve => setTimeout(resolve, 100));
 
+            // Ensure game is marked as initialized for O key functionality
+            if (!this.isGameInitialized) {
+                console.log('🎮 Force setting isGameInitialized after continue');
+                this.isGameInitialized = true;
+            }
+
             // Restore player state
             if (this.player) {
                 this.player.setPosition(
@@ -3215,6 +3249,11 @@ class Game {
             return true;
         } catch (error) {
             console.error('Error continuing from saved state:', error);
+            // Even if there's an error, try to mark as initialized if basic systems are ready
+            if (this.scene && this.renderer && this.canvas) {
+                console.log('🎮 Fallback: Setting isGameInitialized despite error');
+                this.isGameInitialized = true;
+            }
             return false;
         }
     }
@@ -3363,9 +3402,12 @@ class Game {
         
 
         
-        // Clean up audio manager
+        // NOTE: DO NOT destroy audioManager here! 
+        // The audio manager should persist throughout the entire game session.
+        // Only stop background music and reset game mode if needed.
         if (this.audioManager) {
-            this.audioManager.destroy();
+            this.audioManager.stopBackgroundMusic();
+            console.log('🎵 Background music stopped during game mode cleanup');
         }
         
         // Remove any remaining game UI elements by comprehensive ID patterns
@@ -3599,14 +3641,14 @@ class Game {
             // Use the classic mode enemy speed system
             return this.getEnemySpeed();
         } else if (this.gameMode === 'pacman') {
-            // Ghost speeds adjusted to match faster player speeds but still catchable
+            // Ghost speeds slower to give player more advantage
             switch (this.currentLevel) {
-                case 1: return 14;   // Slightly slower than player (18) for training
-                case 2: return 16;   // Slightly slower than player (20)
-                case 3: return 18;   // Slightly slower than player (22)
-                case 4: return 20;   // Slightly slower than player (24)
-                case 5: return 22;   // Slightly slower than player (26)
-                default: return 14 + (this.currentLevel - 1) * 2; // Continue progression
+                case 1: return 12;   // Much slower than player (20) for training
+                case 2: return 13;   // Much slower than player (22)
+                case 3: return 14;   // Much slower than player (24)
+                case 4: return 15;   // Much slower than player (26)
+                case 5: return 16;   // Much slower than player (28)
+                default: return 12 + Math.floor((this.currentLevel - 1) * 0.8); // Slower progression
             }
         } else {
             // For normal mode, check if level has specific ghost speeds
@@ -3625,14 +3667,14 @@ class Game {
             // Classic mode: progressive speed increases per wave, max 20
             return Math.min(this.classicPlayerSpeed, this.maxClassicSpeed);
         } else if (this.gameMode === 'pacman' || this.gameMode === 'pacman_classic') {
-            // All levels use fast base speed (18) with slight increases for larger levels
+            // Faster base speeds to give player advantage
             switch (this.currentLevel) {
-                case 1: return 18;  // Fast base speed for training level
-                case 2: return 20;  // Slightly faster for bigger level
-                case 3: return 22;  // Faster for even bigger level
-                case 4: return 24;  // Much faster for large level
-                case 5: return 26;  // Fastest for biggest level
-                default: return 18 + (this.currentLevel - 1) * 2; // Continue progression
+                case 1: return 20;  // Faster base speed for training level
+                case 2: return 22;  // Faster for bigger level
+                case 3: return 24;  // Faster for even bigger level
+                case 4: return 26;  // Much faster for large level
+                case 5: return 28;  // Even faster for final level
+                default: return 20 + (this.currentLevel - 1) * 2; // Continue progression
             }
         } else {
             return 10; // Default speed for non-pacman modes
@@ -3645,14 +3687,14 @@ class Game {
             // Classic mode: progressive speed increases per wave, max 20
             return Math.min(this.classicEnemySpeed, this.maxClassicSpeed);
         } else {
-            // Default enemy speeds for normal pacman mode
+            // Default enemy speeds for normal pacman mode - slower than before
             switch (this.currentLevel) {
-                case 1: return 14;
-                case 2: return 16;
-                case 3: return 18;
-                case 4: return 20;
-                case 5: return 22;
-                default: return 14 + (this.currentLevel - 1) * 2;
+                case 1: return 12;
+                case 2: return 13;
+                case 3: return 14;
+                case 4: return 15;
+                case 5: return 16;
+                default: return 12 + Math.floor((this.currentLevel - 1) * 0.8);
             }
         }
     }
@@ -3785,6 +3827,21 @@ class Game {
             this.uiManager.clearNotification();
         }
         
+        // ===== NEW: Handle local multiplayer battle cleanup =====
+        if (this.localMultiplayerBattle) {
+            console.log('🛑 Cleaning up active LocalMultiplayerBattle before returning to menu');
+            // Stop its animation loop first
+            this.localMultiplayerBattle.stopAnimationLoop();
+            // Perform comprehensive cleanup
+            this.localMultiplayerBattle.cleanup();
+            this.localMultiplayerBattle = null;
+        }
+        
+        // Ensure all battle-mode UI elements are removed
+        this.cleanupAllGameModeUI();
+        this.cleanupSystems();
+        // ===== END NEW =====
+        
         // Stop the game loop
         if (this.gameLoop) {
             this.gameLoop.stop();
@@ -3807,8 +3864,15 @@ class Game {
         
         // Clean up pause overlay
         if (this.pauseOverlay) {
-            document.body.removeChild(this.pauseOverlay);
-            this.pauseOverlay = null;
+            try {
+                if (this.pauseOverlay.parentNode) {
+                    this.pauseOverlay.parentNode.removeChild(this.pauseOverlay);
+                }
+            } catch (e) {
+                console.warn('pauseOverlay already removed or not in DOM:', e);
+            } finally {
+                this.pauseOverlay = null;
+            }
         }
         
         // Exit pointer lock
@@ -3843,8 +3907,15 @@ class Game {
         
         // Clean up pause overlay if exists
         if (this.pauseOverlay) {
-            document.body.removeChild(this.pauseOverlay);
-            this.pauseOverlay = null;
+            try {
+                if (this.pauseOverlay.parentNode) {
+                    this.pauseOverlay.parentNode.removeChild(this.pauseOverlay);
+                }
+            } catch (e) {
+                console.warn('pauseOverlay already removed or not in DOM:', e);
+            } finally {
+                this.pauseOverlay = null;
+            }
         }
         
         // Hide all menus and show main menu
@@ -3873,8 +3944,15 @@ class Game {
         // Reset pause state
         this.isPaused = false;
         if (this.pauseOverlay) {
-            document.body.removeChild(this.pauseOverlay);
-            this.pauseOverlay = null;
+            try {
+                if (this.pauseOverlay.parentNode) {
+                    this.pauseOverlay.parentNode.removeChild(this.pauseOverlay);
+                }
+            } catch (e) {
+                console.warn('pauseOverlay already removed or not in DOM:', e);
+            } finally {
+                this.pauseOverlay = null;
+            }
         }
         
         // Restart the current level
@@ -3996,8 +4074,15 @@ class Game {
             // Reset pause state
             this.isPaused = false;
             if (this.pauseOverlay) {
-                document.body.removeChild(this.pauseOverlay);
-                this.pauseOverlay = null;
+                try {
+                    if (this.pauseOverlay.parentNode) {
+                        this.pauseOverlay.parentNode.removeChild(this.pauseOverlay);
+                    }
+                } catch (e) {
+                    console.warn('pauseOverlay already removed or not in DOM:', e);
+                } finally {
+                    this.pauseOverlay = null;
+                }
             }
             
             // Show game elements

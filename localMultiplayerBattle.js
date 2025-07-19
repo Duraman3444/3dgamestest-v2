@@ -594,6 +594,10 @@ export class LocalMultiplayerBattle {
         
         // Input handling
         this.keys = {};
+        
+        // Event listener references for proper cleanup
+        this.keydownHandler = null;
+        this.keyupHandler = null;
         this.setupInputHandling();
         
         // Initialize canvas settings
@@ -642,13 +646,74 @@ export class LocalMultiplayerBattle {
     
     // Setup input handling for all players
     setupInputHandling() {
-        document.addEventListener('keydown', (event) => {
+        // Store event listeners for proper cleanup
+        this.keydownHandler = (event) => {
             this.keys[event.code] = true;
-        });
+            
+            // Handle ESC key to exit mid-match - HIGHEST PRIORITY
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                event.stopPropagation();
+                event.stopImmediatePropagation();
+                console.log('🚪 ESC pressed - exiting multiplayer battle mid-match');
+                this.exitToMainMenu();
+                return false; // Prevent any other handlers
+            }
+        };
         
-        document.addEventListener('keyup', (event) => {
+        this.keyupHandler = (event) => {
             this.keys[event.code] = false;
-        });
+        };
+        
+        // Add listeners with capture phase for highest priority
+        document.addEventListener('keydown', this.keydownHandler, true);
+        document.addEventListener('keyup', this.keyupHandler, true);
+        
+        console.log('🎮 Multiplayer input handlers registered with highest priority');
+    }
+    
+    // Exit to main menu mid-match (EXACTLY same as completed match cleanup)
+    exitToMainMenu() {
+        console.log('🚪 ESC pressed - performing COMPLETE game reset like finished matches...');
+        
+        // Set final states
+        this.isActive = false;
+        this.isRunning = false;
+        this.gameState = 'exited';
+        
+        // Stop animation loop immediately
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+        }
+        
+        // Don't call this.cleanup() here - let the main game's onMatchEnd callback handle ALL cleanup
+        // This is the key fix: use the EXACT same path as successful match completion
+        
+        // Call the onMatchEnd callback immediately (no timeout delay)
+        // This triggers the exact same comprehensive cleanup as when matches finish normally
+        if (this.onMatchEnd) {
+            console.log('🎯 Calling onMatchEnd callback - identical to completed match cleanup');
+            // This will call:
+            // - this.localMultiplayerBattle.stopAnimationLoop()
+            // - this.localMultiplayerBattle.cleanup() 
+            // - this.cleanupAllGameModeUI()
+            // - this.cleanupSystems()
+            // - this.localMultiplayerBattle = null
+            // - this.showMainMenu()
+            this.onMatchEnd();
+        } else if (this.onBackToMenu) {
+            console.log('🎯 Calling onBackToMenu callback as fallback');
+            this.onBackToMenu();
+        } else {
+            // Emergency fallback
+            console.error('⚠️ No callbacks available - emergency cleanup');
+            this.cleanup();
+            if (window.game) {
+                window.game.localMultiplayerBattle = null;
+                window.game.showMainMenu();
+            }
+        }
     }
     
     // Set number of active players
@@ -672,6 +737,28 @@ export class LocalMultiplayerBattle {
             console.log(`🏆 Round win target set to: ${this.roundWinTarget} (max rounds: ${this.maxRounds})`);
         } else {
             console.warn(`⚠️ Invalid round count: ${rounds}. Using default: ${this.roundWinTarget}`);
+        }
+    }
+    
+    // Set custom maps for tournament
+    setCustomMaps(maps, useRandomMaps = false) {
+        if (maps && maps.length > 0) {
+            this.customMaps = maps;
+            this.useCustomMaps = true;
+            this.customMapRandomization = useRandomMaps;
+            
+            if (useRandomMaps) {
+                console.log(`🗺️ Custom maps loaded for randomization: ${maps.length} maps`);
+                this.arenaSelectionMode = 'custom_random';
+            } else {
+                console.log(`🗺️ Custom maps loaded in order: ${maps.map(m => m.name).join(', ')}`);
+                this.arenaSelectionMode = 'custom_sequential';
+            }
+        } else {
+            this.customMaps = null;
+            this.useCustomMaps = false;
+            this.arenaSelectionMode = 'random';
+            console.log(`🗺️ No custom maps provided, using default arena selection`);
         }
     }
     
@@ -724,7 +811,19 @@ export class LocalMultiplayerBattle {
     
     // Select arena theme for current round
     selectArenaTheme() {
-        if (this.arenaSelectionMode === 'random') {
+        if (this.arenaSelectionMode === 'custom_random' && this.customMaps && this.customMaps.length > 0) {
+            // Use random selection from custom maps
+            const randomIndex = Math.floor(Math.random() * this.customMaps.length);
+            const customMap = this.customMaps[randomIndex];
+            this.currentArenaTheme = this.mapCustomMapToTheme(customMap);
+            console.log(`🎲 Custom arena randomly selected: ${customMap.name} -> ${this.arenaThemes[this.currentArenaTheme].name}`);
+        } else if (this.arenaSelectionMode === 'custom_sequential' && this.customMaps && this.customMaps.length > 0) {
+            // Use sequential selection from custom maps
+            const mapIndex = Math.min(this.currentRound - 1, this.customMaps.length - 1);
+            const customMap = this.customMaps[mapIndex];
+            this.currentArenaTheme = this.mapCustomMapToTheme(customMap);
+            console.log(`🔄 Custom arena selected sequentially: ${customMap.name} -> ${this.arenaThemes[this.currentArenaTheme].name}`);
+        } else if (this.arenaSelectionMode === 'random') {
             this.currentArenaTheme = Math.floor(Math.random() * this.arenaThemes.length);
             console.log(`🎲 Arena randomly selected from ${this.arenaThemes.length} available themes`);
         } else {
@@ -735,6 +834,38 @@ export class LocalMultiplayerBattle {
         
         const theme = this.arenaThemes[this.currentArenaTheme];
         console.log(`🎨 Selected arena theme: ${theme.name} - ${theme.description}`);
+    }
+    
+    // Map custom map selection to arena theme index
+    mapCustomMapToTheme(customMap) {
+        // Map the custom map ID/file to corresponding arena theme
+        const mapToThemeMapping = {
+            'level1.json': 0,      // Jungle Temple
+            'level2.json': 1,      // Volcanic Crater  
+            'level3.json': 2,      // Sky Sanctuary
+            'level4.json': 3,      // Desert Oasis
+            'level5.json': 4,      // Neon Grid
+            'level6.json': 5,      // Frozen Peaks
+            'pacman1.json': 6,     // Ancient Temple
+            'pacman2.json': 7,     // Underwater Temple
+            'pacman3.json': 8,     // Crystal Caverns
+            'pacman4.json': 9,     // Haunted Graveyard
+            'pacman5.json': 10,    // Space Station
+            'pacman6.json': 11,    // Clockwork Factory
+            'pacman7.json': 12     // Floating Islands
+        };
+        
+        // Use the file property from the custom map, or fall back to ID-based mapping
+        const fileKey = customMap.file || `${customMap.id}.json`;
+        const themeIndex = mapToThemeMapping[fileKey];
+        
+        if (themeIndex !== undefined && themeIndex < this.arenaThemes.length) {
+            console.log(`🗺️ Mapped ${fileKey} to theme ${themeIndex}: ${this.arenaThemes[themeIndex].name}`);
+            return themeIndex;
+        } else {
+            console.warn(`⚠️ Could not map ${fileKey}, using random theme`);
+            return Math.floor(Math.random() * this.arenaThemes.length);
+        }
     }
     
     // Create themed battle arena
@@ -813,16 +944,16 @@ export class LocalMultiplayerBattle {
         console.log(`🏟️ ${theme.name} arena created with atmospheric effects`);
     }
     
-    // Create themed lighting
+    // Create themed lighting - MUCH BRIGHTER FOR MULTIPLAYER BATTLES
     createThemedLighting(theme) {
-        // Enhanced ambient lighting
-        const ambientLight = new THREE.AmbientLight(theme.lighting.ambient, 0.4);
+        // Enhanced ambient lighting - SIGNIFICANTLY BRIGHTER
+        const ambientLight = new THREE.AmbientLight(theme.lighting.ambient, 1.2);  // Increased from 0.4
         ambientLight.name = 'themed_ambient';
         this.scene.add(ambientLight);
         this.arenaObjects.push(ambientLight);
         
-        // Enhanced directional light with high-quality shadows
-        const directionalLight = new THREE.DirectionalLight(theme.lighting.directional, 0.8);
+        // Enhanced directional light with high-quality shadows - MUCH BRIGHTER
+        const directionalLight = new THREE.DirectionalLight(theme.lighting.directional, 2.4);  // Increased from 0.8
         directionalLight.position.set(20, 30, 10);
         directionalLight.castShadow = true;
         directionalLight.shadow.mapSize.width = 4096;  // High resolution shadows
@@ -840,15 +971,15 @@ export class LocalMultiplayerBattle {
         this.scene.add(directionalLight);
         this.arenaObjects.push(directionalLight);
         
-        // Add rim lighting for dramatic effect
-        const rimLight = new THREE.DirectionalLight(theme.colors.edge, 0.3);
+        // Add rim lighting for dramatic effect - BRIGHTER
+        const rimLight = new THREE.DirectionalLight(theme.colors.edge, 0.9);  // Increased from 0.3
         rimLight.position.set(-20, 15, -10);
         rimLight.name = 'themed_rim';
         this.scene.add(rimLight);
         this.arenaObjects.push(rimLight);
         
-        // Add atmospheric spotlight for dramatic lighting
-        const spotLight = new THREE.SpotLight(theme.colors.fog, 0.6, 50, Math.PI / 6, 0.2, 2);
+        // Add atmospheric spotlight for dramatic lighting - BRIGHTER
+        const spotLight = new THREE.SpotLight(theme.colors.fog, 1.5, 50, Math.PI / 6, 0.2, 2);  // Increased from 0.6
         spotLight.position.set(0, 40, 0);
         spotLight.target.position.set(0, 0, 0);
         spotLight.castShadow = true;
@@ -862,10 +993,10 @@ export class LocalMultiplayerBattle {
         this.arenaObjects.push(spotLight);
         this.arenaObjects.push(spotLight.target);
         
-        // Special lighting effects based on theme
+        // Special lighting effects based on theme - ALL MUCH BRIGHTER
         if (theme.name === "Volcanic Crater") {
-            // Enhanced lava lighting with shadows
-            const lavaLight = new THREE.PointLight(0xFF4500, 2, 30);
+            // Enhanced lava lighting with shadows - BRIGHTER
+            const lavaLight = new THREE.PointLight(0xFF4500, 3.5, 30);  // Increased from 2
             lavaLight.position.set(0, -5, 0);
             lavaLight.castShadow = true;
             lavaLight.shadow.mapSize.width = 1024;
@@ -874,8 +1005,8 @@ export class LocalMultiplayerBattle {
             this.scene.add(lavaLight);
             this.arenaObjects.push(lavaLight);
         } else if (theme.name === "Neon Grid") {
-            // Enhanced neon lights with shadows
-            const neonLight1 = new THREE.PointLight(0x00FFFF, 1.5, 25);
+            // Enhanced neon lights with shadows - MUCH BRIGHTER
+            const neonLight1 = new THREE.PointLight(0x00FFFF, 2.8, 25);  // Increased from 1.5
             neonLight1.position.set(15, 5, 0);
             neonLight1.castShadow = true;
             neonLight1.shadow.mapSize.width = 1024;
@@ -884,7 +1015,7 @@ export class LocalMultiplayerBattle {
             this.scene.add(neonLight1);
             this.arenaObjects.push(neonLight1);
             
-            const neonLight2 = new THREE.PointLight(0xFF00FF, 1.5, 25);
+            const neonLight2 = new THREE.PointLight(0xFF00FF, 2.8, 25);  // Increased from 1.5
             neonLight2.position.set(-15, 5, 0);
             neonLight2.castShadow = true;
             neonLight2.shadow.mapSize.width = 1024;
@@ -893,8 +1024,8 @@ export class LocalMultiplayerBattle {
             this.scene.add(neonLight2);
             this.arenaObjects.push(neonLight2);
         } else if (theme.name === "Sky Sanctuary") {
-            // Sky lighting with god rays effect
-            const skyLight = new THREE.PointLight(0x87CEEB, 1.2, 40);
+            // Sky lighting with god rays effect - BRIGHTER
+            const skyLight = new THREE.PointLight(0x87CEEB, 2.2, 40);  // Increased from 1.2
             skyLight.position.set(0, 25, 0);
             skyLight.castShadow = true;
             skyLight.shadow.mapSize.width = 1024;
@@ -904,7 +1035,7 @@ export class LocalMultiplayerBattle {
             this.arenaObjects.push(skyLight);
         }
         
-        console.log(`💡 Enhanced themed lighting created for ${theme.name} with high-quality shadows`);
+        console.log(`💡 Ultra-bright enhanced themed lighting created for ${theme.name} with maximum brightness and high-quality shadows`);
     }
     
     // Create themed markers around arena
@@ -3423,6 +3554,18 @@ export class LocalMultiplayerBattle {
         // Skip showing results UI - immediately clean up and return to main menu
         console.log(`🏆 Tournament completed - ${winner.name} wins! Immediately returning to main menu (no UI shown)`);
         
+        // CRITICAL: Immediately stop all systems
+        this.isActive = false;
+        this.isRunning = false;
+        this.gameState = 'match_ended';
+        
+        // Force stop animation loop BEFORE cleanup
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+            console.log('🛑 Animation loop stopped before cleanup');
+        }
+        
         // Immediate cleanup
         this.cleanup();
         
@@ -3438,7 +3581,30 @@ export class LocalMultiplayerBattle {
     
     // Cleanup
     cleanup() {
-        // Stop animation loop
+        console.log('🧹 LocalMultiplayerBattle cleanup initiated...');
+        
+        // CRITICAL: Remove event listeners FIRST to prevent conflicts
+        if (this.keydownHandler) {
+            document.removeEventListener('keydown', this.keydownHandler, true);
+            this.keydownHandler = null;
+            console.log('🎮 Multiplayer keydown handler removed');
+        }
+        
+        if (this.keyupHandler) {
+            document.removeEventListener('keyup', this.keyupHandler, true);
+            this.keyupHandler = null;
+            console.log('🎮 Multiplayer keyup handler removed');
+        }
+        
+        // CRITICAL: Force stop animation loop
+        this.isRunning = false;
+        if (this.animationId) {
+            cancelAnimationFrame(this.animationId);
+            this.animationId = null;
+            console.log('🛑 LocalMultiplayerBattle animation loop force-stopped');
+        }
+        
+        // Stop animation loop (redundant but safe)
         this.stopAnimationLoop();
         
         this.isActive = false;

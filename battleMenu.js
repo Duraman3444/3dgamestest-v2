@@ -1,3 +1,5 @@
+import { MapSelectionMenu } from './mapSelectionMenu.js';
+
 export class BattleMenu {
     constructor(onStartBattle, onBackToMain) {
         this.onStartBattle = onStartBattle;
@@ -11,6 +13,12 @@ export class BattleMenu {
         this.botCountSelect = null;
         this.startButton = null;
         this.backButton = null;
+        
+        // Create map selection menu
+        this.mapSelectionMenu = new MapSelectionMenu(
+            (mapSelectionData) => this.handleMapSelectionComplete(mapSelectionData),
+            () => this.handleMapSelectionBack()
+        );
         
         this.createMenu();
         this.setupEventListeners();
@@ -287,11 +295,37 @@ export class BattleMenu {
     }
     
     startBattle() {
-        console.log(`🤖 Starting Player vs ${this.selectedBotCount} Bots Battle - ${this.selectedRounds} rounds to win`);
+        console.log(`🗺️ Opening map selection for ${this.selectedBotCount} bot battle - ${this.selectedRounds} rounds to win`);
+        
+        // Prepare battle configuration for map selection
+        const battleConfig = {
+            mode: 'bot_battle',
+            botCount: this.selectedBotCount,
+            rounds: this.selectedRounds
+        };
+        
+        // Hide this menu and show map selection
         this.hide();
-        // Route to the enhanced battle system for bot battles
-        // Pass bot count and rounds as an object in the level parameter
-        this.onStartBattle('bot_battle', { botCount: this.selectedBotCount, rounds: this.selectedRounds }, 'normal');
+        this.mapSelectionMenu.setBattleConfig(battleConfig);
+        this.mapSelectionMenu.show();
+    }
+    
+    // Handle map selection completion
+    handleMapSelectionComplete(mapSelectionData) {
+        console.log(`🚀 Starting bot battle with selected maps:`, mapSelectionData.maps.map(map => map.name));
+        
+        // Start the actual battle with map data
+        this.onStartBattle('bot_battle', {
+            botCount: this.selectedBotCount,
+            rounds: this.selectedRounds,
+            maps: mapSelectionData.maps,
+            randomized: mapSelectionData.randomized
+        }, 'normal');
+    }
+    
+    // Handle going back from map selection
+    handleMapSelectionBack() {
+        this.show(); // Show this menu again
     }
     
     show() {

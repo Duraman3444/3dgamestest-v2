@@ -38,6 +38,9 @@ export class BattleSystem {
         
         // UI reference
         this.battleUI = null;
+        
+        // Timer references for cleanup
+        this.countdownInterval = null;
     }
     
     // Set UI reference
@@ -670,7 +673,7 @@ export class BattleSystem {
             this.battleUI.showCountdown(countdown);
         }
         
-        const countdownInterval = setInterval(() => {
+        this.countdownInterval = setInterval(() => {
             console.log(`⏰ ${countdown}...`);
             countdown--;
             
@@ -679,7 +682,8 @@ export class BattleSystem {
                     this.battleUI.showCountdown(countdown);
                 }
             } else {
-                clearInterval(countdownInterval);
+                clearInterval(this.countdownInterval);
+                this.countdownInterval = null;
                 console.log('🚀 FIGHT!');
                 this.battleState = 'active';
                 
@@ -1005,10 +1009,17 @@ export class BattleSystem {
     
     // End the entire match
     endMatch(victory = false) {
+        console.log(`🏆 Match ended - ${victory ? 'Victory' : 'Defeat'}! Final score: Player ${this.playerRoundWins}-${this.botRoundWins} Bots`);
+        
+        // CRITICAL: Immediately stop all battle activity
         this.isActive = false;
         this.battleState = victory ? 'won' : 'lost';
         
-        console.log(`🏆 Match ended - ${victory ? 'Victory' : 'Defeat'}! Final score: Player ${this.playerRoundWins}-${this.botRoundWins} Bots`);
+        // Clear any pending intervals or timeouts
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+            this.countdownInterval = null;
+        }
         
         // IMMEDIATE UI cleanup - no victory/defeat screens shown
         if (this.battleUI) {
@@ -1085,13 +1096,22 @@ export class BattleSystem {
     
     // Clean up
     cleanup() {
+        console.log('🧹 BattleSystem cleanup initiated...');
+        
         this.isActive = false;
         this.battleState = 'inactive';
         this.enemyBalls = [];
         this.playersAlive = 0;
         this.enemiesAlive = 0;
         
-        // Clear any pending timeouts
+        // Clear any pending intervals/timeouts
+        if (this.countdownInterval) {
+            clearInterval(this.countdownInterval);
+            this.countdownInterval = null;
+            console.log('🛑 BattleSystem countdown interval cleared');
+        }
+        
+        // Clear callbacks
         if (this.victoryCallback) {
             this.victoryCallback = null;
         }
