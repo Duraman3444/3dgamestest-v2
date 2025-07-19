@@ -93,9 +93,9 @@ const GodRaysShader = {
             for(int i = 0; i < 50; i++) {
                 if(i >= samples) break;
                 texCoord -= deltaTexCoord;
-                vec3 sample = texture2D(tDiffuse, texCoord).rgb;
-                sample *= illuminationDecay * weight;
-                color += sample;
+                vec3 texSample = texture2D(tDiffuse, texCoord).rgb;
+                texSample *= illuminationDecay * weight;
+                color += texSample;
                 illuminationDecay *= decay;
             }
             
